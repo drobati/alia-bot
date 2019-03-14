@@ -1,0 +1,24 @@
+{
+  "name": "alia-bot",
+  "version": "1.0.0",
+  "description": "Bot for Arrakis Discord",
+  "main": "index.js",
+  "scripts": {
+    "test": "mocha.js test"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/desert-planet/alia.git"
+  },
+  "keywords": [
+    "bot",
+    "discord",
+    "alia"
+  ],
+  "author": "derek.robati@gmail.com",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/desert-planet/alia/issues"
+  },
+  "homepage": "https://github.com/desert-planet/alia#readme"
+}
