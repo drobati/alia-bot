@@ -1,6 +1,7 @@
 const { listenForLouds } = require('./louds');
 
-describe('louds', () => {
+// TODO: Mock sql.
+describe('response/louds', () => {
     test('should respond to loud', () => {
         const mockChannelSend = jest.fn(x => x);
         const message = { content: 'FEAR', channel: { send: mockChannelSend } };

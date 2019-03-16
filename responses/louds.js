@@ -2,6 +2,10 @@ const Sequelize = require('sequelize');
 
 // https://github.com/desert-planet/hayt/blob/master/scripts/loud.coffee
 // Port of louds by annabunches
+// Description:
+//   ENCOURAGE SHOUTING. LOUD TEXT IS FOREVER.
+//   LOUD WILL CAUSE YOUR HUBOT TO STORE ALL-CAPS MESSAGES FROM THE CHANNEL,
+//   AND SPIT THEM BACK AT RANDOM IN RESPONSE.
 module.exports = async (message, model) => {
     const { Louds, Louds_Banned } = model;
 

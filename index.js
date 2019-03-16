@@ -1,7 +1,9 @@
 const Discord = require('discord.js');
 const db = require('sequelize');
+// TODO: Create index at each root folder for single import.
 const loudsResponse = require('./responses/louds');
 const loudsModel = require('./models/louds');
+const loudsCommands = require('./commands/louds');
 
 // Create new client
 const client = new Discord.Client();
@@ -35,12 +37,12 @@ client.on('message', async message => {
     if (message.content.startsWith(PREFIX)) {
         const input = message.content.slice(PREFIX.length).split(' ');
         const command = input.shift();
-        // const commandArgs = input.join(' ');
+        const commandArgs = input.join(' ');
 
         if (command === 'fear') {
             message.channel.send('Fear is the mindkiller.');
         } else if (command === 'loud') {
-            // TODO: Add loud commands.
+            loudsCommands(message, commandArgs, { Louds, Louds_Banned });
         }
     }
 });
