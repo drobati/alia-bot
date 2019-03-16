@@ -48,7 +48,6 @@ client.on('message', async message => {
 client.on('message', async message => {
     // Alia doesn't respond to herslef and other bots.
     if (message.author.bot) {
-        console.log(message);
         return '';
     }
 
