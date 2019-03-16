@@ -1,20 +1,26 @@
-const { Louds, Louds_Banned } = require('./models/louds');
+const Sequelize = require('sequelize');
 
 // https://github.com/desert-planet/hayt/blob/master/scripts/loud.coffee
 // Port of louds by annabunches
+module.exports = async (message, model) => {
+    const { Louds, Louds_Banned } = model;
 
-module.exports = async function listenForLouds(message) {
+    if (message.author.bot) {
+        console.log(message);
+        return '';
+    }
+
     const regex = /^\s*([A-Z"][A-Z0-9 .,'"()?!&%$#@+-]+)$/;
     if (regex.test(message.content)) {
         // Pick a loud from the stored list and say it. Skip if there are no louds.
-        const loud = await Louds.findOne({ order: 'random()' });
+        const loud = await Louds.findOne({ order: Sequelize.literal('random()') });
 
         if (loud) {
-            tag.increment('usage_count');
+            loud.increment('usage_count');
             message.channel.send(loud.message);
+        } else {
+            message.channel.send('No louds stored yet.');
         }
-
-        message.channel.send('No louds stored yet.');
 
         // Save new loud in the list, but only if it is unique.
         const newLoud = message.content.trim();

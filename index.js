@@ -1,7 +1,7 @@
 const Discord = require('discord.js');
 const db = require('sequelize');
-const { listenForLouds } = require('./responses/louds');
-const { setupLouds } = require('./models/louds');
+const loudsResponse = require('./responses/louds');
+const loudsModel = require('./models/louds');
 
 // Create new client
 const client = new Discord.Client();
@@ -11,12 +11,11 @@ const sequelize = new db.Sequelize('database', 'user', 'password', {
     host: 'localhost',
     dialect: 'sqlite',
     logging: false,
-    operatorsAliases: false,
     // SQLite only
     storage: 'database.sqlite',
 });
 
-const { Louds, Louds_Banned } = setupLouds(sequelize);
+const { Louds, Louds_Banned } = loudsModel(sequelize);
 
 // Startup message
 client.once('ready', () => {
@@ -31,6 +30,8 @@ client.once('ready', () => {
 client.login(process.env.BOT_TOKEN);
 
 client.on('message', async message => {
+    // Commands should never respond with PREFIX and command.
+    // Commands can tell Alia to do something specific.
     if (message.content.startsWith(PREFIX)) {
         const input = message.content.slice(PREFIX.length).split(' ');
         const command = input.shift();
@@ -44,4 +45,14 @@ client.on('message', async message => {
     }
 });
 
-client.on('message', listenForLouds);
+client.on('message', async message => {
+    // Alia doesn't respond to herslef and other bots.
+    if (message.author.bot) {
+        console.log(message);
+        return '';
+    }
+
+    // Call each response here. She will 'respond' to these functions.
+    // They should have a regex, on what they are listening for.
+    await loudsResponse(message, { Louds, Louds_Banned });
+});
