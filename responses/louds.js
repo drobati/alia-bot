@@ -1,9 +1,9 @@
-import { Louds, Louds_Banned } from './models/louds';
+const { Louds, Louds_Banned } = require('./models/louds');
 
 // https://github.com/desert-planet/hayt/blob/master/scripts/loud.coffee
 // Port of louds by annabunches
 
-export async function listenForLouds(message) {
+module.exports = async function listenForLouds(message) {
     const regex = /^\s*([A-Z"][A-Z0-9 .,'"()?!&%$#@+-]+)$/;
     if (regex.test(message.content)) {
         // Pick a loud from the stored list and say it. Skip if there are no louds.
@@ -29,4 +29,4 @@ export async function listenForLouds(message) {
             });
         }
     }
-}
+};

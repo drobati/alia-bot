@@ -1,4 +1,4 @@
-import { listenForLouds } from './louds';
+const { listenForLouds } = require('./louds');
 
 describe('louds', () => {
     test('should respond to loud', () => {

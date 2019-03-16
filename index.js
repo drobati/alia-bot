@@ -1,7 +1,7 @@
-import Discord from 'discord.js';
-import db from 'sequelize';
-import { listenForLouds } from './responses/louds';
-import { setupLouds } from './models/louds';
+const Discord = require('discord.js');
+const db = require('sequelize');
+const { listenForLouds } = require('./responses/louds');
+const { setupLouds } = require('./models/louds');
 
 // Create new client
 const client = new Discord.Client();
