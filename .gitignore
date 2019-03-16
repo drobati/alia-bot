@@ -1,2 +1,3 @@
 node_modules
 load_token.bash
+database.sqlite
