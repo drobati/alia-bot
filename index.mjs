@@ -1,7 +1,7 @@
 import Discord from 'discord.js';
 import db from 'sequelize';
 import { listenForLouds } from './responses/louds';
-import { setupLouds } from './models/louds';
+import { Louds, Louds_Banned } from './models/louds';
 
 // Create new client
 const client = new Discord.Client();
@@ -15,8 +15,6 @@ const sequelize = new db.Sequelize('database', 'user', 'password', {
     // SQLite only
     storage: 'database.sqlite',
 });
-
-const { Louds, Louds_Banned } = setupLouds(sequelize);
 
 // Startup message
 client.once('ready', () => {
