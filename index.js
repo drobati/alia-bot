@@ -1,9 +1,9 @@
-const Discord = require('discord.js');
+import { Client } from 'discord.js';
 
-const louds = require('./scripts/louds');
+import { listenForLouds } from './scripts/louds';
 
 // Create new client
-const client = new Discord.Client();
+const client = new Client();
 
 // Startup message
 client.once('ready', () => {
@@ -14,4 +14,4 @@ client.once('ready', () => {
 
 client.login(process.env.BOT_TOKEN);
 
-client.on('message', louds.listenForLouds);
+client.on('message', listenForLouds);
