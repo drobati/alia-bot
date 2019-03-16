@@ -5,11 +5,6 @@ const Sequelize = require('sequelize');
 module.exports = async (message, model) => {
     const { Louds, Louds_Banned } = model;
 
-    if (message.author.bot) {
-        console.log(message);
-        return '';
-    }
-
     const regex = /^\s*([A-Z"][A-Z0-9 .,'"()?!&%$#@+-]+)$/;
     if (regex.test(message.content)) {
         // Pick a loud from the stored list and say it. Skip if there are no louds.
