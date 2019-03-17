@@ -1,5 +1,3 @@
-const Sequelize = require('sequelize');
-
 // https://github.com/desert-planet/hayt/blob/master/scripts/loud.coffee
 // Port of louds by annabunches
 // Commands:
