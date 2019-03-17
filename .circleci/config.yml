@@ -15,12 +15,16 @@ jobs:
           keys:
             - v1-dependencies-{{ checksum "package.json" }}
             - v1-dependencies-
-      - run: node i
+      - run:
+          name: Install
+          command: npm i
       - save_cache:
           paths:
             - node_modules
           key: v1-dependencies-{{ checksum "package.json" }}
-      - run: node test
+      - run:
+          name: Test
+          command: npm test
   #     - run:
   #         name: Set convenience environment variables
   #         command: |
