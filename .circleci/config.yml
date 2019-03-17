@@ -1,0 +1,51 @@
+# Javascript Node CircleCI 2.0 configuration file
+#
+# Check https://circleci.com/docs/2.0/language-javascript/ for more details
+#
+version: 2
+jobs:
+  build:
+    docker:
+      - image: circleci/node:11.9.0
+    working_directory: /app
+    steps:
+      - checkout
+      - setup_remote_docker
+      - restore_cache:
+          keys:
+            - v1-dependencies-{{ checksum "package.json" }}
+            - v1-dependencies-
+      - run: node i
+      - save_cache:
+          paths:
+            - node_modules
+          key: v1-dependencies-{{ checksum "package.json" }}
+      - run: node test
+  #     - run:
+  #         name: Set convenience environment variables
+  #         command: |
+  #           echo 'export ECR_REPOSITORY_NAME="${AWS_RESOURCE_NAME_PREFIX}"' >> $BASH_ENV
+  #           echo 'export FULL_IMAGE_NAME="${AWS_ACCOUNT_ID}.dkr.ecr.${AWS_DEFAULT_REGION}.amazonaws.com/${ECR_REPOSITORY_NAME}:${CIRCLE_SHA1}"' >> $BASH_ENV
+  #     - run:
+  #         name: Build image
+  #         command: docker build -t $FULL_IMAGE_NAME .
+  #     - run:
+  #         name: Test image
+  #         command: |
+  #           docker run -d -p 8080:8080 --name built-image $FULL_IMAGE_NAME
+  #           sleep 10
+  #           docker run --network container:built-image appropriate/curl --retry
+  #     - run:
+  #         name: Save image to an archive
+  #         command: |
+  #           mkdir docker-image
+  #           docker save -o docker-image/image.tar $FULL_IMAGE_NAME
+  #     - persist_to_workspace:
+  #         root: .
+  #         paths:
+  #           - docker-image
+  # deploy:
+  #   docker:
+  #     - image: circleci/node:11.9.0
+  #   environment:
+  #     AWS_DEFAULT_OUTPUT: json
