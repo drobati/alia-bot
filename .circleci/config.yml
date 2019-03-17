@@ -29,7 +29,6 @@ jobs:
             JEST_JUNIT_OUTPUT: "reports/junit/js-test-results.xml"
       - run:
           name: Linter
-          # yarn here makes sure we are using the local jest binary
           command: npm lint -- --format junit -o reports/junit/js-lint-results.xml
       - store_test_results:
           path: reports/junit
