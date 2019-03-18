@@ -3,17 +3,13 @@ const louds = require('./louds');
 describe('response/louds', () => {
     describe('should', () => {
         let message, model, mockChannelSend;
-        let oldLoud, newLoud;
+        let oldLoud;
 
         beforeEach(() => {
             mockChannelSend = jest.fn();
             oldLoud = {
                 increment: jest.fn(),
                 message: 'MIND',
-            };
-            newLoud = {
-                increment: jest.fn(),
-                message: 'KILLER',
             };
             message = {
                 content: 'FEAR',
@@ -69,10 +65,14 @@ describe('response/louds', () => {
         });
 
         test('check for loud already stored', async () => {
+            const newLoud = {
+                increment: jest.fn(),
+                message: 'KILLER',
+            };
             model.Louds.findOne = jest
                 .fn()
                 .mockResolvedValueOnce(false)
-                .mockResolvedValueOnce(true)
+                .mockResolvedValueOnce(newLoud)
                 .mockName('existsLouds');
             await louds(message, model);
             const findOne = await model.Louds.findOne.mock.results[1].value;
@@ -80,9 +80,13 @@ describe('response/louds', () => {
         });
 
         test('check for banned loud', async () => {
+            const bannedLoud = {
+                message: 'KILLER',
+                username: 'MAUDIB',
+            };
             model.Louds_Banned.findOne = jest
                 .fn()
-                .mockResolvedValue(true)
+                .mockResolvedValue(bannedLoud)
                 .mockName('existsLouds_Banned');
             await louds(message, model);
             const findOne = await model.Louds_Banned.findOne.mock.results[0].value;
