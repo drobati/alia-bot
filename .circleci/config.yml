@@ -35,6 +35,8 @@ jobs:
       - store_artifacts:
           path: reports/junit
   deploy:
+    docker:
+      - image: circleci/node:11.9.0
     steps:
       - add_ssh_keys:
           fingerprints:
