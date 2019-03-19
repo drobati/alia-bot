@@ -1,5 +1,5 @@
 # Kill currently running app
-forever stop index.js
+forever stop ../index.js
 
 # This file will be sourced.
 source /root/load_bot_token
@@ -11,5 +11,5 @@ git pull
 npm ci
 
 # Start app
-forever start index.js
+forever start ../index.js
 
