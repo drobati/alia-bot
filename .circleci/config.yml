@@ -46,31 +46,14 @@ jobs:
           command: |
             ssh root@${HOST_IP}
             touch mytestfile
-      # - run:
-      #     name: Set environment variables
-      #     command: |
-      #       echo 'export ECR_REPOSITORY_NAME="${AWS_RESOURCE_NAME_PREFIX}"' >> $BASH_ENV
-      #       echo 'export FULL_IMAGE_NAME="${AWS_ACCOUNT_ID}.dkr.ecr.${AWS_DEFAULT_REGION}.amazonaws.com/${ECR_REPOSITORY_NAME}:${CIRCLE_SHA1}"' >> $BASH_ENV
-  #     - run:
-  #         name: Build image
-  #         command: docker build -t $FULL_IMAGE_NAME .
-  #     - run:
-  #         name: Test image
-  #         command: |
-  #           docker run -d -p 8080:8080 --name built-image $FULL_IMAGE_NAME
-  #           sleep 10
-  #           docker run --network container:built-image appropriate/curl --retry
-  #     - run:
-  #         name: Save image to an archive
-  #         command: |
-  #           mkdir docker-image
-  #           docker save -o docker-image/image.tar $FULL_IMAGE_NAME
-  #     - persist_to_workspace:
-  #         root: .
-  #         paths:
-  #           - docker-image
-  # deploy:
-  #   docker:
-  #     - image: circleci/node:11.9.0
-  #   environment:
-  #     AWS_DEFAULT_OUTPUT: json
+workflows:
+  version: 2
+  build-deploy:
+    jobs:
+      - build
+      - deploy:
+          requires:
+            - build
+          filters:
+            branches:
+              only: master
