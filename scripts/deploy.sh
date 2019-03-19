@@ -7,8 +7,8 @@ source /root/load_bot_token
 # Get latest from master
 git pull
 
-# Install dependencies
-npm i
+# Reinstall dependencies
+npm ci
 
 # Start app
 forever start index.js
