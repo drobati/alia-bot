@@ -8,8 +8,7 @@ source /root/load_bot_token
 git pull
 
 # Reinstall dependencies
-# Note: Might not be necessary yet. Looking into it.
-#npm ci
+npm ci
 
 # Start app
 forever start ../index.js
