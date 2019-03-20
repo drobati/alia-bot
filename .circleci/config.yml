@@ -52,12 +52,7 @@ workflows:
   version: 2
   build-deploy:
     jobs:
-      - build:
-          filters:
-            branches:
-              only:
-                - develop
-                - master
+      - build
       - deploy:
           requires:
             - build
