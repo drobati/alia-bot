@@ -34,20 +34,20 @@ describe('response/louds', () => {
             };
         });
 
-        test('respond to loud one time', async () => {
+        it('respond to loud one time', async () => {
             await louds(message, model);
             const sent = message.channel.send.mock.calls;
             expect(sent).toHaveLength(1);
         });
 
-        test('not respond if not a loud', async () => {
+        it('not respond if not a loud', async () => {
             message.content = 'fear';
             await louds(message, model);
             const sent = message.channel.send.mock.calls;
             expect(sent).toHaveLength(0);
         });
 
-        test('respond to no louds in db', async () => {
+        it('respond to no louds in db', async () => {
             model.Louds.findOne = jest
                 .fn()
                 .mockResolvedValueOnce(false)
@@ -58,13 +58,13 @@ describe('response/louds', () => {
             expect(sent).toMatch(/No louds stored yet\./);
         });
 
-        test('increment oldLoud usage count', async () => {
+        it('increment oldLoud usage count', async () => {
             await louds(message, model);
             const incremented = oldLoud.increment.mock.calls;
             expect(incremented).toHaveLength(1);
         });
 
-        test('check for loud already stored', async () => {
+        it('check for loud already stored', async () => {
             const newLoud = {
                 increment: jest.fn(),
                 message: 'KILLER',
@@ -79,7 +79,7 @@ describe('response/louds', () => {
             expect(findOne).toBeTruthy();
         });
 
-        test('check for banned loud', async () => {
+        it('check for banned loud', async () => {
             const bannedLoud = {
                 message: 'KILLER',
                 username: 'MAUDIB',
@@ -93,7 +93,7 @@ describe('response/louds', () => {
             expect(findOne).toBeTruthy();
         });
 
-        test('store newLoud', async () => {
+        it('store newLoud', async () => {
             await louds(message, model);
             const create = model.Louds.create;
             const stored = { message: message.content, username: message.author.username };
