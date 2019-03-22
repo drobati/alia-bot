@@ -11,4 +11,6 @@ module.exports = sequelize => {
             unique: true,
         },
     });
+
+    return Twitch;
 };

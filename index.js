@@ -19,7 +19,7 @@ const sequelize = new db.Sequelize('database', 'user', 'password', {
 });
 
 const { Louds, Louds_Banned } = loudsModel(sequelize);
-const { Twitch } = twitchModel(sequelize);
+const Twitch = twitchModel(sequelize);
 
 // Startup message
 client.once('ready', () => {
