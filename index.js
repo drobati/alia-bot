@@ -27,6 +27,8 @@ client.once('ready', () => {
         `One day each of you will come face to face with the horror of your own existence.
         One day you will cry out for help. One day each of you will find yourselves alone.!`
     );
+    const channel = client.channels.get('205526497769947136');
+    channel.send('Successfully deployed.');
 });
 
 client.login(process.env.BOT_TOKEN);
