@@ -4,6 +4,7 @@ const db = require('sequelize');
 const loudsResponse = require('./responses/louds');
 const loudsModel = require('./models/louds');
 const loudsCommands = require('./commands/louds');
+const twitchModel = require('./models/twitch');
 
 // Create new client
 const client = new Discord.Client();
@@ -18,11 +19,13 @@ const sequelize = new db.Sequelize('database', 'user', 'password', {
 });
 
 const { Louds, Louds_Banned } = loudsModel(sequelize);
+const { Twitch } = twitchModel(sequelize);
 
 // Startup message
 client.once('ready', () => {
     Louds.sync();
     Louds_Banned.sync();
+    Twitch.sync();
     // TODO: add formating to text.
     // https://discordjs.guide/miscellaneous/useful-packages.html#common-tags
     console.log(
