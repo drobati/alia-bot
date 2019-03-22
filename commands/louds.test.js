@@ -2,16 +2,10 @@ const louds = require('./louds');
 
 describe('commands/louds', () => {
     describe('should', () => {
-        let oldLoud = {},
-            message = {},
+        let message = {},
             model = {};
 
         beforeEach(() => {
-            oldLoud = {
-                increment: jest.fn(),
-                message: 'MIND',
-            };
-
             message = {
                 content: 'FEAR',
                 author: { username: 'derek' },
