@@ -1,3 +1,4 @@
+const { stripIndent } = require('common-tags');
 const Discord = require('discord.js');
 const db = require('sequelize');
 // TODO: Create index at each root folder for single import.
@@ -26,12 +27,10 @@ client.once('ready', () => {
     Louds.sync();
     Louds_Banned.sync();
     Twitch.sync();
-    // TODO: add formating to text.
-    // https://discordjs.guide/miscellaneous/useful-packages.html#common-tags
-    console.log(
-        `One day each of you will come face to face with the horror of your own existence.
-One day you will cry out for help. One day each of you will find yourselves alone.!`
-    );
+    console.log(stripIndent`
+        One day each of you will come face to face with the horror of your own existence.
+        One day you will cry out for help. One day each of you will find yourselves alone.!
+    `);
     if (!process.env.DEBUG) {
         const channel = client.channels.get('205526497769947136');
         channel.send('Successfully deployed.');
