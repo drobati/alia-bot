@@ -24,6 +24,7 @@
     },
     "homepage": "https://github.com/desert-planet/alia#readme",
     "dependencies": {
+        "axios": "^0.18.0",
         "bufferutil": "^3.0.5",
         "discord.js": "^11.4.2",
         "erlpack": "github:discordapp/erlpack",
