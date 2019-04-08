@@ -49,6 +49,8 @@ client.on('message', async message => {
             message.channel.send('Fear is the mindkiller.');
         } else if (command === 'loud') {
             commands.Louds(message, commandArgs, { Louds, Louds_Banned });
+        } else if (command === 'twitch') {
+            commands.Twitch(message, commandArgs, { Twitch });
         }
     }
 });
