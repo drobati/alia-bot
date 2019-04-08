@@ -2,10 +2,9 @@ const { stripIndent } = require('common-tags');
 const Discord = require('discord.js');
 const db = require('sequelize');
 // TODO: Create index at each root folder for single import.
-const loudsResponse = require('./responses/louds');
-const loudsModel = require('./models/louds');
-const loudsCommands = require('./commands/louds');
-const twitchModel = require('./models/twitch');
+const response = require('./responses');
+const commands = require('./commands');
+const models = require('./models');
 
 // Create new client
 const client = new Discord.Client();
@@ -18,8 +17,8 @@ const sequelize = new db.Sequelize('database', 'user', 'password', {
     storage: 'database.sqlite',
 });
 
-const { Louds, Louds_Banned } = loudsModel(sequelize);
-const Twitch = twitchModel(sequelize);
+const { Louds, Louds_Banned } = models.Louds(sequelize);
+const Twitch = models.Twitch(sequelize);
 
 // Startup message
 client.once('ready', () => {
@@ -49,7 +48,7 @@ client.on('message', async message => {
         if (command === 'fear') {
             message.channel.send('Fear is the mindkiller.');
         } else if (command === 'loud') {
-            loudsCommands(message, commandArgs, { Louds, Louds_Banned });
+            commands.Louds(message, commandArgs, { Louds, Louds_Banned });
         }
     }
 });
@@ -62,5 +61,5 @@ client.on('message', async message => {
 
     // Call each response here. She will 'respond' to these functions.
     // They should have a regex, on what they are listening for.
-    await loudsResponse(message, { Louds, Louds_Banned });
+    await response.Louds(message, { Louds, Louds_Banned });
 });
