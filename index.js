@@ -1,7 +1,7 @@
 const { stripIndent } = require('common-tags');
 const Discord = require('discord.js');
 const db = require('sequelize');
-// TODO: Create index at each root folder for single import.
+const server = require('./lib/server');
 const response = require('./responses');
 const commands = require('./commands');
 const models = require('./models');
@@ -10,6 +10,7 @@ const models = require('./models');
 const client = new Discord.Client();
 const PREFIX = '!';
 
+// TODO: Update database with username and password.
 const sequelize = new db.Sequelize('database', 'user', 'password', {
     host: 'localhost',
     dialect: 'sqlite',
@@ -17,22 +18,33 @@ const sequelize = new db.Sequelize('database', 'user', 'password', {
     storage: 'database.sqlite',
 });
 
+const Config = models.Config(sequelize);
 const { Louds, Louds_Banned } = models.Louds(sequelize);
-const Twitch = models.Twitch(sequelize);
+const { Twitch_Users, Twitch_Notifications } = models.Twitch(sequelize);
 
 // Startup message
 client.once('ready', () => {
+    // Sync tables.
+    Config.sync();
     Louds.sync();
     Louds_Banned.sync();
-    Twitch.sync();
+    Twitch_Users.sync();
+    Twitch_Notifications.sync();
+
+    // Announcements
     console.log(stripIndent`
         One day each of you will come face to face with the horror of your own existence.
-        One day you will cry out for help. One day each of you will find yourselves alone.!
+        One day you will cry out for help. One day each of you will find yourselves alone.
     `);
-    if (!process.env.DEBUG) {
-        const channel = client.channels.get('205526497769947136');
+    if (process.env.DEBUG) {
+        const channel = client.channels.find(chan => chan.name === 'alia-bot');
         channel.send('Successfully deployed.');
     }
+
+    // Start server for webhooks.
+    const channel = client.channels.find(chan => chan.name === 'alia-bot');
+    const twitchEmbed = new Discord.RichEmbed();
+    server(client, channel, twitchEmbed, { Twitch_Users, Twitch_Notifications });
 });
 
 client.login(process.env.BOT_TOKEN);
@@ -50,7 +62,9 @@ client.on('message', async message => {
         } else if (command === 'loud') {
             commands.Louds(message, commandArgs, { Louds, Louds_Banned });
         } else if (command === 'twitch') {
-            commands.Twitch(message, commandArgs, { Twitch });
+            commands.Twitch(message, commandArgs, { Twitch_Users, Config });
+        } else if (command === 'config') {
+            commands.Config(message, commandArgs, { Config });
         }
     }
 });

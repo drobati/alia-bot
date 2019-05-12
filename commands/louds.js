@@ -65,6 +65,6 @@ module.exports = async (message, commandArgs, model) => {
             break;
 
         default:
-            break;
+            return message.reply('Subcommand does not exist.');
     }
 };

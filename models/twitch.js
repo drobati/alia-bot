@@ -1,16 +1,23 @@
 const { Sequelize } = require('sequelize');
 
 module.exports = sequelize => {
-    const Twitch = sequelize.define('twitch', {
+    const Twitch_Users = sequelize.define('twitch_users', {
         user_id: {
-            type: Sequelize.INTEGER,
+            type: Sequelize.STRING,
             unique: true,
         },
-        twtich_id: {
+        twitch_id: {
             type: Sequelize.STRING,
             unique: true,
         },
     });
 
-    return Twitch;
+    const Twitch_Notifications = sequelize.define('twitch_notifications', {
+        notification_id: {
+            type: Sequelize.INTEGER,
+            unique: true,
+        },
+    });
+
+    return { Twitch_Users, Twitch_Notifications };
 };
