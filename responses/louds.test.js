@@ -13,7 +13,7 @@ describe('response/louds', () => {
             };
             message = {
                 content: 'FEAR',
-                author: { username: 'derek' },
+                author: { id: '1234', username: 'derek' },
                 channel: { send: mockChannelSend },
             };
             model = {
@@ -96,7 +96,7 @@ describe('response/louds', () => {
         it('store newLoud', async () => {
             await louds(message, model);
             const create = model.Louds.create;
-            const stored = { message: message.content, username: message.author.username };
+            const stored = { message: message.content, username: message.author.id };
             expect(create).toHaveBeenCalledWith(stored);
         });
     });

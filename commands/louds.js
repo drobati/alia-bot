@@ -21,7 +21,7 @@ const addLoud = async (data, model, message) => {
     if (!exists) {
         await model.create({
             message: data,
-            username: message.author.username,
+            username: message.author.id,
         });
     }
 };
@@ -65,6 +65,6 @@ module.exports = async (message, commandArgs, model) => {
             break;
 
         default:
-            break;
+            return message.reply('Subcommand does not exist.');
     }
 };
