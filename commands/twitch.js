@@ -32,8 +32,10 @@ module.exports = async (message, commandArgs, model) => {
                         return message.reply('User is not found.');
                     }
                 } catch (error) {
-                    if (error.code === 1) {
-                        return message.reply(error.message);
+                    if (error) {
+                        if (error.code === 1) {
+                            return message.reply(error.message);
+                        }
                     }
                     return message.reply('I had a really bad error.');
                 }
@@ -41,14 +43,13 @@ module.exports = async (message, commandArgs, model) => {
             return message.reply('User is already registered.');
 
         case 'unsubscribe':
-            if (!record) {
-                return message.reply("Couldn't subscribe.");
-            } else {
+            if (record) {
                 const userId = record.twitch_id;
                 api.setWebhook({ userId, mode: 'unsubscribe', leaseTime }, Config);
                 record.destroy({ force: true });
+                return message.reply('Unsubscription started.');
             }
-            return message.reply('Unsubscription started.');
+            return message.reply('User is not subscribed.');
 
         default:
             return message.reply('Subcommand does not exist.');
