@@ -1,5 +1,5 @@
 jest.mock('../lib/apis/twitch', () => ({
-    getUserId: jest.fn(async (username, model) => {
+    getUserId: jest.fn(async username => {
         if (username == 'fake-user') {
             return await 'fake-user-id';
         } else {
