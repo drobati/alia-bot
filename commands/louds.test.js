@@ -72,10 +72,10 @@ describe('commands/louds', () => {
             expect(reply).not.toHaveBeenCalled();
         });
 
-        it('not respond without command', async () => {
+        it('respond to missing command', async () => {
             await louds(message, 'hotgarbage fake-data', model);
             const reply = message.reply;
-            expect(reply).not.toHaveBeenCalled();
+            expect(reply).toBeTruthy();
         });
 
         it('respond to failed delete', async () => {
