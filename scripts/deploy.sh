@@ -11,5 +11,5 @@ git pull
 npm ci
 
 # Start app
-forever start ../index.js
+forever start -o out.log -e err.log ../index.js
 
