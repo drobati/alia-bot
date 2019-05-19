@@ -36,15 +36,13 @@ client.once('ready', () => {
         One day each of you will come face to face with the horror of your own existence.
         One day you will cry out for help. One day each of you will find yourselves alone.
     `);
-    if (process.env.DEBUG) {
-        const channel = client.channels.find(chan => chan.name === 'alia-bot');
-        channel.send('Successfully deployed.');
-    }
+    const devChannel = client.channels.find(chan => chan.name === 'alia-bot');
+    devChannel.send('Successfully deployed.');
 
     // Start server for webhooks.
-    const channel = client.channels.find(chan => chan.name === 'alia-bot');
+    const genChannel = client.channels.find(chan => chan.name === 'general');
     const twitchEmbed = new Discord.RichEmbed();
-    server(client, channel, twitchEmbed, { Twitch_Users, Twitch_Notifications });
+    server(client, genChannel, twitchEmbed, { Twitch_Users, Twitch_Notifications });
 });
 
 client.login(process.env.BOT_TOKEN);
