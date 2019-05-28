@@ -63,6 +63,8 @@ client.on('message', async message => {
             commands.Twitch(message, commandArgs, { Twitch_Users, Config });
         } else if (command === 'config') {
             commands.Config(message, commandArgs, { Config });
+        } else {
+            return message.reply('Command not recognized.');
         }
     }
 });

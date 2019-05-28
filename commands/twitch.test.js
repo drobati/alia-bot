@@ -118,7 +118,7 @@ describe('commands/twitch', () => {
             await twitch(message, 'hotgarbage fake-user', model);
             const reply = message.reply;
             expect(reply).toBeCalledTimes(1);
-            expect(reply).toBeCalledWith('Subcommand does not exist.');
+            expect(reply).toBeCalledWith('Twitch subcommand does not exist.');
         });
     });
 });

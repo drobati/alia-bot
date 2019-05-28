@@ -52,6 +52,6 @@ module.exports = async (message, commandArgs, model) => {
             return message.reply('User is not subscribed.');
 
         default:
-            return message.reply('Subcommand does not exist.');
+            return message.reply('Twitch subcommand does not exist.');
     }
 };
