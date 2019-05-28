@@ -1,4 +1,5 @@
 const config = require('./config');
+const botConfig = require('../config');
 
 describe('commands/config', () => {
     describe('should', () => {
@@ -7,7 +8,7 @@ describe('commands/config', () => {
 
         beforeEach(() => {
             message = {
-                author: { username: 'derek' },
+                author: { id: botConfig.serverOwner, username: 'derek' },
                 channel: { send: jest.fn().mockName('send') },
                 reply: jest
                     .fn()
@@ -104,7 +105,7 @@ describe('commands/config', () => {
             await config(message, 'hotgarbage fake-key fake-value', model);
             const reply = message.reply;
             expect(reply).toBeCalledTimes(1);
-            expect(reply).toBeCalledWith('Subcommand does not exist.');
+            expect(reply).toBeCalledWith('Config subcommand does not exist.');
         });
     });
 });

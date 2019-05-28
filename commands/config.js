@@ -1,3 +1,4 @@
+const config = require('../config');
 // To set or remove configurations.
 // Commands:
 //   config add key value
@@ -11,32 +12,41 @@ module.exports = async (message, commandArgs, model) => {
 
     const { Config } = model;
 
-    const record = await Config.findOne({ where: { key: key } });
+    if (message.author.id != config.serverOwner) {
+        return message.reply('You may not pass!');
+    }
 
-    switch (action) {
-        case 'add':
-            if (!record) {
-                Config.create({
-                    key: key,
-                    value: value,
-                });
-                return message.reply('Config added.');
-            } else {
-                record.update({
-                    key: key,
-                    value: value,
-                });
-                return message.reply('Config updated.');
-            }
+    try {
+        const record = await Config.findOne({ where: { key: key } });
 
-        case 'remove':
-            if (record) {
-                record.destroy({ force: true });
-                return message.reply('Config removed.');
-            }
-            return message.reply('Config does not exist.');
+        switch (action) {
+            case 'add':
+                if (!record) {
+                    Config.create({
+                        key: key,
+                        value: value,
+                    });
+                    return message.reply('Config added.');
+                } else {
+                    record.update({
+                        key: key,
+                        value: value,
+                    });
+                    return message.reply('Config updated.');
+                }
 
-        default:
-            return message.reply('Subcommand does not exist.');
+            case 'remove':
+                if (record) {
+                    record.destroy({ force: true });
+                    return message.reply('Config removed.');
+                }
+                return message.reply('Config does not exist.');
+
+            default:
+                return message.reply('Config subcommand does not exist.');
+        }
+    } catch(error) {
+        console.log(error);
+        return message.reply('Config command had an error.');
     }
 };
