@@ -84,7 +84,7 @@ describe('commands/louds', () => {
                 .mockResolvedValueOnce(0)
                 .mockName('deleteDestroyLouds');
             await louds(message, 'delete fake-data', model);
-            const reply = message.reply();
+            const reply = message.reply;
             expect(reply).toBeTruthy();
         });
 

@@ -8,12 +8,12 @@
 //   loud nuke          - Delete the entire loud database. (available in debug mode only!)
 // TODO: Make all & nuke work for channel owner only
 
-const deleteLoud = async (data, model, message, reply) => {
+const deleteLoud = async (data, model, message, response) => {
     const rowCount = await model.destroy({ where: { message: data } });
     if (!rowCount) {
         return message.reply("Couldn't find that loud.");
     }
-    return message.reply(reply);
+    return message.reply(response);
 };
 
 const addLoud = async (data, model, message) => {
@@ -35,24 +35,24 @@ module.exports = async (message, commandArgs, model) => {
 
     switch (action) {
         case 'delete':
-            deleteLoud(data, Louds, message, 'Loud deleted.');
+            await deleteLoud(data, Louds, message, 'Loud deleted.');
             break;
 
         case 'ban':
-            addLoud(data, Louds_Banned, message);
+            await addLoud(data, Louds_Banned, message);
             if (await Louds.findOne({ where: { message: data } })) {
-                deleteLoud(data, Louds, message, 'Loud deleted and banned.');
+                await deleteLoud(data, Louds, message, 'Loud deleted and banned.');
             } else {
-                message.reply('Loud banned.');
+                return message.reply('Loud banned.');
             }
             break;
 
         case 'unban':
-            addLoud(data, Louds, message);
+            await addLoud(data, Louds, message);
             if (await Louds_Banned.findOne({ where: { message: data } })) {
-                deleteLoud(data, Louds_Banned, message, 'Loud added and unbanned.');
+                await deleteLoud(data, Louds_Banned, message, 'Loud added and unbanned.');
             } else {
-                message.reply(
+                return message.reply(
                     "Loud added, but wasn't banned. If this wasn't intended use !loud delete."
                 );
             }
@@ -65,6 +65,6 @@ module.exports = async (message, commandArgs, model) => {
             break;
 
         default:
-            return message.reply('Subcommand does not exist.');
+            return message.reply('Loud subcommand does not exist.');
     }
 };
