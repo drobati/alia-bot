@@ -45,19 +45,19 @@ describe('commands/louds', () => {
         it('respond to delete', async () => {
             await louds(message, 'delete fake-data', model);
             const reply = message.reply;
-            expect(reply).toHaveBeenCalledTimes(1);
+            expect(reply).toBeCalledTimes(1);
         });
 
         it('respond to ban', async () => {
             await louds(message, 'ban fake-data', model);
             const reply = message.reply;
-            expect(reply).toHaveBeenCalledTimes(1);
+            expect(reply).toBeCalledTimes(1);
         });
 
         it('respond to unban', async () => {
             await louds(message, 'unban fake-data', model);
             const reply = message.reply;
-            expect(reply).toHaveBeenCalledTimes(1);
+            expect(reply).toBeCalledTimes(1);
         });
 
         it('not respond with nuke command', async () => {
