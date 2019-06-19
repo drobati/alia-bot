@@ -1,12 +1,9 @@
 // https://github.com/desert-planet/hayt/blob/master/scripts/loud.coffee
 // Port of louds by annabunches
 // Commands:
-//   loud all           - Print every single loud in the database. (available in debug mode only!)
-//   loud ban           - Forbid a certain match
-//   loud unban         - Remove forbidden match
-//   loud delete [TEXT] - Delete the loud with the matching text.
-//   loud nuke          - Delete the entire loud database. (available in debug mode only!)
-// TODO: Make all & nuke work for channel owner only
+// . !loud delete [TEXT] - Delete the loud with the matching text.
+// . !loud ban           - Forbid a certain match
+// . !loud unban         - Remove forbidden match
 
 const deleteLoud = async (data, model, message, response) => {
     const rowCount = await model.destroy({ where: { message: data } });
