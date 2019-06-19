@@ -9,7 +9,6 @@
 // . ? forget <key> - Removes key from hubots brain.
 // . ? what are your favorite memories? - Returns a list of the most remembered memories.
 // . ? random memory - Returns a random string
-const { stripIndent } = require('common-tags');
 const each = require('lodash/each');
 const sequelize = require('sequelize');
 
