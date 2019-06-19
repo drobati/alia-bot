@@ -13,40 +13,40 @@ const each = require('lodash/each');
 const sequelize = require('sequelize');
 
 const writeMemory = async (params, terms) => {
-    const { reply, Memories } = params;
+    const { message, Memories } = params;
     const { key, value } = terms;
     const record = await Memories.findOne({ where: { key } });
     if (record) {
         const oldValue = record.value;
         await record.update({ key, value });
-        return reply(`${key} is now ${value} and was ${oldValue}.`);
+        return message.reply(`${key} is now ${value} and was ${oldValue}.`);
     }
     await Memories.create({ key, value });
-    return reply(`${key} is now ${value}.`);
+    return message.reply(`${key} is now ${value}.`);
 };
 
 const getMemory = async (params, terms) => {
-    const { reply, Memories } = params;
+    const { message, Memories } = params;
     const { key } = terms;
     const record = await Memories.findOne({ where: { key } });
-    if (record) return reply(`${key} is ${record.value}.`);
-    return reply(`I have no memory of ${key}.`);
+    if (record) return message.reply(`${key} is ${record.value}.`);
+    return message.reply(`I have no memory of ${key}.`);
 };
 
 const removeMemory = async (params, terms) => {
-    const { reply, Memories } = params;
+    const { message, Memories } = params;
     const { key } = terms;
     const record = await Memories.findOne({ where: { key } });
     if (record) {
         await record.destroy({ where: { key } });
-        return reply(`${key} was ${record.value}.`);
+        return message.reply(`${key} was ${record.value}.`);
     }
-    return reply(`I have no memory of ${key}.`);
+    return message.reply(`I have no memory of ${key}.`);
 };
 
 const getFavoriteMemories = async params => {
-    const { reply, Memories } = params;
-    let message = 'Top Five Memories:\n';
+    const { message, Memories } = params;
+    let response = 'Top Five Memories:\n';
 
     const records = await Memories.findAll({
         order: sequelize.col('read_count'),
@@ -55,31 +55,30 @@ const getFavoriteMemories = async params => {
 
     if (records.length > 0) {
         each(records, record => {
-            message += ` * ${record.key} is ${record.value}\n`;
+            response += ` * ${record.key} is ${record.value}\n`;
         });
-        return reply(message.slice(0, -1));
+        return message.reply(response.slice(0, -1));
     }
-    return reply('I have no memories to give.');
+    return message.reply('I have no memories to give.');
 };
 
 const getRandomMemory = async params => {
-    const { reply, Memories } = params;
+    const { message, Memories } = params;
 
     const record = await Memories.findOne({
         order: sequelize.literal('random()'),
     });
 
-    if (record) return reply(`Random ${record.key} is ${record.value}.`);
-    return reply('I have no memories to give.');
+    if (record) return message.reply(`Random ${record.key} is ${record.value}.`);
+    return message.reply('I have no memories to give.');
 };
 
 module.exports = async (message, model) => {
     const { Memories } = model;
-    const { content, reply } = message;
 
-    const command = content.slice(2);
+    const command = message.content.slice(2);
 
-    const params = { reply, Memories };
+    const params = { message, Memories };
 
     const get = /^(?:(?:what )?is|rem(?:ember)?)\s+(.*)$/;
     const write = /(.*?)(\s+is\s+([\s\S]*))$/;
