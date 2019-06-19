@@ -22,22 +22,16 @@ module.exports = async (message, commandArgs, model) => {
         switch (action) {
             case 'add':
                 if (!record) {
-                    Config.create({
-                        key: key,
-                        value: value,
-                    });
+                    await Config.create({ key, value });
                     return message.reply('Config added.');
                 } else {
-                    record.update({
-                        key: key,
-                        value: value,
-                    });
+                    await record.update({ key, value });
                     return message.reply('Config updated.');
                 }
 
             case 'remove':
                 if (record) {
-                    record.destroy({ force: true });
+                    await record.destroy({ force: true });
                     return message.reply('Config removed.');
                 }
                 return message.reply('Config does not exist.');
@@ -45,7 +39,7 @@ module.exports = async (message, commandArgs, model) => {
             default:
                 return message.reply('Config subcommand does not exist.');
         }
-    } catch(error) {
+    } catch (error) {
         console.log(error);
         return message.reply('Config command had an error.');
     }
