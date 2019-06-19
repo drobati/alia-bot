@@ -8,7 +8,8 @@ const models = require('./models');
 
 // Create new client
 const client = new Discord.Client();
-const PREFIX = '!';
+const STATIC_PREFIX = '!';
+const DYNAMIC_PREFIX = '?';
 
 // TODO: Update database with username and password.
 const sequelize = new db.Sequelize('database', 'user', 'password', {
@@ -19,6 +20,7 @@ const sequelize = new db.Sequelize('database', 'user', 'password', {
 });
 
 const Config = models.Config(sequelize);
+const { Memories } = models.Memories(sequelize);
 const { Louds, Louds_Banned } = models.Louds(sequelize);
 const { Twitch_Users, Twitch_Notifications } = models.Twitch(sequelize);
 
@@ -28,6 +30,7 @@ client.once('ready', () => {
     Config.sync();
     Louds.sync();
     Louds_Banned.sync();
+    Memories.sync();
     Twitch_Users.sync();
     Twitch_Notifications.sync();
 
@@ -48,10 +51,15 @@ client.once('ready', () => {
 client.login(process.env.BOT_TOKEN);
 
 client.on('message', async message => {
-    // Commands should never respond with PREFIX and command.
+    if (message.author.bot) {
+        return '';
+    }
+
     // Commands can tell Alia to do something specific.
-    if (message.content.startsWith(PREFIX)) {
-        const input = message.content.slice(PREFIX.length).split(' ');
+    //  STATIC_PREFIX are for strict command structures.
+    //  DYNAMIC_PREFIX are for loose command structures.
+    if (message.content.startsWith(STATIC_PREFIX)) {
+        const input = message.content.slice(STATIC_PREFIX.length).split(' ');
         const command = input.shift();
         const commandArgs = input.join(' ');
 
@@ -66,6 +74,10 @@ client.on('message', async message => {
         } else {
             return message.reply('Command not recognized.');
         }
+    }
+
+    if (message.content.startsWith(DYNAMIC_PREFIX)) {
+        await commands.Memories(message, { Memories });
     }
 });
 
