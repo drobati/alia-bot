@@ -43,7 +43,7 @@ describe('commands/config', () => {
             await memories(message, model);
             const reply = message.reply;
             expect(reply).toBeCalledTimes(1);
-            expect(reply).toBeCalledWith('fake-key is fake-value.');
+            expect(reply).toBeCalledWith('"fake-key" is "fake-value".');
         });
 
         it('what is <key>', async () => {
@@ -55,7 +55,7 @@ describe('commands/config', () => {
             await memories(message, model);
             const reply = message.reply;
             expect(reply).toBeCalledTimes(1);
-            expect(reply).toBeCalledWith('fake-key is fake-value.');
+            expect(reply).toBeCalledWith('"fake-key" is "fake-value".');
         });
 
         it('remember <key>', async () => {
@@ -67,7 +67,7 @@ describe('commands/config', () => {
             await memories(message, model);
             const reply = message.reply;
             expect(reply).toBeCalledTimes(1);
-            expect(reply).toBeCalledWith('fake-key is fake-value.');
+            expect(reply).toBeCalledWith('"fake-key" is "fake-value".');
         });
 
         it('rem <key>', async () => {
@@ -79,7 +79,7 @@ describe('commands/config', () => {
             await memories(message, model);
             const reply = message.reply;
             expect(reply).toBeCalledTimes(1);
-            expect(reply).toBeCalledWith('fake-key is fake-value.');
+            expect(reply).toBeCalledWith('"fake-key" is "fake-value".');
         });
 
         // . ? <key> is <value>. - Returns confirmation.
@@ -88,7 +88,7 @@ describe('commands/config', () => {
             await memories(message, model);
             const reply = message.reply;
             expect(reply).toBeCalledTimes(1);
-            expect(reply).toBeCalledWith('fake-key is now fake-value.');
+            expect(reply).toBeCalledWith('"fake-key" is now "fake-value".');
         });
         // . ? forget <key> - Removes key from hubots brain.
         it('forget <key>', async () => {
@@ -100,7 +100,7 @@ describe('commands/config', () => {
             await memories(message, model);
             const reply = message.reply;
             expect(reply).toBeCalledTimes(1);
-            expect(reply).toBeCalledWith('fake-key was fake-value.');
+            expect(reply).toBeCalledWith('"fake-key" was "fake-value".');
         });
 
         // . ? favorite memories - Returns top 5 hubot remembers.
@@ -121,11 +121,11 @@ describe('commands/config', () => {
             expect(reply).toBeCalledTimes(1);
             expect(reply).toBeCalledWith(stripIndent`
             Top Five Memories:
-             * fake-key-1 is fake-value-1
-             * fake-key-2 is fake-value-2
-             * fake-key-3 is fake-value-3
-             * fake-key-4 is fake-value-4
-             * fake-key-5 is fake-value-5
+             * "fake-key-1" is "fake-value-1"
+             * "fake-key-2" is "fake-value-2"
+             * "fake-key-3" is "fake-value-3"
+             * "fake-key-4" is "fake-value-4"
+             * "fake-key-5" is "fake-value-5"
             `);
         });
 
@@ -139,7 +139,7 @@ describe('commands/config', () => {
             await memories(message, model);
             const reply = message.reply;
             expect(reply).toBeCalledTimes(1);
-            expect(reply).toBeCalledWith('Random fake-key-random is fake-value-random.');
+            expect(reply).toBeCalledWith('Random "fake-key-random" is "fake-value-random".');
         });
     });
 
@@ -160,7 +160,7 @@ describe('commands/config', () => {
             await memories(message, model);
             const reply = message.reply;
             expect(reply).toBeCalledTimes(1);
-            expect(reply).toBeCalledWith('I have no memory of fake-key.');
+            expect(reply).toBeCalledWith('I have no memory of "fake-key".');
         });
 
         // . ? <key> is <value>. - Returns confirmation.
@@ -173,7 +173,9 @@ describe('commands/config', () => {
             await memories(message, model);
             const reply = message.reply;
             expect(reply).toBeCalledTimes(1);
-            expect(reply).toBeCalledWith('fake-key is now fake-value-2 and was fake-value-1.');
+            expect(reply).toBeCalledWith(
+                '"fake-key" is now \n"fake-value-2" \nand was \n"fake-value-1"'
+            );
         });
 
         // . ? forget <key> - Removes key from hubots brain.
@@ -182,7 +184,7 @@ describe('commands/config', () => {
             await memories(message, model);
             const reply = message.reply;
             expect(reply).toBeCalledTimes(1);
-            expect(reply).toBeCalledWith('I have no memory of fake-key.');
+            expect(reply).toBeCalledWith('I have no memory of "fake-key".');
         });
 
         // . ? favorite memories - Returns top 5 hubot remembers.
