@@ -19,18 +19,18 @@ const writeMemory = async (params, terms) => {
     if (record) {
         const oldValue = record.value;
         await record.update({ key, value });
-        return message.reply(`${key} is now ${value} and was ${oldValue}.`);
+        return message.reply(`"${key}" is now \n"${value}" \nand was \n"${oldValue}"`);
     }
     await Memories.create({ key, value });
-    return message.reply(`${key} is now ${value}.`);
+    return message.reply(`"${key}" is now "${value}".`);
 };
 
 const getMemory = async (params, terms) => {
     const { message, Memories } = params;
     const { key } = terms;
     const record = await Memories.findOne({ where: { key } });
-    if (record) return message.reply(`${key} is ${record.value}.`);
-    return message.reply(`I have no memory of ${key}.`);
+    if (record) return message.reply(`"${key}" is "${record.value}".`);
+    return message.reply(`I have no memory of "${key}".`);
 };
 
 const removeMemory = async (params, terms) => {
@@ -39,9 +39,9 @@ const removeMemory = async (params, terms) => {
     const record = await Memories.findOne({ where: { key } });
     if (record) {
         await record.destroy({ where: { key } });
-        return message.reply(`${key} was ${record.value}.`);
+        return message.reply(`"${key}" was "${record.value}".`);
     }
-    return message.reply(`I have no memory of ${key}.`);
+    return message.reply(`I have no memory of "${key}".`);
 };
 
 const getFavoriteMemories = async params => {
@@ -55,7 +55,7 @@ const getFavoriteMemories = async params => {
 
     if (records.length > 0) {
         each(records, record => {
-            response += ` * ${record.key} is ${record.value}\n`;
+            response += ` * "${record.key}" is "${record.value}"\n`;
         });
         return message.reply(response.slice(0, -1));
     }
@@ -69,7 +69,7 @@ const getRandomMemory = async params => {
         order: sequelize.literal('random()'),
     });
 
-    if (record) return message.reply(`Random ${record.key} is ${record.value}.`);
+    if (record) return message.reply(`Random "${record.key}" is "${record.value}".`);
     return message.reply('I have no memories to give.');
 };
 
