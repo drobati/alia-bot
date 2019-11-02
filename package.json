@@ -36,7 +36,7 @@
         "node-opus": "^0.2.9",
         "opusscript": "0.0.6",
         "prettier": "^1.16.4",
-        "sequelize": "^5.3.5",
+        "sequelize": "^5.15.1",
         "sodium": "^3.0.2",
         "sqlite3": "^4.0.8",
         "uws": "^9.148.0"
