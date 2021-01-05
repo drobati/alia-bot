@@ -24,7 +24,7 @@
     },
     "homepage": "https://github.com/desert-planet/alia#readme",
     "dependencies": {
-        "axios": "^0.18.0",
+        "axios": "^0.21.1",
         "bufferutil": "^3.0.5",
         "common-tags": "^1.8.0",
         "discord.js": "^11.4.2",
