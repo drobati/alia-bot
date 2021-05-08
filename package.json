@@ -32,7 +32,7 @@
         "eslint": "^5.15.1",
         "hapi": "^18.1.0",
         "libsodium-wrappers": "^0.7.4",
-        "lodash": "^4.17.11",
+        "lodash": "^4.17.21",
         "node-opus": "^0.2.9",
         "opusscript": "0.0.6",
         "prettier": "^1.16.4",
