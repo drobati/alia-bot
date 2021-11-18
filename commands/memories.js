@@ -19,18 +19,18 @@ const writeMemory = async (params, terms) => {
     if (record) {
         const oldValue = record.value;
         await record.update({ key, value });
-        return message.reply(`"${key}" is now \n"${value}" \nand was \n"${oldValue}"`);
+        return message.channel.send(`"${key}" is now \n"${value}" \nand was \n"${oldValue}"`);
     }
     await Memories.create({ key, value });
-    return message.reply(`"${key}" is now "${value}".`);
+    return message.channel.send(`"${key}" is now "${value}".`);
 };
 
 const getMemory = async (params, terms) => {
     const { message, Memories } = params;
     const { key } = terms;
     const record = await Memories.findOne({ where: { key } });
-    if (record) return message.reply(`"${key}" is "${record.value}".`);
-    return message.reply(`I have no memory of "${key}".`);
+    if (record) return message.channel.send(`"${key}" is "${record.value}".`);
+    return message.channel.send(`I have no memory of "${key}".`);
 };
 
 const removeMemory = async (params, terms) => {
@@ -39,12 +39,12 @@ const removeMemory = async (params, terms) => {
     const record = await Memories.findOne({ where: { key } });
     if (record) {
         await record.destroy({ where: { key } });
-        return message.reply(`"${key}" was "${record.value}".`);
+        return message.channel.send(`"${key}" was "${record.value}".`);
     }
-    return message.reply(`I have no memory of "${key}".`);
+    return message.channel.send(`I have no memory of "${key}".`);
 };
 
-const getFavoriteMemories = async params => {
+const getFavoriteMemories = async (params) => {
     const { message, Memories } = params;
     let response = 'Top Five Memories:\n';
 
@@ -54,23 +54,23 @@ const getFavoriteMemories = async params => {
     });
 
     if (records.length > 0) {
-        each(records, record => {
+        each(records, (record) => {
             response += ` * "${record.key}" is "${record.value}"\n`;
         });
-        return message.reply(response.slice(0, -1));
+        return message.channel.send(response.slice(0, -1));
     }
-    return message.reply('I have no memories to give.');
+    return message.channel.send('I have no memories to give.');
 };
 
-const getRandomMemory = async params => {
+const getRandomMemory = async (params) => {
     const { message, Memories } = params;
 
     const record = await Memories.findOne({
         order: sequelize.literal('random()'),
     });
 
-    if (record) return message.reply(`Random "${record.key}" is "${record.value}".`);
-    return message.reply('I have no memories to give.');
+    if (record) return message.channel.send(`Random "${record.key}" is "${record.value}".`);
+    return message.channel.send('I have no memories to give.');
 };
 
 module.exports = async (message, model) => {

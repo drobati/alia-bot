@@ -1,5 +1,5 @@
 const { stripIndent } = require('common-tags');
-const Discord = require('discord.js');
+const { Client, Intents, MessageEmbed } = require('discord.js');
 const db = require('sequelize');
 const server = require('./lib/server');
 const response = require('./responses');
@@ -7,7 +7,7 @@ const commands = require('./commands');
 const models = require('./models');
 
 // Create new client
-const client = new Discord.Client();
+const client = new Client({ intents: [Intents.FLAGS.GUILDS, Intents.FLAGS.GUILD_MESSAGES] });
 const STATIC_PREFIX = '!';
 const DYNAMIC_PREFIX = '?';
 
@@ -39,18 +39,20 @@ client.once('ready', () => {
         One day each of you will come face to face with the horror of your own existence.
         One day you will cry out for help. One day each of you will find yourselves alone.
     `);
-    const devChannel = client.channels.find(chan => chan.name === 'alia-bot');
-    devChannel.send('Successfully deployed.');
+    if (process.env.NODE_ENV !== 'development') {
+        const devChannel = client.channels.cache.find((chan) => chan.name === 'alia-bot');
+        devChannel.send('Successfully deployed.');
+    }
 
     // Start server for webhooks.
-    const genChannel = client.channels.find(chan => chan.name === 'general');
-    const twitchEmbed = new Discord.RichEmbed();
+    const genChannel = client.channels.cache.find((chan) => chan.name === 'general');
+    const twitchEmbed = new MessageEmbed();
     server(client, genChannel, twitchEmbed, { Twitch_Users, Twitch_Notifications });
 });
 
 client.login(process.env.BOT_TOKEN);
 
-client.on('message', async message => {
+client.on('messageCreate', async (message) => {
     if (message.author.bot) {
         return '';
     }
@@ -81,8 +83,8 @@ client.on('message', async message => {
     }
 });
 
-client.on('message', async message => {
-    // Alia doesn't respond to herslef and other bots.
+client.on('messageCreate', async (message) => {
+    // Alia doesn't respond to herself and other bots.
     if (message.author.bot) {
         return '';
     }

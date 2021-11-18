@@ -8,9 +8,9 @@
 const deleteLoud = async (data, model, message, response) => {
     const rowCount = await model.destroy({ where: { message: data } });
     if (!rowCount) {
-        return message.reply("Couldn't find that loud.");
+        return message.channel.send("Couldn't find that loud.");
     }
-    return message.reply(response);
+    return message.channel.send(response);
 };
 
 const addLoud = async (data, model, message) => {
@@ -40,7 +40,7 @@ module.exports = async (message, commandArgs, model) => {
             if (await Louds.findOne({ where: { message: data } })) {
                 await deleteLoud(data, Louds, message, 'Loud deleted and banned.');
             } else {
-                return message.reply('Loud banned.');
+                return message.channel.send('Loud banned.');
             }
             break;
 
@@ -49,7 +49,7 @@ module.exports = async (message, commandArgs, model) => {
             if (await Louds_Banned.findOne({ where: { message: data } })) {
                 await deleteLoud(data, Louds_Banned, message, 'Loud added and unbanned.');
             } else {
-                return message.reply(
+                return message.channel.send(
                     "Loud added, but wasn't banned. If this wasn't intended use !loud delete."
                 );
             }
@@ -62,6 +62,6 @@ module.exports = async (message, commandArgs, model) => {
             break;
 
         default:
-            return message.reply('Loud subcommand does not exist.');
+            return message.channel.send('Loud subcommand does not exist.');
     }
 };
