@@ -26,13 +26,15 @@
     "dependencies": {
         "axios": "^0.24.0",
         "common-tags": "^1.8.2",
+        "config": "^3.3.6",
         "discord.js": "^13.3.1",
         "eslint": "^8.2.0",
         "hapi": "^18.1.0",
+        "js-yaml": "^4.1.0",
         "lodash": "^4.17.21",
+        "mysql2": "^2.3.3",
         "prettier": "^2.4.1",
         "sequelize": "^6.9.0",
-        "sqlite3": "^5.0.2",
         "uws": "^200.0.0"
     },
     "devDependencies": {

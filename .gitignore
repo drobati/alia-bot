@@ -3,3 +3,4 @@ load_token.bash
 database.sqlite
 coverage
 .idea
+.env

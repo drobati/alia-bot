@@ -1,12 +1,12 @@
 jest.mock('../lib/apis/twitch', () => ({
-    getUserId: jest.fn(async username => {
-        if (username == 'fake-user') {
-            return await 'fake-user-id';
+    getUserId: jest.fn(async (username) => {
+        if (username === 'fake-user') {
+            return 'fake-user-id';
         } else {
-            return await undefined;
+            return undefined;
         }
     }),
-    setWebhook: jest.fn().mockResolvedValue(''),
+    setWebhook: jest.fn().mockResolvedValue('')
 }));
 
 const twitch = require('./twitch');
@@ -20,21 +20,15 @@ describe('commands/twitch', () => {
             message = {
                 author: { username: 'derek' },
                 channel: { send: jest.fn().mockName('send') },
-                reply: jest
-                    .fn()
-                    .mockResolvedValue(true)
-                    .mockName('reply'),
+                reply: jest.fn().mockResolvedValue(true).mockName('reply')
             };
             model = {
                 Twitch_Users: {
                     create: jest.fn().mockName('createTwitch'),
                     update: jest.fn().mockName('updateTwitch'),
                     destroy: jest.fn().mockName('destroyTwitch'),
-                    findOne: jest
-                        .fn()
-                        .mockResolvedValue(false)
-                        .mockName('findOneTwitch'),
-                },
+                    findOne: jest.fn().mockResolvedValue(false).mockName('findOneTwitch')
+                }
             };
         });
 
@@ -50,7 +44,7 @@ describe('commands/twitch', () => {
             expect(created).toBeCalledTimes(1);
             expect(created).toBeCalledWith({
                 user_id: message.author.id,
-                twitch_id: 'fake-user-id',
+                twitch_id: 'fake-user-id'
             });
         });
         it('respond to subscribe and nothing on twitch', async () => {
@@ -88,7 +82,7 @@ describe('commands/twitch', () => {
                 .fn()
                 .mockResolvedValue({
                     twitch_id: 'fake-twitch-id',
-                    destroy: model.Twitch_Users.destroy,
+                    destroy: model.Twitch_Users.destroy
                 })
                 .mockName('findOneConfigExists');
             await twitch(message, 'unsubscribe fake-user', model);
@@ -100,7 +94,7 @@ describe('commands/twitch', () => {
             model.Twitch_Users.findOne = jest
                 .fn()
                 .mockResolvedValue({
-                    destroy: model.Twitch_Users.destroy,
+                    destroy: model.Twitch_Users.destroy
                 })
                 .mockName('findOneConfigExists');
             await twitch(message, 'unsubscribe fake-user', model);

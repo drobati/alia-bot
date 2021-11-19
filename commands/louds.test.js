@@ -10,35 +10,20 @@ describe('commands/louds', () => {
                 content: 'FEAR',
                 author: { username: 'derek' },
                 channel: { send: jest.fn().mockName('send') },
-                reply: jest
-                    .fn()
-                    .mockResolvedValue(true)
-                    .mockName('reply'),
+                reply: jest.fn().mockResolvedValue(true).mockName('reply')
             };
 
             model = {
                 Louds: {
                     create: jest.fn().mockName('createLoud'),
-                    findOne: jest
-                        .fn()
-                        .mockResolvedValue(false)
-                        .mockName('findOneLoud'),
-                    destroy: jest
-                        .fn()
-                        .mockResolvedValueOnce(1)
-                        .mockName('deleteLoud'),
+                    findOne: jest.fn().mockResolvedValue(false).mockName('findOneLoud'),
+                    destroy: jest.fn().mockResolvedValueOnce(1).mockName('deleteLoud')
                 },
                 Louds_Banned: {
                     create: jest.fn().mockName('createBannedLoud'),
-                    findOne: jest
-                        .fn()
-                        .mockResolvedValue(false)
-                        .mockName('findOneBannedLoud'),
-                    destroy: jest
-                        .fn()
-                        .mockResolvedValueOnce(1)
-                        .mockName('deleteLoud'),
-                },
+                    findOne: jest.fn().mockResolvedValue(false).mockName('findOneBannedLoud'),
+                    destroy: jest.fn().mockResolvedValueOnce(1).mockName('deleteLoud')
+                }
             };
         });
 
@@ -79,10 +64,7 @@ describe('commands/louds', () => {
         });
 
         it('respond to failed delete', async () => {
-            model.Louds.destroy = jest
-                .fn()
-                .mockResolvedValueOnce(0)
-                .mockName('deleteDestroyLouds');
+            model.Louds.destroy = jest.fn().mockResolvedValueOnce(0).mockName('deleteDestroyLouds');
             await louds(message, 'delete fake-data', model);
             const reply = message.reply;
             expect(reply).toBeTruthy();
@@ -103,26 +85,20 @@ describe('commands/louds', () => {
                 .fn()
                 .mockResolvedValue(true)
                 .mockName('banFindOneBannedLoud');
-            louds(message, 'ban fake-data', model);
+            await louds(message, 'ban fake-data', model);
             const create = await model.Louds_Banned.create.mock.calls;
             expect(create).toHaveLength(0);
         });
 
         it('delete loud with ban command', async () => {
-            model.Louds.findOne = jest
-                .fn()
-                .mockResolvedValue(true)
-                .mockName('banFindOneLoud');
+            model.Louds.findOne = jest.fn().mockResolvedValue(true).mockName('banFindOneLoud');
             await louds(message, 'ban fake-data', model);
             const destroy = model.Louds.destroy.mock.calls;
             expect(destroy).toHaveLength(1);
         });
 
         it('add loud with unban command', async () => {
-            model.Louds.findOne = jest
-                .fn()
-                .mockResolvedValue(false)
-                .mockName('unbanFindOneLoud');
+            model.Louds.findOne = jest.fn().mockResolvedValue(false).mockName('unbanFindOneLoud');
             await louds(message, 'unban fake-data', model);
             const create = model.Louds.create.mock.calls;
             expect(create).toHaveLength(1);

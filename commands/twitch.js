@@ -25,7 +25,7 @@ module.exports = async (message, commandArgs, model) => {
                         await api.setWebhook({ userId, mode: 'subscribe', leaseTime }, Config);
                         await Twitch_Users.create({
                             user_id: message.author.id,
-                            twitch_id: userId,
+                            twitch_id: userId
                         });
                         return message.channel.send('Subscription started.');
                     } else {
@@ -45,7 +45,7 @@ module.exports = async (message, commandArgs, model) => {
         case 'unsubscribe':
             if (record) {
                 const userId = record.twitch_id;
-                api.setWebhook({ userId, mode: 'unsubscribe', leaseTime }, Config);
+                await api.setWebhook({ userId, mode: 'unsubscribe', leaseTime }, Config);
                 record.destroy({ force: true });
                 return message.channel.send('Unsubscription started.');
             }

@@ -18,7 +18,7 @@ const addLoud = async (data, model, message) => {
     if (!exists) {
         await model.create({
             message: data,
-            username: message.author.id,
+            username: message.author.id
         });
     }
 };
