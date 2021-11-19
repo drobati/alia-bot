@@ -9,12 +9,12 @@ describe('response/louds', () => {
             mockChannelSend = jest.fn();
             oldLoud = {
                 increment: jest.fn(),
-                message: 'MIND',
+                message: 'MIND'
             };
             message = {
                 content: 'FEAR',
                 author: { id: '1234', username: 'derek' },
-                channel: { send: mockChannelSend },
+                channel: { send: mockChannelSend }
             };
             model = {
                 Louds: {
@@ -23,14 +23,11 @@ describe('response/louds', () => {
                         .fn()
                         .mockResolvedValueOnce(oldLoud)
                         .mockResolvedValueOnce(false)
-                        .mockName('findOneLouds'),
+                        .mockName('findOneLouds')
                 },
                 Louds_Banned: {
-                    findOne: jest
-                        .fn()
-                        .mockResolvedValue(false)
-                        .mockName('Louds_Banned'),
-                },
+                    findOne: jest.fn().mockResolvedValue(false).mockName('Louds_Banned')
+                }
             };
         });
 
@@ -67,7 +64,7 @@ describe('response/louds', () => {
         it('check for loud already stored', async () => {
             const newLoud = {
                 increment: jest.fn(),
-                message: 'KILLER',
+                message: 'KILLER'
             };
             model.Louds.findOne = jest
                 .fn()
@@ -82,7 +79,7 @@ describe('response/louds', () => {
         it('check for banned loud', async () => {
             const bannedLoud = {
                 message: 'KILLER',
-                username: 'MAUDIB',
+                username: 'MAUDIB'
             };
             model.Louds_Banned.findOne = jest
                 .fn()

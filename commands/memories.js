@@ -50,7 +50,7 @@ const getFavoriteMemories = async (params) => {
 
     const records = await Memories.findAll({
         order: sequelize.col('read_count'),
-        limit: 5,
+        limit: 5
     });
 
     if (records.length > 0) {
@@ -66,7 +66,7 @@ const getRandomMemory = async (params) => {
     const { message, Memories } = params;
 
     const record = await Memories.findOne({
-        order: sequelize.literal('random()'),
+        order: sequelize.literal('rand()')
     });
 
     if (record) return message.channel.send(`Random "${record.key}" is "${record.value}".`);

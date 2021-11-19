@@ -1,5 +1,5 @@
 # Pull base image from stock node image.
-FROM node:12.18.3
+FROM node:16
 
 # Make app directory
 RUN mkdir /opt/app
@@ -13,13 +13,5 @@ WORKDIR /opt/app
 # Install package.json
 RUN npm i
 
-ARG BOT_TOKEN
-
-ENV BOT_TOKEN=${BOT_TOKEN}
-
-ARG DB_HOST=localhost
-
-ENV DB_HOST=${DB_HOST}
-
 # Start the app
-CMD [ "node", "index.js" ]
+CMD npm start

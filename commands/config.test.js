@@ -10,21 +10,15 @@ describe('commands/config', () => {
             message = {
                 author: { id: botConfig.serverOwner, username: 'derek' },
                 channel: { send: jest.fn().mockName('send') },
-                reply: jest
-                    .fn()
-                    .mockResolvedValue(true)
-                    .mockName('reply'),
+                reply: jest.fn().mockResolvedValue(true).mockName('reply')
             };
             model = {
                 Config: {
                     create: jest.fn().mockName('createConfig'),
                     update: jest.fn().mockName('updateConfig'),
                     destroy: jest.fn().mockName('destroyConfig'),
-                    findOne: jest
-                        .fn()
-                        .mockResolvedValue(false)
-                        .mockName('findOneConfig'),
-                },
+                    findOne: jest.fn().mockResolvedValue(false).mockName('findOneConfig')
+                }
             };
         });
 
@@ -46,7 +40,7 @@ describe('commands/config', () => {
             model.Config.findOne = jest
                 .fn()
                 .mockResolvedValue({
-                    update: model.Config.update,
+                    update: model.Config.update
                 })
                 .mockName('findOneConfigExists');
             await config(message, 'add fake-key fake-value', model);
@@ -59,7 +53,7 @@ describe('commands/config', () => {
             model.Config.findOne = jest
                 .fn()
                 .mockResolvedValue({
-                    update: model.Config.update,
+                    update: model.Config.update
                 })
                 .mockName('findOneConfigExists');
             await config(message, 'add fake-key fake-value', model);
@@ -72,7 +66,7 @@ describe('commands/config', () => {
             model.Config.findOne = jest
                 .fn()
                 .mockResolvedValue({
-                    destroy: model.Config.destroy,
+                    destroy: model.Config.destroy
                 })
                 .mockName('findOneConfigExists');
             await config(message, 'remove fake-key fake-value', model);
@@ -85,7 +79,7 @@ describe('commands/config', () => {
             model.Config.findOne = jest
                 .fn()
                 .mockResolvedValue({
-                    destroy: model.Config.destroy,
+                    destroy: model.Config.destroy
                 })
                 .mockName('findOneConfigExists');
             await config(message, 'remove fake-key fake-value', model);

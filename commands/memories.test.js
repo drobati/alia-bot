@@ -10,25 +10,16 @@ describe('commands/config', () => {
         message = {
             author: { id: botConfig.serverOwner, username: 'derek' },
             channel: { send: jest.fn().mockName('channel.send') },
-            reply: jest
-                .fn()
-                .mockResolvedValue(true)
-                .mockName('reply'),
+            reply: jest.fn().mockResolvedValue(true).mockName('reply')
         };
         model = {
             Memories: {
                 create: jest.fn().mockName('Memories.create'),
                 update: jest.fn().mockName('Memories.update'),
                 destroy: jest.fn().mockName('Memories.destroy'),
-                findAll: jest
-                    .fn()
-                    .mockResolvedValue(false)
-                    .mockName('Memories.findAll'),
-                findOne: jest
-                    .fn()
-                    .mockResolvedValue(false)
-                    .mockName('Memories.findOne'),
-            },
+                findAll: jest.fn().mockResolvedValue(false).mockName('Memories.findAll'),
+                findOne: jest.fn().mockResolvedValue(false).mockName('Memories.findOne')
+            }
         };
     });
 
@@ -113,7 +104,7 @@ describe('commands/config', () => {
                     { key: 'fake-key-2', value: 'fake-value-2' },
                     { key: 'fake-key-3', value: 'fake-value-3' },
                     { key: 'fake-key-4', value: 'fake-value-4' },
-                    { key: 'fake-key-5', value: 'fake-value-5' },
+                    { key: 'fake-key-5', value: 'fake-value-5' }
                 ])
                 .mockName('Memories.findOne.true');
             await memories(message, model);

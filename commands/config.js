@@ -16,7 +16,7 @@ module.exports = async (message, commandArgs, model) => {
 
     const { Config } = model;
 
-    if (message.author.id != config.serverOwner) {
+    if (message.author.id !== config.serverOwner) {
         return message.channel.send('You may not pass!');
     }
 

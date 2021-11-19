@@ -12,7 +12,7 @@ module.exports = async (message, model) => {
     const regex = /^\s*([A-Z"][A-Z0-9 .,'"()?!&%$#@+-]+)$/;
     if (regex.test(message.content)) {
         // Pick a loud from the stored list and say it. Skip if there are no louds.
-        const loud = await Louds.findOne({ order: Sequelize.literal('random()') });
+        const loud = await Louds.findOne({ order: Sequelize.literal('rand()') });
 
         if (loud) {
             loud.increment('usage_count');
@@ -30,7 +30,7 @@ module.exports = async (message, model) => {
         if (!exists && !banned) {
             await Louds.create({
                 message: newLoud,
-                username: message.author.id,
+                username: message.author.id
             });
         }
     }

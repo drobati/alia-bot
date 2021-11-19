@@ -11,7 +11,7 @@
     },
     "rules": {
         "brace-style": ["error", "1tbs", { "allowSingleLine": true }],
-        "comma-dangle": ["error", "always-multiline"],
+        "comma-dangle": ["error", "never"],
         "comma-spacing": "error",
         "comma-style": "error",
         "curly": ["error", "multi-line", "consistent"],

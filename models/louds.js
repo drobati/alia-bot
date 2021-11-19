@@ -1,25 +1,26 @@
 const { Sequelize } = require('sequelize');
 
-module.exports = sequelize => {
+module.exports = (sequelize) => {
     const Louds = sequelize.define('louds', {
         message: {
             type: Sequelize.STRING,
-            unique: true,
+            unique: true
         },
-        username: Sequelize.INTEGER,
+        // username is a snowflake
+        username: Sequelize.STRING,
         usage_count: {
             type: Sequelize.INTEGER,
             defaultValue: 0,
-            allowNull: false,
-        },
+            allowNull: false
+        }
     });
 
     const Louds_Banned = sequelize.define('louds_banned', {
         message: {
             type: Sequelize.STRING,
-            unique: true,
+            unique: true
         },
-        username: Sequelize.INTEGER,
+        username: Sequelize.STRING
     });
 
     return { Louds, Louds_Banned };

@@ -5,20 +5,21 @@ const server = require('./lib/server');
 const response = require('./responses');
 const commands = require('./commands');
 const models = require('./models');
+const config = require('config');
 
 // Create new client
 const client = new Client({ intents: [Intents.FLAGS.GUILDS, Intents.FLAGS.GUILD_MESSAGES] });
 const STATIC_PREFIX = '!';
 const DYNAMIC_PREFIX = '?';
 
-// TODO: Update database with username and password.
-const sequelize = new db.Sequelize('database', 'user', 'password', {
-    host: 'localhost',
-    dialect: 'sqlite',
-    logging: false,
-    storage: 'database.sqlite',
-});
+const sequelize = new db.Sequelize(
+    process.env.DB_NAME,
+    config.get('database.user'),
+    process.env.DB_PASSWORD,
+    config.get('database.options')
+);
 
+const Adlibs = models.Adlibs(sequelize);
 const Config = models.Config(sequelize);
 const { Memories } = models.Memories(sequelize);
 const { Louds, Louds_Banned } = models.Louds(sequelize);
@@ -27,6 +28,7 @@ const { Twitch_Users, Twitch_Notifications } = models.Twitch(sequelize);
 // Startup message
 client.once('ready', () => {
     // Sync tables.
+    Adlibs.sync();
     Config.sync();
     Louds.sync();
     Louds_Banned.sync();
@@ -47,10 +49,14 @@ client.once('ready', () => {
     // Start server for webhooks.
     const genChannel = client.channels.cache.find((chan) => chan.name === 'general');
     const twitchEmbed = new MessageEmbed();
-    server(client, genChannel, twitchEmbed, { Twitch_Users, Twitch_Notifications });
+    server(client, genChannel, twitchEmbed, { Twitch_Users, Twitch_Notifications }).then((r) =>
+        console.log(r)
+    );
 });
 
-client.login(process.env.BOT_TOKEN);
+client.login(process.env.BOT_TOKEN).then(() => {
+    console.log('Logged in.');
+});
 
 client.on('messageCreate', async (message) => {
     if (message.author.bot) {
@@ -66,13 +72,19 @@ client.on('messageCreate', async (message) => {
         const commandArgs = input.join(' ');
 
         if (command === 'fear') {
-            message.channel.send('Fear is the mindkiller.');
+            await message.channel.send('Fear is the mindkiller.');
+        } else if (command === 'adlib') {
+            await commands.Adlibs(message, commandArgs, { Adlibs });
         } else if (command === 'loud') {
-            commands.Louds(message, commandArgs, { Louds, Louds_Banned });
+            await commands.Louds(message, commandArgs, { Louds, Louds_Banned });
         } else if (command === 'twitch') {
-            commands.Twitch(message, commandArgs, { Twitch_Users, Config });
+            await commands.Twitch(message, commandArgs, { Twitch_Users, Config });
         } else if (command === 'config') {
-            commands.Config(message, commandArgs, { Config });
+            await commands.Config(message, commandArgs, { Config });
+        } else if (command === 'dadjoke') {
+            await commands.DadJokes(message);
+        } else if (command === 'coinbase') {
+            await commands.Coinbase(message, commandArgs);
         } else {
             return message.reply('Command not recognized.');
         }
@@ -92,4 +104,5 @@ client.on('messageCreate', async (message) => {
     // Call each response here. She will 'respond' to these functions.
     // They should have a regex, on what they are listening for.
     await response.Louds(message, { Louds, Louds_Banned });
+    await response.Adlibs(message, { Adlibs });
 });
