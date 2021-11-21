@@ -73,6 +73,8 @@ const callCommands = async (message) => {
             return await commands.Louds(message, Louds, Louds_Banned);
         case 'remember':
             return await commands.Memories(message, Memories);
+        case 'qr':
+            return await commands.QRCode(message);
         case 'twitch':
             return await commands.Twitch(message, Twitch_Users, Config);
         default:

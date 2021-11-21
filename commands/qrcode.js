@@ -1,8 +1,12 @@
 //!qr <url>
+const Discord = require('discord.js');
 const QRCode = require('qrcode');
 const yup = require('yup');
 
-const generateQR = async (text) => await QRCode.toDataURL(text);
+const generateQR = async (text) => {
+    const data = await QRCode.toDataURL(text);
+    return new Buffer.from(data.split(',')[1], 'base64');
+};
 
 module.exports = async (message) => {
     const words = message.content.split(' ').splice(1);
@@ -15,6 +19,7 @@ module.exports = async (message) => {
         return message.channel.send('Please provide a valid URL.');
     }
 
-    const qr = await generateQR(url);
-    await message.channel.send(qr);
+    const buf = await generateQR(url);
+    const attachment = new Discord.MessageAttachment(buf, 'output.png');
+    await message.channel.send(attachment);
 };

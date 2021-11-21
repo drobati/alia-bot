@@ -1,6 +1,6 @@
 const qrcode = require('./qrcode');
-const QRCode = require('qrcode');
-jest.mock('qrcode');
+const Discord = require('discord.js');
+jest.mock('discord.js');
 
 describe('commands/qrcode', () => {
     let message;
@@ -12,14 +12,14 @@ describe('commands/qrcode', () => {
                 send: jest.fn()
             }
         };
-        QRCode.toDataURL = jest.fn().mockResolvedValue('works');
+        Discord.MessageAttachment = jest.fn().mockImplementation(() => {});
     });
 
     describe('should', () => {
         it('respond with code', async () => {
             message.content = '!qr https://google.com';
             await qrcode(message);
-            expect(message.channel.send).toHaveBeenCalledWith('works');
+            expect(message.channel.send).toHaveBeenCalledWith({});
         });
 
         it('respond if invalid url', async () => {
