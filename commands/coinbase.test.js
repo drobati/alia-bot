@@ -1,4 +1,4 @@
-const coinbase = require('./coinbase.js');
+const coinbase = require('./coinbase');
 const axios = require('axios');
 jest.mock('axios');
 
