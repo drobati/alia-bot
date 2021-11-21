@@ -4,7 +4,7 @@
 module.exports = async (message, Memories) => {
     const triggers = await Memories.findAll({
         where: {
-            type: 'trigger'
+            trigger: true
         }
     });
 

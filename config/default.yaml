@@ -2,7 +2,7 @@ database:
   user: root
   options:
     host: mysqldb
-    dialect: "mysql"
+    dialect: mysql
     port: 3306
     pool:
       max: 5

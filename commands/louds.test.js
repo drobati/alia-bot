@@ -28,72 +28,66 @@ describe('commands/louds', () => {
         it('respond to delete', async () => {
             message.content = '!louds delete fake-data';
             await louds(message, Louds, Louds_Banned);
-            expect(message.channel.send).toBeCalledTimes(1);
+            expect(message.channel.send).toBeCalledWith("I've removed that loud.");
         });
 
         it('respond to ban', async () => {
             message.content = '!louds ban fake-data';
             await louds(message, Louds, Louds_Banned);
-            expect(message.channel.send).toBeCalledTimes(1);
+            expect(message.channel.send).toBeCalledWith("I've banned that loud.");
         });
 
         it('respond to unban', async () => {
             message.content = '!louds unban fake-data';
             await louds(message, Louds, Louds_Banned);
-            expect(message.channel.send).toBeCalledTimes(1);
+            expect(message.channel.send).toBeCalledWith("That's not banned.");
         });
 
         it('respond to missing command', async () => {
             message.content = '!louds delete fake-data';
             await louds(message, Louds, Louds_Banned);
-            expect(message.channel.send).toBeTruthy();
+            expect(message.channel.send).toBeCalledWith("I've removed that loud.");
         });
 
         it('respond to failed delete', async () => {
             Louds.destroy = jest.fn().mockResolvedValueOnce(0);
             message.content = '!louds delete fake-data';
             await louds(message, Louds, Louds_Banned);
-            expect(message.channel.send).toBeTruthy();
+            expect(message.channel.send).toBeCalledWith("I couldn't find that loud.");
         });
 
         it('ban loud with ban command', async () => {
             Louds_Banned.findOne = jest.fn().mockResolvedValue(false);
             message.content = '!louds ban fake-data';
             await louds(message, Louds, Louds_Banned);
-            const create = Louds_Banned.create.mock.calls;
-            expect(create).toHaveLength(1);
+            expect(message.channel.send).toBeCalledWith("I've banned that loud.");
         });
 
         it('cannot ban if already banned with ban command', async () => {
             Louds_Banned.findOne = jest.fn().mockResolvedValue(true);
             message.content = '!louds ban fake-data';
             await louds(message, Louds, Louds_Banned);
-            const create = Louds_Banned.create.mock.calls;
-            expect(create).toHaveLength(0);
+            expect(message.channel.send).toBeCalledWith("I've banned that loud.");
         });
 
-        it('delete loud with ban command', async () => {
+        it('responds to ban command if removed and banned', async () => {
             Louds.findOne = jest.fn().mockResolvedValue(true);
             message.content = '!louds ban fake-data';
             await louds(message, Louds, Louds_Banned);
-            const destroy = Louds.destroy.mock.calls;
-            expect(destroy).toHaveLength(1);
+            expect(message.channel.send).toBeCalledWith("I've removed & banned that loud.");
         });
 
-        it('add loud with unban command', async () => {
+        it('responds to unban', async () => {
             Louds_Banned.findOne = jest.fn().mockResolvedValue(true);
             message.content = '!louds unban fake-data';
             await louds(message, Louds, Louds_Banned);
-            const create = Louds.create.mock.calls;
-            expect(create).toHaveLength(1);
+            expect(message.channel.send).toBeCalledWith("I've added & unbanned that loud.");
         });
 
-        it('delete banned loud with unban command', async () => {
-            Louds_Banned.findOne = jest.fn().mockResolvedValue(true);
-            message.content = '!louds unban fake-data';
+        it('responds to a bad action', async () => {
+            message.content = '!louds garbo';
             await louds(message, Louds, Louds_Banned);
-            const destroy = Louds_Banned.destroy.mock.calls;
-            expect(destroy).toHaveLength(1);
+            expect(message.channel.send).toBeCalledWith("I don't recognize that command.");
         });
     });
 });

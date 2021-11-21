@@ -41,11 +41,11 @@ module.exports = async (message, Config) => {
         } else {
             return await message.channel.send("I've updated the config.");
         }
-    } else if (action === 'remove') {
-        if (record) {
-            await record.destroy({ force: true });
-            return await message.channel.send("I've removed the config.");
-        }
-        return await message.channel.send("I don't know that config.");
     }
+    // since we check above for remove...
+    if (record) {
+        await record.destroy({ force: true });
+        return await message.channel.send("I've removed the config.");
+    }
+    return await message.channel.send("I don't know that config.");
 };

@@ -40,7 +40,7 @@ client.once('ready', () => {
         One day you will cry out for help. One day each of you will find yourselves alone.
     `);
     if (process.env.NODE_ENV !== 'development') {
-        const devChannel = client.channels.cache.find((chan) => chan.name === 'alia-bot');
+        const devChannel = client.channels.cache.find((chan) => chan.name === 'test');
         devChannel.send('Successfully deployed.');
     }
 
@@ -74,7 +74,7 @@ const callCommands = async (message) => {
         case 'remember':
             return await commands.Memories(message, Memories);
         case 'qr':
-            return await commands.QRCode(message);
+            return await commands.QR(message);
         case 'twitch':
             return await commands.Twitch(message, Twitch_Users, Config);
         default:

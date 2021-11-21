@@ -1,30 +1,41 @@
-const qrcode = require('./qrcode');
-const Discord = require('discord.js');
-jest.mock('discord.js');
+const qr = require('./qrcode');
+const qrcode = require('qrcode');
+jest.mock('qrcode');
 
 describe('commands/qrcode', () => {
     let message;
 
     beforeEach(() => {
         message = {
+            suppressEmbeds: jest.fn(),
             content: '',
             channel: {
-                send: jest.fn()
+                send: jest.fn().mockResolvedValue({
+                    suppressEmbeds: jest.fn()
+                })
             }
         };
-        Discord.MessageAttachment = jest.fn().mockImplementation(() => {});
+        qrcode.toDataURL = jest.fn().mockResolvedValue('a,test');
     });
 
     describe('should', () => {
         it('respond with code', async () => {
+            const buf = new Buffer.from('test', 'base64');
             message.content = '!qr https://google.com';
-            await qrcode(message);
-            expect(message.channel.send).toHaveBeenCalledWith({});
+            await qr(message);
+            expect(message.channel.send).toHaveBeenCalledWith({
+                content: 'https://google.com',
+                files: [
+                    {
+                        attachment: buf
+                    }
+                ]
+            });
         });
 
         it('respond if invalid url', async () => {
             message.content = '!qr google.com';
-            await qrcode(message);
+            await qr(message);
             expect(message.channel.send).toHaveBeenCalledWith('Please provide a valid URL.');
         });
     });

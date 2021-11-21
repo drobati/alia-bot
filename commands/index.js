@@ -4,7 +4,7 @@ const Config = require('./config');
 const DadJokes = require('./dadjokes');
 const Louds = require('./louds');
 const Memories = require('./memories');
-const QRCode = require('./qrcode');
+const QR = require('./qrcode');
 const Twitch = require('./twitch');
 
 module.exports = {
@@ -14,6 +14,6 @@ module.exports = {
     DadJokes,
     Louds,
     Memories,
-    QRCode,
+    QR,
     Twitch
 };
