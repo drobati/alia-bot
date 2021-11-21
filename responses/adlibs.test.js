@@ -1,5 +1,4 @@
 const adlibs = require('./adlibs');
-const axios = require('axios');
 
 describe('response/adlibs', () => {
     describe('should', () => {
