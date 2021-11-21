@@ -2,7 +2,7 @@ const louds = require('./louds');
 
 describe('response/louds', () => {
     describe('should', () => {
-        let message, model, mockChannelSend;
+        let message, Louds, Louds_Banned, mockChannelSend;
         let oldLoud;
 
         beforeEach(() => {
@@ -16,47 +16,35 @@ describe('response/louds', () => {
                 author: { id: '1234', username: 'derek' },
                 channel: { send: mockChannelSend }
             };
-            model = {
-                Louds: {
-                    create: jest.fn().mockName('createLouds'),
-                    findOne: jest
-                        .fn()
-                        .mockResolvedValueOnce(oldLoud)
-                        .mockResolvedValueOnce(false)
-                        .mockName('findOneLouds')
-                },
-                Louds_Banned: {
-                    findOne: jest.fn().mockResolvedValue(false).mockName('Louds_Banned')
-                }
+            Louds = {
+                create: jest.fn(),
+                findOne: jest.fn().mockResolvedValueOnce(oldLoud).mockResolvedValueOnce(false)
+            };
+            Louds_Banned = {
+                findOne: jest.fn().mockResolvedValue(false)
             };
         });
 
         it('respond to loud one time', async () => {
-            await louds(message, model);
-            const sent = message.channel.send.mock.calls;
-            expect(sent).toHaveLength(1);
+            await louds(message, Louds, Louds_Banned);
+            expect(message.channel.send.mock.calls).toHaveLength(1);
         });
 
         it('not respond if not a loud', async () => {
             message.content = 'fear';
-            await louds(message, model);
-            const sent = message.channel.send.mock.calls;
-            expect(sent).toHaveLength(0);
+            await louds(message, Louds, Louds_Banned);
+            expect(message.channel.send.mock.calls).toHaveLength(0);
         });
 
         it('respond to no louds in db', async () => {
-            model.Louds.findOne = jest
-                .fn()
-                .mockResolvedValueOnce(false)
-                .mockResolvedValueOnce(false)
-                .mockName('emptyLouds');
-            await louds(message, model);
+            Louds.findOne = jest.fn().mockResolvedValueOnce(false).mockResolvedValueOnce(false);
+            await louds(message, Louds, Louds_Banned);
             const sent = message.channel.send.mock.calls[0][0];
             expect(sent).toMatch(/No louds stored yet\./);
         });
 
         it('increment oldLoud usage count', async () => {
-            await louds(message, model);
+            await louds(message, Louds, Louds_Banned);
             const incremented = oldLoud.increment.mock.calls;
             expect(incremented).toHaveLength(1);
         });
@@ -66,13 +54,9 @@ describe('response/louds', () => {
                 increment: jest.fn(),
                 message: 'KILLER'
             };
-            model.Louds.findOne = jest
-                .fn()
-                .mockResolvedValueOnce(false)
-                .mockResolvedValueOnce(newLoud)
-                .mockName('existsLouds');
-            await louds(message, model);
-            const findOne = await model.Louds.findOne.mock.results[1].value;
+            Louds.findOne = jest.fn().mockResolvedValueOnce(false).mockResolvedValueOnce(newLoud);
+            await louds(message, Louds, Louds_Banned);
+            const findOne = await Louds.findOne.mock.results[1].value;
             expect(findOne).toBeTruthy();
         });
 
@@ -81,18 +65,15 @@ describe('response/louds', () => {
                 message: 'KILLER',
                 username: 'MAUDIB'
             };
-            model.Louds_Banned.findOne = jest
-                .fn()
-                .mockResolvedValue(bannedLoud)
-                .mockName('existsLouds_Banned');
-            await louds(message, model);
-            const findOne = await model.Louds_Banned.findOne.mock.results[0].value;
+            Louds_Banned.findOne = jest.fn().mockResolvedValue(bannedLoud);
+            await louds(message, Louds, Louds_Banned);
+            const findOne = await Louds_Banned.findOne.mock.results[0].value;
             expect(findOne).toBeTruthy();
         });
 
         it('store newLoud', async () => {
-            await louds(message, model);
-            const create = model.Louds.create;
+            await louds(message, Louds, Louds_Banned);
+            const create = Louds.create;
             const stored = { message: message.content, username: message.author.id };
             expect(create).toHaveBeenCalledWith(stored);
         });

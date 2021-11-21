@@ -5,59 +5,47 @@ const { isEmpty } = require('lodash');
 //   config add key value
 //   config remove key value
 
-module.exports = async (message, commandArgs, model) => {
+module.exports = async (message, Config) => {
     const commandSyntax = '`config add|remove key value?`';
-    const commandSyntaxAdd = ' `config add key value`';
-    const commandSyntaxRemove = ' `config remove key`';
-    const splitArgs = commandArgs.split(' ');
-    const action = splitArgs.shift();
-    const key = splitArgs.shift();
-    const value = splitArgs.join('');
+    const commandSyntaxAdd = '`config add key value`';
+    const commandSyntaxRemove = '`config remove key`';
 
-    const { Config } = model;
+    const words = message.content.split(' ').splice(1);
+    const action = words.shift();
+    const key = words.shift();
+    const value = words.join('');
 
     if (message.author.id !== config.serverOwner) {
-        return message.channel.send('You may not pass!');
+        return await message.channel.send('You may not pass!');
     }
 
     if (['add', 'remove'].indexOf(action) === -1) {
-        return message.channel.send(`Invalid subcommand. Use: ${commandSyntax}`);
+        return await message.channel.send(`Invalid subcommand. Use ${commandSyntax}`);
     }
 
     if (key == null) {
         const command = action === 'add' ? commandSyntaxAdd : commandSyntaxRemove;
-        return message.channel.send(`Missing key. ${command}`);
+        return await message.channel.send(`Missing key. Use ${command}`);
     }
 
     if (isEmpty(value) && action === 'add') {
-        return message.channel.send(`Missing value. ${commandSyntaxAdd}`);
+        return await message.channel.send(`Missing value. Use ${commandSyntaxAdd}`);
     }
 
-    try {
-        const record = await Config.findOne({ where: { key: key } });
+    const record = await Config.findOne({ where: { key: key } });
 
-        switch (action) {
-            case 'add':
-                if (!record) {
-                    await Config.create({ key, value });
-                    return message.channel.send('Config added.');
-                } else {
-                    await record.update({ key, value });
-                    return message.channel.send('Config updated.');
-                }
-
-            case 'remove':
-                if (record) {
-                    await record.destroy({ force: true });
-                    return message.channel.send('Config removed.');
-                }
-                return message.channel.send('Config does not exist.');
-
-            default:
-                return message.channel.send('Config subcommand does not exist.');
+    if (action === 'add') {
+        await Config.upsert({ key, value });
+        if (!record) {
+            return await message.channel.send("I've added the config.");
+        } else {
+            return await message.channel.send("I've updated the config.");
         }
-    } catch (error) {
-        console.log(error);
-        return message.channel.send('Config command had an error.');
+    } else if (action === 'remove') {
+        if (record) {
+            await record.destroy({ force: true });
+            return await message.channel.send("I've removed the config.");
+        }
+        return await message.channel.send("I don't know that config.");
     }
 };

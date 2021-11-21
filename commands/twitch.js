@@ -5,14 +5,12 @@
 //   twitch list
 const api = require('../lib/apis/twitch');
 
-module.exports = async (message, commandArgs, model) => {
+module.exports = async (message, Twitch_Users, Config) => {
     const leaseTime = 864000;
 
-    const splitArgs = commandArgs.split(' ');
-    const action = splitArgs.shift();
-    const username = splitArgs.shift();
-
-    const { Twitch_Users, Config } = model;
+    const words = message.content.split(' ').splice(1);
+    const action = words.shift();
+    const username = words.shift();
 
     const record = await Twitch_Users.findOne({ where: { user_id: message.author.id } });
 

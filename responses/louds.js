@@ -1,14 +1,11 @@
 const Sequelize = require('sequelize');
 
 // https://github.com/desert-planet/hayt/blob/master/scripts/loud.coffee
-// Port of louds by annabunches
 // Description:
 //   ENCOURAGE SHOUTING. LOUD TEXT IS FOREVER.
 //   LOUD WILL CAUSE YOUR HUBOT TO STORE ALL-CAPS MESSAGES FROM THE CHANNEL,
 //   AND SPIT THEM BACK AT RANDOM IN RESPONSE.
-module.exports = async (message, model) => {
-    const { Louds, Louds_Banned } = model;
-
+module.exports = async (message, Louds, Louds_Banned) => {
     const regex = /^\s*([A-Z"][A-Z0-9 .,'"()?!&%$#@+-]+)$/;
     if (regex.test(message.content)) {
         // Pick a loud from the stored list and say it. Skip if there are no louds.

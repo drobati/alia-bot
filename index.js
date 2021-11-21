@@ -9,8 +9,6 @@ const config = require('config');
 
 // Create new client
 const client = new Client({ intents: [Intents.FLAGS.GUILDS, Intents.FLAGS.GUILD_MESSAGES] });
-const STATIC_PREFIX = '!';
-const DYNAMIC_PREFIX = '?';
 
 const sequelize = new db.Sequelize(
     process.env.DB_NAME,
@@ -58,51 +56,51 @@ client.login(process.env.BOT_TOKEN).then(() => {
     console.log('Logged in.');
 });
 
+const callCommands = async (message) => {
+    const command = message.content.slice(1).split(' ').shift();
+    switch (command) {
+        case 'adlib':
+            return await commands.Adlibs(message, Adlibs);
+        case 'coinbase':
+            return await commands.Coinbase(message);
+        case 'config':
+            return await commands.Config(message, Config);
+        case 'dadjoke':
+            return await commands.DadJokes(message);
+        case 'fear':
+            return await message.channel.send('Fear is the mindkiller.');
+        case 'loud':
+            return await commands.Louds(message, Louds, Louds_Banned);
+        case 'remember':
+            return await commands.Memories(message, Memories);
+        case 'twitch':
+            return await commands.Twitch(message, Twitch_Users, Config);
+        default:
+            return message.reply("I don't know that command.");
+    }
+};
+
 client.on('messageCreate', async (message) => {
-    if (message.author.bot) {
-        return '';
-    }
+    try {
+        if (message.author.bot) return '';
 
-    // Commands can tell Alia to do something specific.
-    //  STATIC_PREFIX are for strict command structures.
-    //  DYNAMIC_PREFIX are for loose command structures.
-    if (message.content.startsWith(STATIC_PREFIX)) {
-        const input = message.content.slice(STATIC_PREFIX.length).split(' ');
-        const command = input.shift();
-        const commandArgs = input.join(' ');
-
-        if (command === 'fear') {
-            await message.channel.send('Fear is the mindkiller.');
-        } else if (command === 'adlib') {
-            await commands.Adlibs(message, commandArgs, { Adlibs });
-        } else if (command === 'loud') {
-            await commands.Louds(message, commandArgs, { Louds, Louds_Banned });
-        } else if (command === 'twitch') {
-            await commands.Twitch(message, commandArgs, { Twitch_Users, Config });
-        } else if (command === 'config') {
-            await commands.Config(message, commandArgs, { Config });
-        } else if (command === 'dadjoke') {
-            await commands.DadJokes(message);
-        } else if (command === 'coinbase') {
-            await commands.Coinbase(message, commandArgs);
-        } else {
-            return message.reply('Command not recognized.');
+        if (message.content.startsWith('!')) {
+            await callCommands(message, Adlibs);
         }
-    }
-
-    if (message.content.startsWith(DYNAMIC_PREFIX)) {
-        await commands.Memories(message, { Memories });
+    } catch (error) {
+        console.log(error);
+        await message.channel.send("I'm sorry, I'm having trouble processing that request.");
     }
 });
 
 client.on('messageCreate', async (message) => {
-    // Alia doesn't respond to herself and other bots.
-    if (message.author.bot) {
-        return '';
-    }
+    try {
+        if (message.author.bot) return '';
 
-    // Call each response here. She will 'respond' to these functions.
-    // They should have a regex, on what they are listening for.
-    await response.Louds(message, { Louds, Louds_Banned });
-    await response.Adlibs(message, { Adlibs });
+        await response.Louds(message, Louds, Louds_Banned);
+        await response.Adlibs(message, Adlibs);
+        await response.Triggers(message, Memories);
+    } catch (error) {
+        console.log(error);
+    }
 });

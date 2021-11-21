@@ -1,7 +1,7 @@
 const { Sequelize } = require('sequelize');
 
-module.exports = (sequelize) => {
-    const Memories = sequelize.define('memories', {
+module.exports = (sequelize) => ({
+    Memories: sequelize.define('memories', {
         key: {
             type: Sequelize.STRING,
             unique: true
@@ -12,8 +12,11 @@ module.exports = (sequelize) => {
             type: Sequelize.INTEGER,
             defaultValue: 0,
             allowNull: false
+        },
+        triggered: {
+            type: Sequelize.BOOLEAN,
+            defaultValue: false,
+            allowNull: false
         }
-    });
-
-    return { Memories };
-};
+    })
+});

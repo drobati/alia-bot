@@ -4,102 +4,82 @@ const botConfig = require('../config');
 describe('commands/config', () => {
     describe('should', () => {
         let message = {},
-            model = {};
+            Config = {};
 
         beforeEach(() => {
             message = {
                 author: { id: botConfig.serverOwner, username: 'derek' },
-                channel: { send: jest.fn().mockName('send') },
-                reply: jest.fn().mockResolvedValue(true).mockName('reply')
+                channel: { send: jest.fn() }
             };
-            model = {
-                Config: {
-                    create: jest.fn().mockName('createConfig'),
-                    update: jest.fn().mockName('updateConfig'),
-                    destroy: jest.fn().mockName('destroyConfig'),
-                    findOne: jest.fn().mockResolvedValue(false).mockName('findOneConfig')
-                }
+            Config = {
+                upsert: jest.fn(),
+                findOne: jest.fn().mockResolvedValue(false)
             };
-        });
-
-        it('respond to add with create if does not exists', async () => {
-            await config(message, 'add fake-key fake-value', model);
-            const reply = message.reply;
-            expect(reply).toBeCalledTimes(1);
-            expect(reply).toBeCalledWith('Config added.');
         });
 
         it('create key and value', async () => {
-            await config(message, 'add fake-key fake-value', model);
-            const created = model.Config.create;
-            expect(created).toBeCalledTimes(1);
-            expect(created).toBeCalledWith({ key: 'fake-key', value: 'fake-value' });
-        });
-
-        it('respond to add with update if exists', async () => {
-            model.Config.findOne = jest
-                .fn()
-                .mockResolvedValue({
-                    update: model.Config.update
-                })
-                .mockName('findOneConfigExists');
-            await config(message, 'add fake-key fake-value', model);
-            const reply = message.reply;
-            expect(reply).toBeCalledTimes(1);
-            expect(reply).toBeCalledWith('Config updated.');
+            message.content = '!config add fake-key fake-value';
+            await config(message, Config);
+            expect(Config.upsert).toBeCalledWith({ key: 'fake-key', value: 'fake-value' });
+            expect(message.channel.send).toBeCalledWith("I've added the config.");
         });
 
         it('updated key and value', async () => {
-            model.Config.findOne = jest
-                .fn()
-                .mockResolvedValue({
-                    update: model.Config.update
-                })
-                .mockName('findOneConfigExists');
-            await config(message, 'add fake-key fake-value', model);
-            const updated = model.Config.update;
-            expect(updated).toBeCalledTimes(1);
-            expect(updated).toBeCalledWith({ key: 'fake-key', value: 'fake-value' });
-        });
-
-        it('respond to remove with removed if exists', async () => {
-            model.Config.findOne = jest
-                .fn()
-                .mockResolvedValue({
-                    destroy: model.Config.destroy
-                })
-                .mockName('findOneConfigExists');
-            await config(message, 'remove fake-key fake-value', model);
-            const reply = message.reply;
-            expect(reply).toBeCalledTimes(1);
-            expect(reply).toBeCalledWith('Config removed.');
+            message.content = '!config add fake-key fake-value';
+            Config.findOne = jest.fn().mockResolvedValue(true);
+            await config(message, Config);
+            expect(Config.upsert).toBeCalledWith({ key: 'fake-key', value: 'fake-value' });
+            expect(message.channel.send).toBeCalledWith("I've updated the config.");
         });
 
         it('destroy key and value', async () => {
-            model.Config.findOne = jest
-                .fn()
-                .mockResolvedValue({
-                    destroy: model.Config.destroy
-                })
-                .mockName('findOneConfigExists');
-            await config(message, 'remove fake-key fake-value', model);
-            const destroyed = model.Config.destroy;
-            expect(destroyed).toBeCalledTimes(1);
-            expect(destroyed).toBeCalledWith({ force: true });
+            message.content = '!config remove fake-key fake-value';
+            const destroy = jest.fn().mockResolvedValue(true);
+            Config.findOne = jest.fn().mockResolvedValue({ destroy });
+            await config(message, Config);
+            expect(destroy).toBeCalledWith({ force: true });
+            expect(message.channel.send).toBeCalledWith("I've removed the config.");
         });
 
         it('respond to remove with missing if does not exists', async () => {
-            await config(message, 'remove fake-key fake-value', model);
-            const reply = message.reply;
-            expect(reply).toBeCalledTimes(1);
-            expect(reply).toBeCalledWith('Config does not exist.');
+            message.content = '!config remove fake-key fake-value';
+            await config(message, Config);
+            expect(message.channel.send).toBeCalledWith("I don't know that config.");
         });
 
         it('respond to missing command', async () => {
-            await config(message, 'hotgarbage fake-key fake-value', model);
-            const reply = message.reply;
-            expect(reply).toBeCalledTimes(1);
-            expect(reply).toBeCalledWith('Config subcommand does not exist.');
+            message.content = '!config hotgarbage fake-key fake-value';
+            await config(message, Config);
+            expect(message.channel.send).toBeCalledWith(
+                'Invalid subcommand. Use `config add|remove key value?`'
+            );
+        });
+
+        it('respond to unauthorized user', async () => {
+            message.author.id = 'not-derek';
+            message.content = '!config add fake-key fake-value';
+            await config(message, Config);
+            expect(message.channel.send).toBeCalledWith('You may not pass!');
+        });
+
+        it('respond to missing key on add', async () => {
+            message.content = '!config add';
+            await config(message, Config);
+            expect(message.channel.send).toBeCalledWith('Missing key. Use `config add key value`');
+        });
+
+        it('respond to missing key on remove', async () => {
+            message.content = '!config remove';
+            await config(message, Config);
+            expect(message.channel.send).toBeCalledWith('Missing key. Use `config remove key`');
+        });
+
+        it('respond to missing value on add', async () => {
+            message.content = '!config add fake-key';
+            await config(message, Config);
+            expect(message.channel.send).toBeCalledWith(
+                'Missing value. Use `config add key value`'
+            );
         });
     });
 });

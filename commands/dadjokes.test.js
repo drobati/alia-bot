@@ -9,8 +9,7 @@ describe('commands/dadjokes', () => {
         beforeEach(() => {
             message = {
                 author: { id: '1234', username: 'guy' },
-                channel: { send: jest.fn().mockName('send') },
-                reply: jest.fn().mockResolvedValue(true).mockName('reply')
+                channel: { send: jest.fn() }
             };
             axios.get.mockResolvedValue({ data: { joke: 'fake-dad-joke' } });
         });
@@ -21,17 +20,13 @@ describe('commands/dadjokes', () => {
 
         it('respond to dadjoke', async () => {
             await run(message);
-            const reply = message.reply;
-            expect(reply).toBeCalledTimes(1);
-            expect(reply).toBeCalledWith('fake-dad-joke');
+            expect(message.channel.send).toBeCalledTimes(1);
+            expect(message.channel.send).toBeCalledWith('fake-dad-joke');
         });
 
-        it('responds to dadjoke with error if has error', async () => {
+        it('throw error if there is an error', async () => {
             axios.get.mockRejectedValue(new Error('error'));
-            await run(message);
-            const reply = message.reply;
-            expect(reply).toBeCalledTimes(1);
-            expect(reply).toBeCalledWith('There was an error.');
+            await expect(run(message)).rejects.toThrow('error');
         });
     });
 });

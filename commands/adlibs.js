@@ -16,39 +16,29 @@
 // Author:
 //   derek r
 
-module.exports = async (message, commandArgs, model) => {
-    const splitArgs = commandArgs.split(' ');
-    const action = splitArgs.shift();
-    const value = splitArgs.join(' ');
+module.exports = async (message, Adlibs) => {
+    const words = message.content.split(' ').splice(1);
+    const action = words.shift();
+    const value = words.join(' ');
 
-    const { Adlibs } = model;
+    const record = await Adlibs.findOne({ where: { value } });
+    switch (action) {
+        case 'add':
+            if (!record) {
+                await Adlibs.create({ value });
+                return await message.channel.send("I've added that adlib.");
+            } else {
+                return await message.channel.send('That adlib already exists.');
+            }
 
-    try {
-        const record = await Adlibs.findOne({ where: { value: value } });
+        case 'remove':
+            if (record) {
+                await record.destroy({ force: true });
+                return await message.channel.send("I've removed that adlib.");
+            }
+            return await message.channel.send("I don't recognize that adlib.");
 
-        switch (action) {
-            case 'add':
-                if (!record) {
-                    await Adlibs.create({ value });
-                    return message.channel.send('Adlib added.');
-                } else {
-                    return message.channel.send(
-                        'Adlib already exists. You can remove it with `!adlib remove <text>`.'
-                    );
-                }
-
-            case 'remove':
-                if (record) {
-                    await record.destroy({ force: true });
-                    return message.channel.send('Adlib removed.');
-                }
-                return message.channel.send('Adlib does not exist.');
-
-            default:
-                return message.channel.send('Adlib subcommand does not exist.');
-        }
-    } catch (error) {
-        console.log(error);
-        return message.channel.send('Adlib command had an error.');
+        default:
+            return await message.channel.send("I don't recognize that command.");
     }
 };

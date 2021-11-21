@@ -1,15 +1,13 @@
 const axios = require('axios');
+const { get } = require('lodash');
 
 module.exports = async (message) => {
-    try {
-        const {
-            data: { joke }
-        } = await axios.get('https://icanhazdadjoke.com/', {
+    const joke = get(
+        // We have to return a different useragent, otherwise the server will block us
+        await axios.get('https://icanhazdadjoke.com/', {
             headers: { Accept: 'application/json', 'User-Agent': 'fuckicanhazdadjoke' }
-        });
-        message.channel.send(joke);
-    } catch (error) {
-        console.log(error);
-        message.channel.send('There was an error.');
-    }
+        }),
+        'data.joke'
+    );
+    return await message.channel.send(joke);
 };

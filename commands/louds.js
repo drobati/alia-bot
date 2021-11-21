@@ -8,7 +8,7 @@
 const deleteLoud = async (data, model, message, response) => {
     const rowCount = await model.destroy({ where: { message: data } });
     if (!rowCount) {
-        return message.channel.send("Couldn't find that loud.");
+        return message.channel.send("I couldn't find that loud.");
     }
     return message.channel.send(response);
 };
@@ -23,45 +23,36 @@ const addLoud = async (data, model, message) => {
     }
 };
 
-module.exports = async (message, commandArgs, model) => {
-    const splitArgs = commandArgs.split(' ');
-    const action = splitArgs.shift();
-    const data = splitArgs.join(' ');
-
-    const { Louds, Louds_Banned } = model;
+module.exports = async (message, Louds, Louds_Banned) => {
+    const words = message.content.split(' ').splice(1);
+    const action = words.shift();
+    const data = words.join(' ');
 
     switch (action) {
         case 'delete':
-            await deleteLoud(data, Louds, message, 'Loud deleted.');
-            break;
+            return await deleteLoud(data, Louds, message, "I've removed that loud.");
 
         case 'ban':
             await addLoud(data, Louds_Banned, message);
             if (await Louds.findOne({ where: { message: data } })) {
-                await deleteLoud(data, Louds, message, 'Loud deleted and banned.');
-            } else {
-                return message.channel.send('Loud banned.');
+                return await deleteLoud(data, Louds, message, "I've removed & banned that loud.");
             }
-            break;
+            return message.channel.send("I've banned that loud.");
 
         case 'unban':
-            await addLoud(data, Louds, message);
             if (await Louds_Banned.findOne({ where: { message: data } })) {
-                await deleteLoud(data, Louds_Banned, message, 'Loud added and unbanned.');
-            } else {
-                return message.channel.send(
-                    "Loud added, but wasn't banned. If this wasn't intended use !loud delete."
+                await addLoud(data, Louds, message);
+                return await deleteLoud(
+                    data,
+                    Louds_Banned,
+                    message,
+                    "I've added & unbanned that loud."
                 );
+            } else {
+                return message.channel.send("That's not banned.");
             }
-            break;
-
-        case 'nuke':
-            break;
-
-        case 'all':
-            break;
 
         default:
-            return message.channel.send('Loud subcommand does not exist.');
+            return message.channel.send("I don't recognize that command.");
     }
 };

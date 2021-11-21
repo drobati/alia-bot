@@ -1,0 +1,9 @@
+#!/usr/bin/env bash
+# check input parameters are set
+if [ -z "$1" ]
+then
+    echo "No name given for migration"
+    exit 1
+fi
+
+npx sequelize-cli migration:generate --name "$1"

@@ -1,104 +1,104 @@
 // https://github.com/desert-planet/hayt/blob/master/scripts/remember.coffee
 //
-// Port of remember by skalnik
-//
 // Commands:
-// . ? is|remember <key> - Returns a string
-// . ? <key> is <value>. - Returns nothing. Remembers the text for next time!
-// . ? what do you remember - Returns top 5 hubot remembers.
-// . ? forget <key> - Removes key from hubots brain.
-// . ? what are your favorite memories? - Returns a list of the most remembered memories.
-// . ? random memory - Returns a random string
+// . !remember get <key> - Returns a string
+// . !remember trigger <key> - Flags a key as triggered
+// . !remember add <key> <value>. - Returns nothing. Remembers the text for next time!
+// . !remember delete <key> - Removes key from hubots brain.
+// . !remember top <amount> - Returns top 5 hubot remembers.
+// . !remember random - Returns a random string
 const each = require('lodash/each');
 const sequelize = require('sequelize');
+const { toNumber } = require('lodash');
 
-const writeMemory = async (params, terms) => {
-    const { message, Memories } = params;
-    const { key, value } = terms;
+const upsertMemory = async ({ message, Memories, key, value }) => {
     const record = await Memories.findOne({ where: { key } });
+    await Memories.upsert({ key, value });
     if (record) {
         const oldValue = record.value;
-        await record.update({ key, value });
         return message.channel.send(`"${key}" is now \n"${value}" \nand was \n"${oldValue}"`);
     }
-    await Memories.create({ key, value });
     return message.channel.send(`"${key}" is now "${value}".`);
 };
 
-const getMemory = async (params, terms) => {
-    const { message, Memories } = params;
-    const { key } = terms;
+const getMemory = async ({ message, Memories, key }) => {
     const record = await Memories.findOne({ where: { key } });
-    if (record) return message.channel.send(`"${key}" is "${record.value}".`);
-    return message.channel.send(`I have no memory of "${key}".`);
+    if (record) return await message.channel.send(`"${key}" is "${record.value}".`);
+    return await message.channel.send(`I can't remember, ${key}.`);
 };
 
-const removeMemory = async (params, terms) => {
-    const { message, Memories } = params;
-    const { key } = terms;
+const removeMemory = async ({ message, Memories, key }) => {
     const record = await Memories.findOne({ where: { key } });
     if (record) {
         await record.destroy({ where: { key } });
         return message.channel.send(`"${key}" was "${record.value}".`);
     }
-    return message.channel.send(`I have no memory of "${key}".`);
+    return message.channel.send(`I can't remember, ${key}.`);
 };
 
-const getFavoriteMemories = async (params) => {
-    const { message, Memories } = params;
-    let response = 'Top Five Memories:\n';
+const flagTriggered = async ({ message, Memories, key, triggered = true }) => {
+    const record = await Memories.findOne({ where: { key } });
+    if (record) {
+        await record.update({ triggered });
+        const triggeredString = triggered ? 'triggered' : 'untriggered';
+        return message.channel.send(`"${key}" is now ${triggeredString}.`);
+    }
+    return message.channel.send(`I can't remember, ${key}.`);
+};
 
+const getFavoriteMemories = async ({ message, Memories, count = 1 }) => {
+    if (count > 10) count = 10;
+    let response = `Top ${count} Memories:\n`;
     const records = await Memories.findAll({
         order: sequelize.col('read_count'),
-        limit: 5
+        limit: toNumber(count)
     });
-
     if (records.length > 0) {
         each(records, (record) => {
             response += ` * "${record.key}" is "${record.value}"\n`;
         });
         return message.channel.send(response.slice(0, -1));
     }
-    return message.channel.send('I have no memories to give.');
+    return message.channel.send("I can't remember anything.");
 };
 
-const getRandomMemory = async (params) => {
-    const { message, Memories } = params;
-
-    const record = await Memories.findOne({
-        order: sequelize.literal('rand()')
+const getRandomMemories = async ({ message, Memories, count = 1 }) => {
+    if (count > 10) count = 10;
+    let response = `Random ${count} Memories:\n`;
+    const records = await Memories.findAll({
+        order: sequelize.literal('rand()'),
+        limit: toNumber(count)
     });
-
-    if (record) return message.channel.send(`Random "${record.key}" is "${record.value}".`);
-    return message.channel.send('I have no memories to give.');
+    if (records.length > 0) {
+        each(records, (record) => {
+            response += ` * "${record.key}" is "${record.value}"\n`;
+        });
+        return message.channel.send(response.slice(0, -1));
+    }
+    return message.channel.send("I can't remember anything.");
 };
 
-module.exports = async (message, model) => {
-    const { Memories } = model;
-
-    const command = message.content.slice(2);
-
-    const params = { message, Memories };
-
-    const get = /^(?:(?:what )?is|rem(?:ember)?)\s+(.*)$/;
-    const write = /(.*?)(\s+is\s+([\s\S]*))$/;
-    const remove = /^forget\s+(.*)/;
-    const getFavorites = /favorite memories$/;
-    const getRandom = /random memory$/;
-    // Check for each type of match.
-    if (get.test(command)) {
-        const matches = command.match(get);
-        await getMemory(params, { key: matches[1] });
-    } else if (write.test(command)) {
-        const matches = command.match(write);
-        await writeMemory(params, { key: matches[1], value: matches[3] });
-    } else if (remove.test(command)) {
-        const matches = command.match(remove);
-        await removeMemory(params, { key: matches[1] });
-    } else if (getFavorites.test(command)) {
-        await getFavoriteMemories(params);
-    } else if (getRandom.test(command)) {
-        await getRandomMemory(params);
+module.exports = async (message, Memories) => {
+    const words = message.content.split(' ').splice(1);
+    const command = words.shift();
+    const key = words.shift();
+    const value = words.join(' ');
+    switch (command) {
+        case 'get':
+            return getMemory({ message, Memories, key });
+        case 'add':
+            return upsertMemory({ message, Memories, key, value });
+        case 'delete':
+            return removeMemory({ message, Memories, key });
+        case 'top':
+            return getFavoriteMemories({ message, Memories, count: key });
+        case 'random':
+            return getRandomMemories({ message, Memories, count: key });
+        case 'trigger':
+            return flagTriggered({ message, Memories, key });
+        case 'untrigger':
+            return flagTriggered({ message, Memories, key, triggered: false });
+        default:
+            return message.channel.send("I don't understand that command.");
     }
-    // don't respond if nothing matches.
 };
