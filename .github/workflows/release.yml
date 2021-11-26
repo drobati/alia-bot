@@ -6,7 +6,7 @@ env:
 
 on:
   workflow_run:
-    workflows: [ "Test" ]
+    workflows: [ "CI" ]
     branches: [ master ]
     types:
       - completed
