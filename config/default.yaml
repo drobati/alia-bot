@@ -12,3 +12,5 @@ database:
 
 webhook:
   port: 8080
+
+owner: 145679133257498624
