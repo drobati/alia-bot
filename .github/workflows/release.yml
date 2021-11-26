@@ -1,0 +1,38 @@
+name: Release
+
+env:
+  IMAGE_NAME: alia-bot
+  AWS_REGION: us-east-1
+
+on:
+  push:
+    branches: [ master ]
+
+jobs:
+  Release:
+    needs: Test
+    runs-on: ubuntu-latest
+    environment: production
+    permissions:
+      id-token: write
+
+    steps:
+      - uses: actions/checkout@v2
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v1
+        with:
+          role-to-assume: ${{ secrets.ROLE_TO_ASSUME }}
+          role-session-name: ${{ secrets.ROLE_SESSION_NAME }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Login to Amazon ECR
+        id: login-ecr
+        uses: aws-actions/amazon-ecr-login@v1
+
+      - name: Build, tag, and push image to Amazon ECR
+        id: build-image
+        run: |
+          docker build -t $IMAGE_NAME .
+          docker tag $IMAGE_NAME:latest ${{ secrets.ECR_REGISTRY }}/$IMAGE_NAME:latest
+          docker push ${{ secrets.ECR_REGISTRY }}/$IMAGE_NAME:latest
