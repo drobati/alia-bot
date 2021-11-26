@@ -5,6 +5,7 @@ FROM node:16
 RUN mkdir /opt/app
 
 # Add the current working folder to the /opt/src dir
+# TODO: Clean this up, theres a bunch of stuff that doesn't need to be included.
 ADD . /opt/app
 
 # Set the current working directory to the new mapped folder.
