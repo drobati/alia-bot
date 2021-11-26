@@ -1,10 +1,10 @@
 const { stripIndent } = require('common-tags');
 const { Client, Intents, MessageEmbed } = require('discord.js');
 const db = require('sequelize');
-const server = require('./lib/server');
-const response = require('./responses');
-const commands = require('./commands');
-const models = require('./models');
+const server = require('./src/lib/server');
+const response = require('./src/responses');
+const commands = require('./src/commands');
+const models = require('./src/models');
 const config = require('config');
 
 // Create new client
