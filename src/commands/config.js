@@ -1,5 +1,5 @@
-const config = require('../../config');
 const { isEmpty } = require('lodash');
+const config = require('config');
 // To set or remove configurations.
 // Commands:
 //   config add key value
@@ -15,7 +15,7 @@ module.exports = async (message, Config) => {
     const key = words.shift();
     const value = words.join('');
 
-    if (message.author.id !== config.serverOwner) {
+    if (message.author.id !== config.get('owner')) {
         return await message.channel.send('You may not pass!');
     }
 
