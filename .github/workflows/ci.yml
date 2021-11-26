@@ -29,3 +29,11 @@ jobs:
           cache: 'npm'
       - run: npm ci
       - run: npm test
+  Coverage:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v1
+      - uses: artiomtr/jest-coverage-report-action@v2.0-rc.5
+        with:
+          threshold: 80
+
