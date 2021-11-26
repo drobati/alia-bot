@@ -1,5 +1,5 @@
 const config = require('./config');
-const botConfig = require('../config');
+const botConfig = require('../../config');
 
 describe('commands/config', () => {
     describe('should', () => {

@@ -1,4 +1,4 @@
-const hapi = require('@hapi/hapi');
+const hapi = require('hapi');
 const config = require('config');
 
 module.exports = async (client, channel, embed, model) => {
