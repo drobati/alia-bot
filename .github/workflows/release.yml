@@ -5,12 +5,14 @@ env:
   AWS_REGION: us-east-1
 
 on:
-  push:
+  workflow_run:
+    workflows: [ "Test" ]
     branches: [ master ]
+    types:
+      - completed
 
 jobs:
   Release:
-    needs: Test
     runs-on: ubuntu-latest
     environment: production
     permissions:
