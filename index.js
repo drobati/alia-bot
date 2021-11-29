@@ -48,7 +48,9 @@ client.once('ready', () => {
         One day you will cry out for help. One day each of you will find yourselves alone.
     `);
     const devChannel = client.channels.cache.find((chan) => chan.name === 'deploy');
-    devChannel.send(`Successfully deployed on ${process.env.NODE_ENV}.`);
+    devChannel.send(
+        `Successfully deployed on ${process.env.NODE_ENV}. v: ${process.env.IDENTIFIER}`
+    );
 
     // Start server for webhooks.
     const genChannel = client.channels.cache.find((chan) => chan.name === 'general');
