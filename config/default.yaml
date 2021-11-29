@@ -1,7 +1,7 @@
 database:
+  name: aliadb
   user: root
   options:
-    host: mysqldb
     dialect: mysql
     port: 3306
     pool:

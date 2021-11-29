@@ -11,10 +11,10 @@ const config = require('config');
 const client = new Client({ intents: [Intents.FLAGS.GUILDS, Intents.FLAGS.GUILD_MESSAGES] });
 
 const sequelize = new db.Sequelize(
-    process.env.DB_NAME,
+    config.get('database.name'),
     config.get('database.user'),
     process.env.DB_PASSWORD,
-    config.get('database.options')
+    { ...config.get('database.options'), host: process.env.DB_HOST }
 );
 
 const Adlibs = models.Adlibs(sequelize);
