@@ -39,10 +39,8 @@ client.once('ready', () => {
         One day each of you will come face to face with the horror of your own existence.
         One day you will cry out for help. One day each of you will find yourselves alone.
     `);
-    if (process.env.NODE_ENV !== 'development') {
-        const devChannel = client.channels.cache.find((chan) => chan.name === 'test');
-        devChannel.send('Successfully deployed.');
-    }
+    const devChannel = client.channels.cache.find((chan) => chan.name === 'deploy');
+    devChannel.send(`Successfully deployed on ${process.env.NODE_ENV}.`);
 
     // Start server for webhooks.
     const genChannel = client.channels.cache.find((chan) => chan.name === 'general');
