@@ -14,5 +14,8 @@ WORKDIR /opt/app
 # Install package.json
 RUN npm i
 
+# Expose Twitch Webhooks
+EXPOSE 8080
+
 # Start the app
 CMD npm start

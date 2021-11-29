@@ -1,0 +1,4 @@
+database:
+  options:
+    host: localhost
+    port: 3307

@@ -4,7 +4,7 @@ services:
   mysqldb:
     image: mysql:5.7
     restart: unless-stopped
-    env_file: ../.env
+    env_file: .env
     environment:
       - MYSQL_ROOT_PASSWORD=$MYSQLDB_ROOT_PASSWORD
       - MYSQL_DATABASE=$MYSQLDB_DATABASE
@@ -15,13 +15,13 @@ services:
   app:
     depends_on:
       - mysqldb
-    build: ..
+    build: .
     restart: unless-stopped
-    env_file: ../.env
+    env_file: .env
     ports:
       - $NODE_LOCAL_PORT:$NODE_DOCKER_PORT
     environment:
-      - DB_NAME=$MYSQLDB_DATABASE
+      - DB_HOST=$MYSQLDB_HOST
       - DB_PASSWORD=$MYSQLDB_ROOT_PASSWORD
       - NODE_ENV=$NODE_ENV
       - BOT_TOKEN=$BOT_TOKEN
