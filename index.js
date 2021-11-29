@@ -6,10 +6,18 @@ const response = require('./src/responses');
 const commands = require('./src/commands');
 const models = require('./src/models');
 const config = require('config');
+const bunyan = require('bunyan');
 
 // Create new client
 const client = new Client({ intents: [Intents.FLAGS.GUILDS, Intents.FLAGS.GUILD_MESSAGES] });
+const log = bunyan.createLogger({ name: 'aliabot', level: config.get('level') });
 
+log.info(`NODE_ENV: ${process.env.NODE_ENV}`);
+log.info(
+    `Connecting to ${config.get('database.user')}@${process.env.DB_HOST}/${config.get(
+        'database.name'
+    )}`
+);
 const sequelize = new db.Sequelize(
     config.get('database.name'),
     config.get('database.user'),
@@ -35,7 +43,7 @@ client.once('ready', () => {
     Twitch_Notifications.sync();
 
     // Announcements
-    console.log(stripIndent`
+    log.info(stripIndent`
         One day each of you will come face to face with the horror of your own existence.
         One day you will cry out for help. One day each of you will find yourselves alone.
     `);
@@ -46,12 +54,12 @@ client.once('ready', () => {
     const genChannel = client.channels.cache.find((chan) => chan.name === 'general');
     const twitchEmbed = new MessageEmbed();
     server(client, genChannel, twitchEmbed, { Twitch_Users, Twitch_Notifications }).then((r) =>
-        console.log(r)
+        log.info(r)
     );
 });
 
 client.login(process.env.BOT_TOKEN).then(() => {
-    console.log('Logged in.');
+    log.info('Logged in.');
 });
 
 const callCommands = async (message) => {
@@ -74,7 +82,7 @@ const callCommands = async (message) => {
         case 'qr':
             return await commands.QR(message);
         case 'twitch':
-            return await commands.Twitch(message, Twitch_Users, Config);
+            return await commands.Twitch(message, Twitch_Users, Config, log);
         default:
             return message.reply("I don't know that command.");
     }
@@ -88,7 +96,7 @@ client.on('messageCreate', async (message) => {
             await callCommands(message, Adlibs);
         }
     } catch (error) {
-        console.log(error);
+        log.error(error);
         await message.channel.send("I'm sorry, I'm having trouble processing that request.");
     }
 });
@@ -101,6 +109,6 @@ client.on('messageCreate', async (message) => {
         await response.Adlibs(message, Adlibs);
         await response.Triggers(message, Memories);
     } catch (error) {
-        console.log(error);
+        log.error(error);
     }
 });

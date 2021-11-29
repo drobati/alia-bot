@@ -5,7 +5,7 @@
 //   twitch list
 const api = require('../lib/apis/twitch');
 
-module.exports = async (message, Twitch_Users, Config) => {
+module.exports = async (message, Twitch_Users, Config, log) => {
     const leaseTime = 864000;
 
     const words = message.content.split(' ').splice(1);
@@ -20,7 +20,7 @@ module.exports = async (message, Twitch_Users, Config) => {
                 try {
                     const userId = await api.getUserId(username, Config);
                     if (userId) {
-                        await api.setWebhook({ userId, mode: 'subscribe', leaseTime }, Config);
+                        await api.setWebhook({ userId, mode: 'subscribe', leaseTime }, Config, log);
                         await Twitch_Users.create({
                             user_id: message.author.id,
                             twitch_id: userId
@@ -43,7 +43,7 @@ module.exports = async (message, Twitch_Users, Config) => {
         case 'unsubscribe':
             if (record) {
                 const userId = record.twitch_id;
-                await api.setWebhook({ userId, mode: 'unsubscribe', leaseTime }, Config);
+                await api.setWebhook({ userId, mode: 'unsubscribe', leaseTime }, Config, log);
                 record.destroy({ force: true });
                 return message.channel.send('Unsubscription started.');
             }
