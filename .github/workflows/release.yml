@@ -53,6 +53,8 @@ jobs:
           task-definition: task-definition.json
           container-name: alia-bot-container
           image: ${{ steps.build-image.outputs.image }}
+          environment-variables: |
+            IDENTIFIER=$IMAGETAG
 
       - name: Deploy Amazon ECS task definition
         uses: aws-actions/amazon-ecs-deploy-task-definition@v1
