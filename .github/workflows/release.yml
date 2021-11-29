@@ -61,3 +61,4 @@ jobs:
           service: alia-bot-service
           cluster: alia-bot-cluster
           wait-for-service-stability: true
+          force-new-deployment: true
