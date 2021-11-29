@@ -70,7 +70,7 @@ const getUser = async (username, model) => {
     }
 };
 
-const setWebhook = async ({ userId, mode, leaseTime }, model) => {
+const setWebhook = async ({ userId, mode, leaseTime }, model, log) => {
     const address = await model.findOne({ where: { key: 'ADDRESS' } });
     const clientId = await model.findOne({ where: { key: 'CLIENT_ID' } });
     try {
@@ -93,7 +93,7 @@ const setWebhook = async ({ userId, mode, leaseTime }, model) => {
         );
         return response.data;
     } catch (error) {
-        console.log(error);
+        log.error(error);
         throw error.response;
     }
 };

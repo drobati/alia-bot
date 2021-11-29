@@ -1,3 +1,5 @@
+level: info
+
 database:
   name: aliadb
   user: root

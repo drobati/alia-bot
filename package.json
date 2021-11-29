@@ -27,6 +27,7 @@
     "dependencies": {
         "@hapi/hapi": "^20.2.1",
         "axios": "^0.24.0",
+        "bunyan": "^1.8.15",
         "common-tags": "^1.8.2",
         "config": "^3.3.6",
         "discord.js": "^13.3.1",
