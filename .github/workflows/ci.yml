@@ -37,5 +37,4 @@ jobs:
       - uses: artiomtr/jest-coverage-report-action@v2.0-rc.6
         with:
           threshold: 80
-          annotations: none
 
