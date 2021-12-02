@@ -33,6 +33,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v1
+      - run: npm ci
       - uses: artiomtr/jest-coverage-report-action@v2.0-rc.6
         with:
           threshold: 80
