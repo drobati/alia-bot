@@ -79,8 +79,6 @@ const callCommands = async (message) => {
             return await commands.Louds(message, Louds, Louds_Banned);
         case 'remember':
             return await commands.Memories(message, Memories);
-        case 'qr':
-            return await commands.QR(message);
         case 'twitch':
             return await commands.Twitch(message, Twitch_Users, Config, log);
         default:
@@ -108,6 +106,18 @@ client.on('messageCreate', async (message) => {
         await response.Louds(message, Louds, Louds_Banned);
         await response.Adlibs(message, Adlibs);
         await response.Triggers(message, Memories);
+    } catch (error) {
+        log.error(error);
+    }
+});
+
+client.on('interactionCreate', async (interaction) => {
+    try {
+        if (!interaction.isCommand()) return;
+
+        if (interaction.commandName === 'QR') {
+            await commands.QR(interaction);
+        }
     } catch (error) {
         log.error(error);
     }

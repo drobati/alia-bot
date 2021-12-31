@@ -3,17 +3,14 @@ const qrcode = require('qrcode');
 jest.mock('qrcode');
 
 describe('commands/qrcode', () => {
-    let message;
-
+    let interaction, url;
     beforeEach(() => {
-        message = {
-            suppressEmbeds: jest.fn(),
-            content: '',
-            channel: {
-                send: jest.fn().mockResolvedValue({
-                    suppressEmbeds: jest.fn()
-                })
-            }
+        url = 'https://google.com';
+        interaction = {
+            options: {
+                getString: jest.fn().mockReturnValue(url)
+            },
+            reply: jest.fn()
         };
         qrcode.toDataURL = jest.fn().mockResolvedValue('a,test');
     });
@@ -21,10 +18,9 @@ describe('commands/qrcode', () => {
     describe('should', () => {
         it('respond with code', async () => {
             const buf = new Buffer.from('test', 'base64');
-            message.content = '!qr https://google.com';
-            await qr(message);
-            expect(message.channel.send).toHaveBeenCalledWith({
-                content: 'https://google.com',
+            await qr(interaction);
+            expect(interaction.reply).toHaveBeenCalledWith({
+                content: '<https://google.com>',
                 files: [
                     {
                         attachment: buf
@@ -34,9 +30,10 @@ describe('commands/qrcode', () => {
         });
 
         it('respond if invalid url', async () => {
-            message.content = '!qr google.com';
-            await qr(message);
-            expect(message.channel.send).toHaveBeenCalledWith('Please provide a valid URL.');
+            url = 'google.com';
+            interaction.options.getString = jest.fn().mockReturnValue(url);
+            await qr(interaction);
+            expect(interaction.reply).toHaveBeenCalledWith('Please provide a valid URL.');
         });
     });
 });
