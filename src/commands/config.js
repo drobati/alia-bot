@@ -1,51 +1,79 @@
 const { isEmpty } = require('lodash');
-const config = require('config');
+const { SlashCommandBuilder } = require("discord.js");
+const { Op } = require("sequelize");
 // To set or remove configurations.
 // Commands:
 //   config add key value
 //   config remove key value
 
-module.exports = async (message, Config) => {
-    const commandSyntax = '`config add|remove key value?`';
-    const commandSyntaxAdd = '`config add key value`';
-    const commandSyntaxRemove = '`config remove key`';
+module.exports = {
+    data: new SlashCommandBuilder()
+        .setName('config')
+        .setDescription('Add or remove configurations.')
+        .addSubcommand(subcommand =>
+            subcommand
+                .setName('add')
+                .setDescription('Add a configuration.')
+                .addStringOption(option =>
+                    option
+                        .setName('key')
+                        .setDescription('The configuration key.')
+                        .setRequired(true))
+                .addStringOption(option =>
+                    option
+                        .setName('value')
+                        .setDescription('The configuration value.')
+                        .setRequired(true)))
+        .addSubcommand(subcommand =>
+            subcommand
+                .setName('remove')
+                .setDescription('Remove a configuration.')
+                .addStringOption(option =>
+                    option
+                        .setName('key')
+                        .setDescription('The configuration key.')
+                        .setAutocomplete(true)
+                        .setRequired(true))),
+    async autocomplete(interaction, { Config }) {
+        if (interaction.options.getSubcommand() === 'remove') {
+            const keyFragment = interaction.options.getFocused()
+            const records = await Config.findAll({
+                where: {
+                    key: {
+                        [Op.like]: `${keyFragment}%` // Op.like for partial matches, requires Sequelize Op import
+                    }
+                }
+            });
+            const choices = records.map(record => ({ name: record.key, value: record.key }));
+            await interaction.respond(choices);
+        }
+    },
+    async execute(interaction, { Config, log }) {
+        const subcommand = interaction.options.getSubcommand();
+        const key = interaction.options.getString('key');
+        const value = subcommand === 'add' ? interaction.options.getString('value') : null;
 
-    const words = message.content.split(' ').splice(1);
-    const action = words.shift();
-    const key = words.shift();
-    const value = words.join('');
-
-    if (message.author.id !== config.get('owner')) {
-        return await message.channel.send('You may not pass!');
-    }
-
-    if (['add', 'remove'].indexOf(action) === -1) {
-        return await message.channel.send(`Invalid subcommand. Use ${commandSyntax}`);
-    }
-
-    if (key == null) {
-        const command = action === 'add' ? commandSyntaxAdd : commandSyntaxRemove;
-        return await message.channel.send(`Missing key. Use ${command}`);
-    }
-
-    if (isEmpty(value) && action === 'add') {
-        return await message.channel.send(`Missing value. Use ${commandSyntaxAdd}`);
-    }
-
-    const record = await Config.findOne({ where: { key: key } });
-
-    if (action === 'add') {
-        await Config.upsert({ key, value });
-        if (!record) {
-            return await message.channel.send("I've added the config.");
-        } else {
-            return await message.channel.send("I've updated the config.");
+        try {
+            if (subcommand === 'add') {
+                if (isEmpty(key) || isEmpty(value)) {
+                    throw new Error('Key and value are required for adding a config.');
+                }
+                const [record, created] = await Config.upsert({ key, value });
+                const replyMessage = created ? `Configuration for \`${key}\` has been added.` : `Configuration for \`${key}\` has been updated.`;
+                await interaction.reply({ content: replyMessage, ephemeral: true });
+            } else if (subcommand === 'remove') {
+                const record = await Config.findOne({ where: { key } });
+                if (!record) {
+                    throw new Error(`No configuration found for key \`${key}\`.`);
+                }
+                await record.destroy();
+                await interaction.reply({ content: `Configuration for \`${key}\` has been removed.`, ephemeral: true });
+            }
+        } catch (error) {
+            // Log the error for debugging purposes
+            log.error('Error executing config command:', error);
+            // Respond to the user with a friendly message
+            await interaction.reply({ content: `An error occurred: ${error.message}`, ephemeral: true });
         }
     }
-    // since we check above for remove...
-    if (record) {
-        await record.destroy({ force: true });
-        return await message.channel.send("I've removed the config.");
-    }
-    return await message.channel.send("I don't know that config.");
 };

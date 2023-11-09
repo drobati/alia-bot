@@ -1,32 +1,32 @@
-const dadjokes = require('./dadjokes');
+const { execute } = require('./dadjokes');
 const axios = require('axios');
 jest.mock('axios');
 
 describe('commands/dadjokes', () => {
     describe('should', () => {
-        let message = {};
+        let interaction = {};
 
         beforeEach(() => {
-            message = {
+            interaction = {
                 author: { id: '1234', username: 'guy' },
-                channel: { send: jest.fn() }
+                reply: jest.fn()
             };
             axios.get.mockResolvedValue({ data: { joke: 'fake-dad-joke' } });
         });
 
         const run = (msg) => {
-            return dadjokes(msg);
+            return execute(msg);
         };
 
         it('respond to dadjoke', async () => {
-            await run(message);
-            expect(message.channel.send).toBeCalledTimes(1);
-            expect(message.channel.send).toBeCalledWith('fake-dad-joke');
+            await run(interaction);
+            expect(interaction.reply).toBeCalledTimes(1);
+            expect(interaction.reply).toBeCalledWith('fake-dad-joke');
         });
 
         it('throw error if there is an error', async () => {
             axios.get.mockRejectedValue(new Error('error'));
-            await expect(run(message)).rejects.toThrow('error');
+            await expect(run(interaction)).rejects.toThrow('error');
         });
     });
 });
