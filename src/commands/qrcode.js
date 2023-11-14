@@ -1,32 +1,46 @@
-//!qr <url>
+const { SlashCommandBuilder } = require('discord.js');
 const qrcode = require('qrcode');
 const yup = require('yup');
 
-const generateQR = async (text) => {
-    const data = await qrcode.toDataURL(text);
-    return new Buffer.from(data.split(',')[1], 'base64');
+module.exports = {
+    data: new SlashCommandBuilder()
+        .setName('qr')
+        .setDescription('Generate a QR code for the provided URL.')
+        .addStringOption(option =>
+            option.setName('url')
+                .setDescription('The URL to generate a QR code for')
+                .setRequired(true)),
+    async execute(interaction) {
+        let url = interaction.options.getString('url');
+
+        // Add protocol if it's missing
+        if (!/^(?:f|ht)tps?:\/\//.test(url)) {
+            url = 'http://' + url;
+        }
+
+        const schema = yup.string().url();
+
+        try {
+            await schema.validate(url);
+            const buffer = await generateQR(url);
+            await interaction.reply({
+                files: [{
+                    attachment: buffer,
+                    name: 'qrcode.png'
+                }]
+            });
+        } catch (error) {
+            await interaction.reply({ content: 'Please provide a valid URL.', ephemeral: true });
+        }
+    }
 };
 
-module.exports = async (message) => {
-    await message.suppressEmbeds(true);
-    const words = message.content.split(' ').splice(1);
-    const url = words.shift();
-
-    const schema = yup.string().url();
-    const isValid = await schema.isValid(url);
-
-    if (!isValid) {
-        return message.channel.send('Please provide a valid URL.');
+const generateQR = async (text) => {
+    try {
+        const data = await qrcode.toDataURL(text);
+        return Buffer.from(data.split(',')[1], 'base64');
+    } catch (error) {
+        console.error('Failed to generate QR code:', error);
+        throw new Error('Failed to generate QR code.');
     }
-
-    const buffer = await generateQR(url);
-    const newMessage = await message.channel.send({
-        content: url,
-        files: [
-            {
-                attachment: buffer
-            }
-        ]
-    });
-    await newMessage.suppressEmbeds(true);
 };
