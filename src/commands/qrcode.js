@@ -15,13 +15,20 @@ module.exports = {
 
         // Add protocol if it's missing
         if (!/^(?:f|ht)tps?:\/\//.test(url)) {
-            url = 'http://' + url;
+            url = 'https://' + url;
         }
 
         const schema = yup.string().url();
 
         try {
             await schema.validate(url);
+        } catch (validationError) {
+            // Handle URL validation errors
+            await interaction.reply({ content: 'Please provide a valid URL.', ephemeral: true });
+            return;
+        }
+
+        try {
             const buffer = await generateQR(url);
             await interaction.reply({
                 files: [{
@@ -29,8 +36,10 @@ module.exports = {
                     name: 'qrcode.png'
                 }]
             });
-        } catch (error) {
-            await interaction.reply({ content: 'Please provide a valid URL.', ephemeral: true });
+        } catch (qrError) {
+            // Handle QR code generation errors
+            console.error('Failed to generate QR code:', qrError);
+            await interaction.reply({ content: 'Failed to generate QR code. Please try again.', ephemeral: true });
         }
     }
 };
@@ -41,6 +50,6 @@ const generateQR = async (text) => {
         return Buffer.from(data.split(',')[1], 'base64');
     } catch (error) {
         console.error('Failed to generate QR code:', error);
-        throw new Error('Failed to generate QR code.');
+        throw error; // Rethrowing the original error
     }
 };

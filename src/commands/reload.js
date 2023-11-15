@@ -1,5 +1,24 @@
 const { SlashCommandBuilder } = require('discord.js');
 
+function validateCommand(interaction, commandName) {
+    const command = interaction.client.commands.get(commandName);
+    if (!command) {
+        interaction.reply(`There is no command with name \`${commandName}\`!`);
+        return false;
+    }
+    return true;
+}
+
+async function reloadCommand(client, commandName, log) {
+    delete require.cache[require.resolve(`./${commandName}.js`)];
+    await client.commands.delete(commandName);
+    log.info(`Command \`${commandName}\` was deleted.`);
+
+    const newCommand = require(`./${commandName}.js`);
+    await client.commands.set(newCommand.data.name, newCommand);
+    log.info(`Command \`${newCommand.data.name}\` was added.`);
+}
+
 module.exports = {
     data: new SlashCommandBuilder()
         .setName('reload')
@@ -10,25 +29,17 @@ module.exports = {
                 .setRequired(true)),
     async execute(interaction, { log }) {
         const commandName = interaction.options.getString('command', true).toLowerCase();
-        const command = interaction.client.commands.get(commandName);
 
-        if (!command) {
-            return interaction.reply(`There is no command with name \`${commandName}\`!`);
+        if (!validateCommand(interaction, commandName)) {
+            return;
         }
-
-        delete require.cache[require.resolve(`./${command.data.name}.js`)];
 
         try {
-            await interaction.client.commands.delete(command.data.name)
-            log.info(`Command \`${command.data.name}\` was deleted.`);
-            const newCommand = require(`./${command.data.name}.js`);
-            await interaction.client.commands.set(newCommand.data.name, newCommand);
-            log.info(`Command \`${newCommand.data.name}\` was added.`);
-            await interaction.reply(`Command \`${newCommand.data.name}\` was reloaded!`);
+            await reloadCommand(interaction.client, commandName, log);
+            await interaction.reply(`Command \`${commandName}\` was reloaded!`);
         } catch (error) {
-            console.error(error);
-            await interaction.reply(`There was an error while reloading a command \`${command.data.name}\`:\n\`${error.message}\``);
+            log.error(`Error while reloading command \`${commandName}\`: ${error}`);
+            await interaction.reply(`There was an error while reloading command \`${commandName}\`: ${error.message}`);
         }
-
     },
 };
