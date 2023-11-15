@@ -1,7 +1,7 @@
 const { Sequelize } = require('sequelize');
 
-module.exports = (sequelize) => {
-    const Louds = sequelize.define('louds', {
+module.exports = (sequelize) => ({
+    Louds: sequelize.define('louds', {
         message: {
             type: Sequelize.STRING,
             unique: true
@@ -13,15 +13,12 @@ module.exports = (sequelize) => {
             defaultValue: 0,
             allowNull: false
         }
-    });
-
-    const Louds_Banned = sequelize.define('louds_banned', {
+    }),
+    Louds_Banned: sequelize.define('louds_banned', {
         message: {
             type: Sequelize.STRING,
             unique: true
         },
         username: Sequelize.STRING
-    });
-
-    return { Louds, Louds_Banned };
-};
+    })
+});

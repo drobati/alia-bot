@@ -38,7 +38,8 @@ module.exports = {
                         .setName('adlib')
                         .setDescription('The adlib to remove.'))),
     async execute(interaction, context) {
-        const {Adlibs} = context;
+        const { tables } = context;
+        const { Adlibs } = tables;
         const value = interaction.options.getString('adlib');
         const record = await Adlibs.findOne({where: {value}});
         switch (interaction.options.getSubcommand()) {

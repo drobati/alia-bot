@@ -61,7 +61,7 @@ module.exports = {
             option.setName('amount')
                 .setDescription('Amount of source currency.')),
     async autocomplete(interaction, context) {
-        const {log} = context;
+        const { log } = context;
         const focusedValue = interaction.options.getFocused();
         log.debug('focusedValue', focusedValue);
         const currencies = await getCurrenciesWithCache(context)
@@ -73,7 +73,7 @@ module.exports = {
         await interaction.respond(results);
     },
     async execute(interaction, context) {
-        const {log} = context;
+        const { log } = context;
         const source = interaction.options.get('source');
         const target = interaction.options.get('target');
 

@@ -1,7 +1,7 @@
 const { Sequelize } = require('sequelize');
 
-module.exports = (sequelize) => {
-    return sequelize.define('configs', {
+module.exports = (sequelize) => ({
+    Config: sequelize.define('configs', {
         key: {
             type: Sequelize.STRING,
             unique: true
@@ -9,5 +9,5 @@ module.exports = (sequelize) => {
         value: {
             type: Sequelize.STRING
         }
-    });
-};
+    }),
+});
