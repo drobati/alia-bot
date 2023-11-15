@@ -5,24 +5,37 @@ const { Op } = require("sequelize");
 // Commands:
 //   config add key value
 //   config remove key value
+
 async function handleAddCommand(interaction, context) {
     const key = interaction.options.getString('key');
     const value = interaction.options.getString('value');
+
     if (isEmpty(key) || isEmpty(value)) {
         throw new Error('Key and value are required for adding a config.');
     }
-    const [, created] = await context.tables.Config.upsert({ key, value });
-    const replyMessage = created ? `Configuration for \`${key}\` has been added.` : `Configuration for \`${key}\` has been updated.`;
+
+    // Prevent concurrent writes to the same key.
+    const result = await context.sequelize.transaction(async (transaction) => {
+        const [, created] = await context.tables.Config.upsert({ key, value }, { transaction });
+        return created;
+    });
+
+    const replyMessage = result ? `Configuration for \`${key}\` has been added.` : `Configuration for \`${key}\` has been updated.`;
     await interaction.reply({ content: replyMessage, ephemeral: true });
 }
 
+
 async function handleRemoveCommand(interaction, context) {
     const key = interaction.options.getString('key');
-    const record = await context.tables.Config.findOne({ where: { key } });
-    if (!record) {
-        throw new Error(`No configuration found for key \`${key}\`.`);
-    }
-    await record.destroy();
+
+    await context.sequelize.transaction(async (transaction) => {
+        const record = await context.tables.Config.findOne({ where: { key }, transaction });
+        if (!record) {
+            throw new Error(`No configuration found for key \`${key}\`.`);
+        }
+        await record.destroy({ transaction });
+    });
+
     await interaction.reply({ content: `Configuration for \`${key}\` has been removed.`, ephemeral: true });
 }
 

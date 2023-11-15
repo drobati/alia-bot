@@ -9,6 +9,10 @@ module.exports = (sequelize) => ({
         twitch_id: {
             type: Sequelize.STRING,
             unique: true
+        },
+        twitch_username: {
+            type: Sequelize.STRING,
+            unique: true
         }
     }),
     Twitch_Notifications: sequelize.define('twitch_notifications', {

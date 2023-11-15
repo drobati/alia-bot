@@ -6,11 +6,13 @@ module.exports = {
     async execute(message, context) {
         const { log } = context;
         try {
-            if (message.author.bot) return '';
+            if (message.author.bot) return false;
 
-            await response.Louds(message, context);
-            await response.Adlibs(message, context);
-            await response.Triggers(message, context);
+            await Promise.all([
+                response.Louds(message, context),
+                response.Adlibs(message, context),
+                response.Triggers(message, context)
+            ]);
         } catch (error) {
             log.error(error);
         }
