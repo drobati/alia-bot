@@ -2,7 +2,8 @@
 
 const Sequelize = require('sequelize');
 
-module.exports = async (message, Adlibs) => {
+module.exports = async (message, { tables }) => {
+    const { Adlibs } = tables;
     let response = message.content;
     const regex = /(-{3,})+/g;
     if (regex.test(response)) {

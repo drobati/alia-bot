@@ -5,6 +5,26 @@ const { Op } = require("sequelize");
 // Commands:
 //   config add key value
 //   config remove key value
+async function handleAddCommand(interaction, context) {
+    const key = interaction.options.getString('key');
+    const value = interaction.options.getString('value');
+    if (isEmpty(key) || isEmpty(value)) {
+        throw new Error('Key and value are required for adding a config.');
+    }
+    const [, created] = await context.tables.Config.upsert({ key, value });
+    const replyMessage = created ? `Configuration for \`${key}\` has been added.` : `Configuration for \`${key}\` has been updated.`;
+    await interaction.reply({ content: replyMessage, ephemeral: true });
+}
+
+async function handleRemoveCommand(interaction, context) {
+    const key = interaction.options.getString('key');
+    const record = await context.tables.Config.findOne({ where: { key } });
+    if (!record) {
+        throw new Error(`No configuration found for key \`${key}\`.`);
+    }
+    await record.destroy();
+    await interaction.reply({ content: `Configuration for \`${key}\` has been removed.`, ephemeral: true });
+}
 
 module.exports = {
     data: new SlashCommandBuilder()
@@ -34,7 +54,8 @@ module.exports = {
                         .setDescription('The configuration key.')
                         .setAutocomplete(true)
                         .setRequired(true))),
-    async autocomplete(interaction, { Config }) {
+    async autocomplete(interaction, { tables }) {
+        const { Config } = tables;
         if (interaction.options.getSubcommand() === 'remove') {
             const keyFragment = interaction.options.getFocused()
             const records = await Config.findAll({
@@ -48,31 +69,18 @@ module.exports = {
             await interaction.respond(choices);
         }
     },
-    async execute(interaction, { Config, log }) {
+    async execute(interaction, context) {
+        const { log } = context;
         const subcommand = interaction.options.getSubcommand();
-        const key = interaction.options.getString('key');
-        const value = subcommand === 'add' ? interaction.options.getString('value') : null;
 
         try {
             if (subcommand === 'add') {
-                if (isEmpty(key) || isEmpty(value)) {
-                    throw new Error('Key and value are required for adding a config.');
-                }
-                const [record, created] = await Config.upsert({ key, value });
-                const replyMessage = created ? `Configuration for \`${key}\` has been added.` : `Configuration for \`${key}\` has been updated.`;
-                await interaction.reply({ content: replyMessage, ephemeral: true });
+                await handleAddCommand(interaction, context);
             } else if (subcommand === 'remove') {
-                const record = await Config.findOne({ where: { key } });
-                if (!record) {
-                    throw new Error(`No configuration found for key \`${key}\`.`);
-                }
-                await record.destroy();
-                await interaction.reply({ content: `Configuration for \`${key}\` has been removed.`, ephemeral: true });
+                await handleRemoveCommand(interaction, context);
             }
         } catch (error) {
-            // Log the error for debugging purposes
             log.error('Error executing config command:', error);
-            // Respond to the user with a friendly message
             await interaction.reply({ content: `An error occurred: ${error.message}`, ephemeral: true });
         }
     }

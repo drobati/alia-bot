@@ -25,7 +25,8 @@ module.exports = {
             subcommand
                 .setName('list')
                 .setDescription('List your current Twitch subscriptions.')),
-    async execute(interaction, { Twitch_Users, Config, log }) {
+    async execute(interaction, { tables, log }) {
+        const { Twitch_Users, Config } = tables;
         const leaseTime = 864000;
         const action = interaction.options.getSubcommand();
         const username = interaction.options.getString('username'); // Only needed for subscribe/unsubscribe

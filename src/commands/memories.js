@@ -65,8 +65,8 @@ module.exports = {
                     option.setName('key')
                         .setDescription('The key to untrigger')
                         .setRequired(true))),
-    async execute(interaction, context) {
-        const { Memories } = context; // Destructure once for use in all functions
+    async execute(interaction, { tables }) {
+        const { Memories } = tables;
         const subcommand = interaction.options.getSubcommand();
         const key = interaction.options.getString('key');
         let value = interaction.options.getString('value');

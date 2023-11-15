@@ -32,7 +32,8 @@ module.exports = {
                         .setDescription('The text of the loud to unban.')
                         .setRequired(true)
                         .setAutocomplete(true))),
-    async autocomplete(interaction, { Louds, Louds_Banned: Banned, log }) {
+    async autocomplete(interaction, { tables, log }) {
+        const { Louds, Louds_Banned: Banned } = tables;
         const subcommand = interaction.options.getSubcommand();
         const focusedOption = interaction.options.getFocused(true);
 
@@ -74,7 +75,8 @@ module.exports = {
         }
         await interaction.respond(choices.slice(0, 25));
     },
-    async execute(interaction, { Louds, Louds_Banned: Banned, log }) {
+    async execute(interaction, { tables }) {
+        const { Louds, Louds_Banned: Banned } = tables;
         const subcommand = interaction.options.getSubcommand();
         const text = interaction.options.getString('text');
 
