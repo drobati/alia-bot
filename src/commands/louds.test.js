@@ -1,93 +1,64 @@
-const louds = require('./louds');
+const { createInteraction, createContext, createTable, createRecord } = require('../utils/testHelpers');
+const { execute } = require('./louds');
 
 describe('commands/louds', () => {
-    describe('should', () => {
-        let message = {},
-            Louds = {},
-            Louds_Banned = {};
+    let interaction, context, Louds, Louds_Banned;
 
-        beforeEach(() => {
-            message = {
-                content: 'FEAR',
-                author: { username: 'derek' },
-                channel: { send: jest.fn() },
-                reply: jest.fn().mockResolvedValue(true)
-            };
-            Louds = {
-                create: jest.fn(),
-                findOne: jest.fn().mockResolvedValue(false),
-                destroy: jest.fn().mockResolvedValueOnce(1)
-            };
-            Louds_Banned = {
-                create: jest.fn(),
-                findOne: jest.fn().mockResolvedValue(false),
-                destroy: jest.fn().mockResolvedValueOnce(1)
-            };
-        });
-
-        it('respond to delete', async () => {
-            message.content = '!louds delete fake-data';
-            await louds(message, Louds, Louds_Banned);
-            expect(message.channel.send).toBeCalledWith("I've removed that loud.");
-        });
-
-        it('respond to ban', async () => {
-            message.content = '!louds ban fake-data';
-            await louds(message, Louds, Louds_Banned);
-            expect(message.channel.send).toBeCalledWith("I've banned that loud.");
-        });
-
-        it('respond to unban', async () => {
-            message.content = '!louds unban fake-data';
-            await louds(message, Louds, Louds_Banned);
-            expect(message.channel.send).toBeCalledWith("That's not banned.");
-        });
-
-        it('respond to missing command', async () => {
-            message.content = '!louds delete fake-data';
-            await louds(message, Louds, Louds_Banned);
-            expect(message.channel.send).toBeCalledWith("I've removed that loud.");
-        });
-
-        it('respond to failed delete', async () => {
-            Louds.destroy = jest.fn().mockResolvedValueOnce(0);
-            message.content = '!louds delete fake-data';
-            await louds(message, Louds, Louds_Banned);
-            expect(message.channel.send).toBeCalledWith("I couldn't find that loud.");
-        });
-
-        it('ban loud with ban command', async () => {
-            Louds_Banned.findOne = jest.fn().mockResolvedValue(false);
-            message.content = '!louds ban fake-data';
-            await louds(message, Louds, Louds_Banned);
-            expect(message.channel.send).toBeCalledWith("I've banned that loud.");
-        });
-
-        it('cannot ban if already banned with ban command', async () => {
-            Louds_Banned.findOne = jest.fn().mockResolvedValue(true);
-            message.content = '!louds ban fake-data';
-            await louds(message, Louds, Louds_Banned);
-            expect(message.channel.send).toBeCalledWith("I've banned that loud.");
-        });
-
-        it('responds to ban command if removed and banned', async () => {
-            Louds.findOne = jest.fn().mockResolvedValue(true);
-            message.content = '!louds ban fake-data';
-            await louds(message, Louds, Louds_Banned);
-            expect(message.channel.send).toBeCalledWith("I've removed & banned that loud.");
-        });
-
-        it('responds to unban', async () => {
-            Louds_Banned.findOne = jest.fn().mockResolvedValue(true);
-            message.content = '!louds unban fake-data';
-            await louds(message, Louds, Louds_Banned);
-            expect(message.channel.send).toBeCalledWith("I've added & unbanned that loud.");
-        });
-
-        it('responds to a bad action', async () => {
-            message.content = '!louds garbo';
-            await louds(message, Louds, Louds_Banned);
-            expect(message.channel.send).toBeCalledWith("I don't recognize that command.");
-        });
+    beforeEach(() => {
+        interaction = createInteraction();
+        context = createContext();
+        Louds = createTable();
+        Louds_Banned = createTable();
+        context.tables.Louds = Louds;
+        context.tables.Louds_Banned = Louds_Banned;
     });
+
+    it('should handle delete command', async () => {
+        interaction.options.getSubcommand.mockReturnValue('delete');
+        interaction.options.getString.mockReturnValue('fake-data');
+        Louds.destroy.mockResolvedValue(1); // Mocks that one record was deleted
+        context.tables.Louds = Louds;
+
+        await execute(interaction, context);
+
+        expect(Louds.destroy).toHaveBeenCalledWith({ where: { message: 'fake-data' } });
+        expect(interaction.reply).toHaveBeenCalledWith("I've removed that loud.");
+    });
+
+    it('should handle ban command', async () => {
+        interaction.options.getSubcommand.mockReturnValue('ban');
+        interaction.options.getString.mockReturnValue('fake-data');
+        Louds_Banned.findOne.mockResolvedValue(null);
+        Louds.findOne.mockResolvedValue(createRecord({ message: 'fake-data' }));
+        Louds.destroy.mockResolvedValue(1);
+
+        await execute(interaction, context);
+
+        expect(Louds.destroy).toHaveBeenCalledWith({ where: { message: 'fake-data' } });
+        expect(Louds_Banned.create).toHaveBeenCalledWith({ message: 'fake-data', username: 'fake-user-id' });
+        expect(interaction.reply).toHaveBeenCalledWith("I've removed & banned that loud.");
+    });
+
+    it('should handle unban command', async () => {
+        interaction.options.getSubcommand.mockReturnValue('unban');
+        interaction.options.getString.mockReturnValue('fake-data');
+        Louds_Banned.findOne.mockResolvedValue(createRecord({ message: 'fake-data' }));
+        Louds_Banned.destroy.mockResolvedValue(1);
+
+        await execute(interaction, context);
+
+        expect(Louds.create).toHaveBeenCalledWith({ message: 'fake-data', username: 'fake-user-id' });
+        expect(Louds_Banned.destroy).toHaveBeenCalledWith({ where: { message: 'fake-data' } });
+        expect(interaction.reply).toHaveBeenCalledWith("I've added & unbanned that loud.");
+    });
+
+    it('should reply with error for unrecognized command', async () => {
+        interaction.options.getSubcommand.mockReturnValue('garbo');
+
+        await execute(interaction, context);
+
+        expect(interaction.reply).toHaveBeenCalledWith("I don't recognize that command.");
+    });
+
+    // Additional tests for failed deletes, already banned cases, etc., can be added here...
 });

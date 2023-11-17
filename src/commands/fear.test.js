@@ -1,30 +1,28 @@
 const { execute } = require('./fear');
+const { createInteraction } = require('../utils/testHelpers'); // Adjust the path as necessary
 
-describe('commands/dadjokes', () => {
-    describe('should', () => {
-        let interaction = {};
+describe('commands/fear', () => {
+    let interaction;
 
-        beforeEach(() => {
-            interaction = {
-                reply: jest.fn()
-            };
-        });
+    beforeEach(() => {
+        // Create a mock interaction using your test helper
+        interaction = createInteraction();
+    });
 
-        const run = (msg) => {
-            return execute(msg);
-        };
+    it('responds to fear', async () => {
+        await execute(interaction);
 
-        it('respond to fear', async () => {
-            await run(interaction);
-            expect(interaction.reply).toBeCalledTimes(1);
-            expect(interaction.reply).toBeCalledWith(
-                'I must not fear.\n' +
+        // Check that the reply function has been called correctly
+        expect(interaction.reply).toBeCalledTimes(1);
+        expect(interaction.reply).toBeCalledWith({
+            content: 'I must not fear.\n' +
                 'Fear is the mind-killer.\n' +
                 'Fear is the little-death that brings total obliteration.\n' +
                 'I will face my fear.\n' +
                 'I will permit it to pass over me and through me.\n' +
                 'And when it has gone past, I will turn the inner eye to see its path.\n' +
-                'Where the fear has gone there will be nothing. Only I will remain.');
+                'Where the fear has gone there will be nothing. Only I will remain.',
+            ephemeral: true,
         });
     });
 });

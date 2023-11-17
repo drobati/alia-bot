@@ -1,1 +1,4 @@
 level: debug
+
+database:
+  user: aliabot

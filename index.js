@@ -8,7 +8,14 @@ const { readdirSync } = require("fs");
 
 const VERSION = '2.0.0';
 
-const client = new Client({ intents: [GatewayIntentBits.Guilds], partials: [Partials.Channel] });
+const client = new Client({
+    intents: [
+        GatewayIntentBits.Guilds,
+        GatewayIntentBits.GuildMessages,
+        GatewayIntentBits.MessageContent,
+    ],
+    partials: [Partials.Channel],
+});
 const log = bunyan.createLogger({ name: 'aliabot', level: config.get('level') });
 
 log.info(`NODE_ENV: ${process.env.NODE_ENV}`);
@@ -19,20 +26,20 @@ const sequelize = new db.Sequelize(
     process.env.DB_PASSWORD,
     {
         ...config.get('database.options'),
-        host: process.env.DB_HOST
-    }
+        host: process.env.DB_HOST,
+    },
 );
 
 const context = {
     tables: {},
     sequelize,
     log,
-    VERSION
+    VERSION,
 };
 
-Object.keys(models).forEach((key) => {
+Object.keys(models).forEach(key => {
     const modelsForTable = models[key](sequelize);
-    Object.keys(modelsForTable).forEach((key) => {
+    Object.keys(modelsForTable).forEach(key => {
         context.tables[key] = modelsForTable[key];
     });
 });
@@ -70,7 +77,7 @@ function handleEventFile(event) {
 
 // Load commands and events
 loadFiles('src/commands', '.js', handleCommandFile, 'test.js');
-loadFiles('events', '.js', handleEventFile);
+loadFiles('events', '.js', handleEventFile, 'test.js');
 
 client.login(process.env.BOT_TOKEN).then(() => {
     log.info(`Logged in. Version ${VERSION}`);

@@ -22,7 +22,7 @@ const createToken = async (client_id, secret, model) => {
     }
 };
 
-const renewToken = async (model) => {
+const renewToken = async model => {
     const clientId = await model.findOne({ where: { key: 'CLIENT_ID' } });
     const clientSecret = await model.findOne({ where: { key: 'CLIENT_SECRET' } });
 
@@ -49,9 +49,9 @@ const getUser = async (username, model) => {
             `,
             {
                 headers: {
-                    Authorization: 'Bearer ' + token.get('value')
-                }
-            }
+                    Authorization: 'Bearer ' + token.get('value'),
+                },
+            },
         );
         const users = response.data.data;
         if (size(users) > 1) {
@@ -82,14 +82,14 @@ const setWebhook = async ({ userId, mode, leaseTime }, model, log) => {
                 'hub.callback': `http://${address.get('value')}/api/webhook`,
                 'hub.mode': mode,
                 'hub.topic': `https://api.twitch.tv/helix/streams?user_id=${userId}`,
-                'hub.lease_seconds': leaseTime
+                'hub.lease_seconds': leaseTime,
             },
             {
                 headers: {
                     'Client-ID': clientId.get('value'),
-                    'Content-Type': 'application/json'
-                }
-            }
+                    'Content-Type': 'application/json',
+                },
+            },
         );
         return response.data;
     } catch (error) {
@@ -98,22 +98,22 @@ const setWebhook = async ({ userId, mode, leaseTime }, model, log) => {
     }
 };
 
-const validateToken = async (token) => {
+const validateToken = async token => {
     try {
         return await axios.get(
             oneLineTrim`
             https://id.twitch.tv/oauth2/validate
         `,
             {
-                headers: { Authorization: 'OAuth ' + token }
-            }
+                headers: { Authorization: 'OAuth ' + token },
+            },
         );
     } catch (error) {
         throw error.response;
     }
 };
 
-const validateSubscription = async (token) => {
+const validateSubscription = async token => {
     try {
         const response = await axios.get(
             oneLineTrim`
@@ -121,9 +121,9 @@ const validateSubscription = async (token) => {
             `,
             {
                 headers: {
-                    Authorization: 'Bearer ' + token
-                }
-            }
+                    Authorization: 'Bearer ' + token,
+                },
+            },
         );
         return response.data;
     } catch (error) {
@@ -137,5 +137,5 @@ module.exports = {
     validateSubscription,
     getUser,
     getUserId: async (username, model) => get(await getUser(username, model), 'id'),
-    setWebhook
+    setWebhook,
 };

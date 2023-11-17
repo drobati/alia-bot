@@ -8,7 +8,7 @@ module.exports = {
         .setDescription('Litany Against Fear'),
     async execute(interaction) {
         await interaction.reply({
-            context: stripIndent`
+            content: stripIndent`
                 I must not fear.
                 Fear is the mind-killer.
                 Fear is the little-death that brings total obliteration.

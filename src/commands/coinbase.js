@@ -2,11 +2,11 @@
 const axios = require('axios');
 const { get, find } = require('lodash');
 const Fuse = require('fuse.js');
-const {SlashCommandBuilder} = require("discord.js");
+const { SlashCommandBuilder } = require("discord.js");
 
 const cache = {
     data: null,
-    lastFetch: 0
+    lastFetch: 0,
 };
 
 function isCacheValid() {
@@ -28,7 +28,7 @@ async function getCurrenciesWithCache(context) {
             const allCurrencies = get(response, 'data.data', []);
 
             // Add custom currencies to the list
-            allCurrencies.push({id: 'BTC', name: 'Bitcoin'}, {id: 'ETH', name: 'Ethereum'});
+            allCurrencies.push({ id: 'BTC', name: 'Bitcoin' }, { id: 'ETH', name: 'Ethereum' });
 
             // Update cache
             cache.data = allCurrencies;
@@ -66,9 +66,9 @@ module.exports = {
         log.debug('focusedValue', focusedValue);
         const currencies = await getCurrenciesWithCache(context)
         log.debug('choices', currencies);
-        const fuse = new Fuse(currencies, {keys: ['id', 'name']});
-        const results = fuse.search(focusedValue, {limit: 10})
-            .map(({item}) => ({name: `${item.id} - ${item.name}`, value: item.id}));
+        const fuse = new Fuse(currencies, { keys: ['id', 'name'] });
+        const results = fuse.search(focusedValue, { limit: 10 })
+            .map(({ item }) => ({ name: `${item.id} - ${item.name}`, value: item.id }));
         log.debug('results', results);
         await interaction.respond(results);
     },
@@ -79,9 +79,9 @@ module.exports = {
 
         const currencies = await getCurrenciesWithCache(context);
         const sourceCurrency = source.value.toUpperCase();
-        const sourceName = get(find(currencies, {id: sourceCurrency}), 'name', sourceCurrency);
+        const sourceName = get(find(currencies, { id: sourceCurrency }), 'name', sourceCurrency);
         const targetCurrency = target.value.toUpperCase();
-        const targetName = get(find(currencies, {id: targetCurrency}), 'name', targetCurrency);
+        const targetName = get(find(currencies, { id: targetCurrency }), 'name', targetCurrency);
         const amount = interaction.options.getNumber('amount') || 1;
         log.debug('sourceCurrency', sourceCurrency);
         log.debug('sourceName', sourceName)
@@ -91,7 +91,7 @@ module.exports = {
 
         // send a query to coinbase
         const exchangeRates = await axios.get(
-            `https://api.coinbase.com/v2/exchange-rates?currency=${sourceCurrency}`
+            `https://api.coinbase.com/v2/exchange-rates?currency=${sourceCurrency}`,
         );
         log.debug('exchangeRates', exchangeRates);
 
@@ -103,7 +103,7 @@ module.exports = {
         if (exchangeRate <= 0) {
             log.warn(`${sourceName} to ${targetName} exchange rate is not valid.`)
             return await interaction.reply(
-                `${sourceName} to ${targetName} exchange rate is not valid.`
+                `${sourceName} to ${targetName} exchange rate is not valid.`,
             );
         }
 
@@ -113,5 +113,5 @@ module.exports = {
 
         // send the result
         return await interaction.reply(`${amount} ${sourceName} is ${newAmount} ${targetName}.`);
-    }
+    },
 };

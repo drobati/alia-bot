@@ -1,42 +1,46 @@
-const qr = require('./qrcode');
+const { createInteraction } = require('../utils/testHelpers');
+const qrcodeCommand = require('./qrcode');
 const qrcode = require('qrcode');
 jest.mock('qrcode');
 
 describe('commands/qrcode', () => {
-    let message;
+    let interaction;
 
     beforeEach(() => {
-        message = {
-            suppressEmbeds: jest.fn(),
-            content: '',
-            channel: {
-                send: jest.fn().mockResolvedValue({
-                    suppressEmbeds: jest.fn()
-                })
-            }
-        };
-        qrcode.toDataURL = jest.fn().mockResolvedValue('a,test');
+        interaction = createInteraction();
+        qrcode.toDataURL = jest.fn().mockResolvedValue('data:image/png;base64,aGVsbG8=');
     });
 
-    describe('should', () => {
-        it('respond with code', async () => {
-            const buf = new Buffer.from('test', 'base64');
-            message.content = '!qr https://google.com';
-            await qr(message);
-            expect(message.channel.send).toHaveBeenCalledWith({
-                content: 'https://google.com',
-                files: [
-                    {
-                        attachment: buf
-                    }
-                ]
-            });
-        });
+    it('should respond with QR code for a valid URL', async () => {
+        interaction.options.getString.mockReturnValue('https://google.com');
 
-        it('respond if invalid url', async () => {
-            message.content = '!qr google.com';
-            await qr(message);
-            expect(message.channel.send).toHaveBeenCalledWith('Please provide a valid URL.');
+        await qrcodeCommand.execute(interaction);
+
+        expect(interaction.reply).toHaveBeenCalledWith(expect.objectContaining({
+            files: expect.any(Array),
+        }));
+        expect(qrcode.toDataURL).toHaveBeenCalledWith('https://google.com');
+    });
+
+    it('should handle URLs without protocol', async () => {
+        interaction.options.getString.mockReturnValue('google.com');
+
+        await qrcodeCommand.execute(interaction);
+
+        expect(interaction.reply).toHaveBeenCalledWith(expect.objectContaining({
+            files: expect.any(Array),
+        }));
+        expect(qrcode.toDataURL).toHaveBeenCalledWith('https://google.com');
+    });
+
+    it('should respond with error for invalid URL', async () => {
+        interaction.options.getString.mockReturnValue('invalid-url');
+
+        await qrcodeCommand.execute(interaction);
+
+        expect(interaction.reply).toHaveBeenCalledWith({
+            content: 'Please provide a valid URL.',
+            ephemeral: true,
         });
     });
 });
