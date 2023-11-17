@@ -10,5 +10,27 @@
         "ecmaVersion": "latest"
     },
     "rules": {
+        "array-bracket-spacing": ["error", "never"],
+        "arrow-body-style": ["error", "as-needed"],
+        "arrow-parens": ["error", "as-needed"],
+        "comma-dangle": ["error", "always-multiline"],
+        "comma-spacing": ["error", { "before": false, "after": true }],
+        "curly": ["error", "all"],
+        "eqeqeq": ["error", "always"],
+        "indent": ["error", 4, { "SwitchCase": 1 }],
+        "keyword-spacing": ["error", { "before": true, "after": true }],
+        "max-len": ["error", { "code": 120 }],
+        "no-console": "error", // always use bunyan or exclude the file
+        "no-multiple-empty-lines": ["error", { "max": 1 }],
+        "no-trailing-spaces": "error",
+        "no-unused-vars": "error",
+        "no-var": "error",
+        "object-curly-spacing": ["error", "always"],
+        "prefer-const": "error",
+        "space-before-blocks": ["error", "always"],
+        "space-before-function-paren": ["error", { "anonymous": "always", "named": "never", "asyncArrow": "always" }],
+        "space-in-parens": ["error", "never"],
+        "space-infix-ops": "error",
+        "switch-colon-spacing": ["error", { "after": true, "before": false }]
     }
 }
