@@ -10,7 +10,7 @@ module.exports = {
             option.setName('url')
                 .setDescription('The URL to generate a QR code for')
                 .setRequired(true)),
-    async execute(interaction) {
+    async execute(interaction, context) {
         let url = interaction.options.getString('url');
 
         // Add protocol if it's missing
@@ -33,23 +33,23 @@ module.exports = {
             await interaction.reply({
                 files: [{
                     attachment: buffer,
-                    name: 'qrcode.png'
-                }]
+                    name: 'qrcode.png',
+                }],
             });
         } catch (qrError) {
             // Handle QR code generation errors
-            console.error('Failed to generate QR code:', qrError);
+            context.log.error('Failed to generate QR code:', qrError);
             await interaction.reply({ content: 'Failed to generate QR code. Please try again.', ephemeral: true });
         }
-    }
+    },
 };
 
-const generateQR = async (text) => {
+const generateQR = async (text,  context) => {
     try {
         const data = await qrcode.toDataURL(text);
         return Buffer.from(data.split(',')[1], 'base64');
     } catch (error) {
-        console.error('Failed to generate QR code:', error);
+        context.log.error('Failed to generate QR code:', error);
         throw error; // Rethrowing the original error
     }
 };

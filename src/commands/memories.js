@@ -65,58 +65,52 @@ module.exports = {
                     option.setName('key')
                         .setDescription('The key to untrigger')
                         .setRequired(true))),
-    async execute(interaction, { tables }) {
-        const { Memories } = tables;
-        const subcommand = interaction.options.getSubcommand();
-        const key = interaction.options.getString('key');
-        let value = interaction.options.getString('value');
-        let amount = interaction.options.getInteger('amount');
-
-        switch (subcommand) {
+    async execute(interaction, context) {
+        switch (interaction.options.getSubcommand()) {
             case 'get':
-                await getMemory({ interaction, Memories, key });
+                await getMemory(interaction, context);
                 break;
             case 'add':
-                value = interaction.options.getString('value');
-                await upsertMemory({ interaction, Memories, key, value });
+                await upsertMemory(interaction, context);
                 break;
             case 'delete':
-                await removeMemory({ interaction, Memories, key });
+                await removeMemory(interaction, context);
                 break;
             case 'top':
-                amount = interaction.options.getInteger('amount') || 5;
-                await getTopMemories({ interaction, Memories, amount });
+                await getTopMemories(interaction, context);
                 break;
             case 'random':
-                amount = interaction.options.getInteger('amount') || 1;
-                await getRandomMemories({ interaction, Memories, amount });
+                await getRandomMemories(interaction, context);
                 break;
             case 'trigger':
-                await flagTriggered({ interaction, Memories, key, triggered: true });
+                await flagTriggered(interaction, context, true);
                 break;
             case 'untrigger':
-                await flagTriggered({interaction, Memories, key, triggered: false});
+                await flagTriggered(interaction, context, false);
                 break;
             default:
                 await interaction.reply("I don't recognize that command.");
         }
-    }
+    },
 };
 
-const upsertMemory = async ({ interaction, Memories, key, value }) => {
-    const record = await Memories.findOne({ where: { key } });
+const upsertMemory = async (interaction, context) => {
+    const key = interaction.options.getString('key');
+    const value = interaction.options.getString('value');
+    const record = await context.tables.Memories.findOne({ where: { key } });
     if (record) {
         const oldValue = record.value;
         await record.update({ value });
         await interaction.reply(`"${key}" is now "${value}" (previously: "${oldValue}").`);
     } else {
-        await Memories.create({ key, value });
+        await context.tables.Memories.create({ key, value });
         await interaction.reply(`"${key}" is now "${value}".`);
     }
 };
 
-const getMemory = async ({ interaction, Memories, key }) => {
-    const record = await Memories.findOne({ where: { key } });
+const getMemory = async (interaction, context) => {
+    const key = interaction.options.getString('key');
+    const record = await context.tables.Memories.findOne({ where: { key } });
     if (record) {
         await interaction.reply(`"${key}" is "${record.value}".`);
     } else {
@@ -124,8 +118,9 @@ const getMemory = async ({ interaction, Memories, key }) => {
     }
 };
 
-const removeMemory = async ({ interaction, Memories, key }) => {
-    const record = await Memories.findOne({ where: { key } });
+const removeMemory = async (interaction, context) => {
+    const key = interaction.options.getString('key');
+    const record = await context.tables.Memories.findOne({ where: { key } });
     if (record) {
         await record.destroy();
         await interaction.reply(`Forgotten: "${key}".`);
@@ -134,14 +129,15 @@ const removeMemory = async ({ interaction, Memories, key }) => {
     }
 };
 
-const getTopMemories = async ({ interaction, Memories, amount }) => {
-    const records = await Memories.findAll({
+const getTopMemories = async (interaction, context) => {
+    const amount = interaction.options.getInteger('amount') || 5;
+    const records = await context.tables.Memories.findAll({
         order: [['read_count', 'DESC']],
-        limit: amount
+        limit: amount,
     });
     if (records.length > 0) {
         let response = `Top ${amount} Memories:\n`;
-        records.forEach((record) => {
+        records.forEach(record => {
             response += ` * "${record.key}" - Accessed ${record.read_count} times\n`;
         });
         await interaction.reply(response);
@@ -150,14 +146,15 @@ const getTopMemories = async ({ interaction, Memories, amount }) => {
     }
 };
 
-const getRandomMemories = async ({ interaction, Memories, amount }) => {
-    const records = await Memories.findAll({
+const getRandomMemories = async (interaction, context) => {
+    const amount = interaction.options.getInteger('amount') || 5;
+    const records = await context.tables.Memories.findAll({
         order: literal('RAND()'),
-        limit: amount
+        limit: amount,
     });
     if (records.length > 0) {
         let response = `Random ${amount} Memories:\n`;
-        records.forEach((record) => {
+        records.forEach(record => {
             response += ` * "${record.key}" - "${record.value}"\n`;
         });
         await interaction.reply(response);
@@ -166,8 +163,9 @@ const getRandomMemories = async ({ interaction, Memories, amount }) => {
     }
 };
 
-const flagTriggered = async ({ interaction, Memories, key, triggered }) => {
-    const record = await Memories.findOne({ where: { key } });
+const flagTriggered = async (interaction, context, triggered) => {
+    const key = interaction.options.getString('key');
+    const record = await context.tables.Memories.findOne({ where: { key } });
     if (record) {
         await record.update({ triggered });
         const triggeredStatus = triggered ? 'triggered' : 'untriggered';

@@ -6,8 +6,8 @@ module.exports = async (message, { tables }) => {
     // feel like caching this would be a good idea, honestly this is so unhinged of me
     const triggers = await Memories.findAll({
         where: {
-            triggered: true
-        }
+            triggered: true,
+        },
     });
 
     const messageLower = message.content.toLowerCase();

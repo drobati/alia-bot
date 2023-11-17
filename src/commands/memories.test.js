@@ -1,183 +1,110 @@
-const { stripIndent } = require('common-tags');
+const { createInteraction, createTable, createContext, createRecord } = require('../utils/testHelpers');
 const memories = require('./memories');
+const { stripIndent } = require("common-tags");
 
-describe('commands/config', () => {
-    let message = {},
-        Memories = {};
+describe('commands/memories', () => {
+    let interaction, context, Memories;
 
     beforeEach(() => {
-        message = {
-            channel: { send: jest.fn() }
-        };
-        Memories = {
-            upsert: jest.fn(),
-            findAll: jest.fn().mockResolvedValue(false),
-            findOne: jest.fn().mockResolvedValue(false)
-        };
+        interaction = createInteraction();
+        context = createContext();
+        Memories = createTable();
+        context.tables.Memories = Memories;
     });
 
-    describe('should respond to', () => {
-        // . !remember get <key> - Returns a string
-        it('get <key>', async () => {
-            message.content = '!remember get fake-key';
-            Memories.findOne = jest.fn().mockResolvedValue({ value: 'fake-value' });
-            await memories(message, Memories);
-            expect(message.channel.send).toBeCalledWith('"fake-key" is "fake-value".');
-        });
+    it('should retrieve a memory', async () => {
+        interaction.options.getSubcommand.mockReturnValue('get');
+        interaction.options.getString.mockReturnValue('key1');
+        context.tables.Memories.findOne.mockResolvedValue(
+            createRecord({ key: 'key1', value: 'value1', read_count: 1 }),
+        );
+        await memories.execute(interaction, context);
 
-        // . !remember add <key> <value>. - Returns confirmation.
-        it('add <key> <value> if new', async () => {
-            message.content = '!remember add fake-key fake-value';
-            await memories(message, Memories);
-            expect(message.channel.send).toBeCalledWith('"fake-key" is now "fake-value".');
-        });
+        expect(interaction.reply).toHaveBeenCalledWith('"key1" is "value1".');
+    });
 
-        // . !remember delete <key> - Removes key from hubots brain.
-        it('delete <key>', async () => {
-            message.content = '!remember delete fake-key';
-            Memories.findOne = jest
-                .fn()
-                .mockResolvedValue({ value: 'fake-value', destroy: jest.fn() });
-            await memories(message, Memories);
-            expect(message.channel.send).toBeCalledWith('"fake-key" was "fake-value".');
-        });
+    it('should add a new memory', async () => {
+        interaction.options.getSubcommand.mockReturnValue('add');
+        interaction.options.getString.mockReturnValueOnce('key1').mockReturnValueOnce('value1');
+        context.tables.Memories.findOne.mockResolvedValue(null);
 
-        // . !remember top <amount> - Returns top 5 hubot remembers.
-        it('top <amount>', async () => {
-            message.content = '!remember top 5';
-            Memories.findAll = jest.fn().mockResolvedValue([
-                { key: 'fake-key-1', value: 'fake-value-1' },
-                { key: 'fake-key-2', value: 'fake-value-2' },
-                { key: 'fake-key-3', value: 'fake-value-3' },
-                { key: 'fake-key-4', value: 'fake-value-4' },
-                { key: 'fake-key-5', value: 'fake-value-5' }
-            ]);
-            await memories(message, Memories);
-            expect(message.channel.send).toBeCalledWith(stripIndent`
+        await memories.execute(interaction, context);
+
+        expect(interaction.reply).toHaveBeenCalledWith('"key1" is now "value1".');
+    });
+
+    it('should delete a memory', async () => {
+        interaction.options.getSubcommand.mockReturnValue('delete');
+        interaction.options.getString.mockReturnValue('key1');
+        context.tables.Memories.findOne.mockResolvedValue(
+            createRecord({ key: 'key1', value: 'value1' }));
+
+        await memories.execute(interaction, context);
+
+        expect(interaction.reply).toHaveBeenCalledWith('Forgotten: "key1".');
+    });
+
+    it('should return top memories', async () => {
+        interaction.options.getSubcommand.mockReturnValue('top');
+        interaction.options.getInteger.mockReturnValue(5);
+        context.tables.Memories.findAll.mockResolvedValue([
+            { key: 'key1', value: 'value1', read_count: 10 },
+            { key: 'key2', value: 'value2', read_count: 5 },
+        ]);
+
+        await memories.execute(interaction, context);
+
+        expect(interaction.reply).toHaveBeenCalledWith(stripIndent`
             Top 5 Memories:
-             * "fake-key-1" is "fake-value-1"
-             * "fake-key-2" is "fake-value-2"
-             * "fake-key-3" is "fake-value-3"
-             * "fake-key-4" is "fake-value-4"
-             * "fake-key-5" is "fake-value-5"
-            `);
-        });
-
-        // . !remember random <amount> - Returns a random string
-        it('random <amount>', async () => {
-            message.content = '!remember random 5';
-            Memories.findAll = jest.fn().mockResolvedValue([
-                { key: 'fake-key-1', value: 'fake-value-1' },
-                { key: 'fake-key-2', value: 'fake-value-2' },
-                { key: 'fake-key-3', value: 'fake-value-3' },
-                { key: 'fake-key-4', value: 'fake-value-4' },
-                { key: 'fake-key-5', value: 'fake-value-5' }
-            ]);
-            await memories(message, Memories);
-            expect(message.channel.send).toBeCalledWith(stripIndent`
-            Random 5 Memories:
-             * "fake-key-1" is "fake-value-1"
-             * "fake-key-2" is "fake-value-2"
-             * "fake-key-3" is "fake-value-3"
-             * "fake-key-4" is "fake-value-4"
-             * "fake-key-5" is "fake-value-5"
-            `);
-        });
-
-        // . !remember blah
-        it('if nothing matches', async () => {
-            message.content = '!remember blah blah blah';
-            await memories(message, Memories);
-            expect(message.channel.send).toBeCalledWith("I don't understand that command.");
-        });
-
-        // . !remember trigger <key> - Flags a key
-        it('trigger <key>', async () => {
-            message.content = '!remember trigger fake-key';
-            Memories.findOne = jest.fn().mockResolvedValue({ update: jest.fn() });
-            await memories(message, Memories);
-            expect(message.channel.send).toBeCalledWith('"fake-key" is now triggered.');
-        });
-
-        // . !remember untrigger <key> - Removes trigger flag
-        it('untrigger <key>', async () => {
-            message.content = '!remember untrigger fake-key';
-            Memories.findOne = jest.fn().mockResolvedValue({ update: jest.fn() });
-            await memories(message, Memories);
-            expect(message.channel.send).toBeCalledWith('"fake-key" is now untriggered.');
-        });
+             * "key1" - Accessed 10 times
+             * "key2" - Accessed 5 times
+        ` + '\n'); // stripIndent removes the trailing newline
     });
 
-    describe('should respond to edge case if', () => {
-        // . !remember get <key> - Returns a string
-        it("get <key> doesn't exist", async () => {
-            message.content = '!remember get fake-key';
-            await memories(message, Memories);
-            expect(message.channel.send).toBeCalledWith("I can't remember, fake-key.");
-        });
+    it('should return random memories', async () => {
+        interaction.options.getSubcommand.mockReturnValue('random');
+        interaction.options.getInteger.mockReturnValue(2);
+        context.tables.Memories.findAll.mockResolvedValue([
+            { key: 'key1', value: 'value1' },
+            { key: 'key2', value: 'value2' },
+        ]);
 
-        // . !remember add <key> <value>. - Returns confirmation.
-        it('add <key> <value> already exists', async () => {
-            message.content = '!remember add fake-key fake-value-2';
-            Memories.findOne = jest
-                .fn()
-                .mockResolvedValue({ value: 'fake-value-1', update: jest.fn() });
-            await memories(message, Memories);
-            expect(message.channel.send).toBeCalledTimes(1);
-            expect(message.channel.send).toBeCalledWith(
-                '"fake-key" is now \n"fake-value-2" \nand was \n"fake-value-1"'
-            );
-        });
+        await memories.execute(interaction, context);
 
-        // . !remember delete <key> - Removes key from hubots brain.
-        it('delete <key> has no <key> to remove', async () => {
-            message.content = '!remember delete fake-key';
-            await memories(message, Memories);
-            expect(message.channel.send).toBeCalledWith("I can't remember, fake-key.");
-        });
+        expect(interaction.reply).toHaveBeenCalledWith(stripIndent`
+            Random 2 Memories:
+             * "key1" - "value1"
+             * "key2" - "value2"
+        ` + '\n'); // stripIndent removes the trailing newline
+    });
 
-        // . !remember top <amount> - Returns top 5 hubot remembers.
-        it('top <amount> has no memories', async () => {
-            message.content = '!remember top 5';
-            await memories(message, Memories);
-            expect(message.channel.send).toBeCalledWith("I can't remember anything.");
-        });
+    it('should trigger a memory', async () => {
+        interaction.options.getSubcommand.mockReturnValue('trigger');
+        interaction.options.getString.mockReturnValue('key1');
+        context.tables.Memories.findOne.mockResolvedValue(
+            createRecord({ key: 'key1', value: 'value1', update: jest.fn() }));
 
-        // . !remember random <amount> - Returns a random string
-        it('random <amount> has no memories', async () => {
-            message.content = '!remember random 5';
-            await memories(message, Memories);
-            expect(message.channel.send).toBeCalledWith("I can't remember anything.");
-        });
+        await memories.execute(interaction, context);
 
-        it("top <amount> can't be more than 10", async () => {
-            message.content = '!remember top 11';
-            Memories.findAll = jest
-                .fn()
-                .mockResolvedValue([{ key: 'fake-key-1', value: 'fake-value-1' }]);
-            await memories(message, Memories);
-            expect(message.channel.send).toBeCalledWith(stripIndent`
-            Top 10 Memories:
-             * "fake-key-1" is "fake-value-1"
-            `);
-        });
+        expect(interaction.reply).toHaveBeenCalledWith('"key1" is now triggered.');
+    });
 
-        it("random <amount> can't be more than 10", async () => {
-            message.content = '!remember random 11';
-            Memories.findAll = jest
-                .fn()
-                .mockResolvedValue([{ key: 'fake-key-1', value: 'fake-value-1' }]);
-            await memories(message, Memories);
-            expect(message.channel.send).toBeCalledWith(stripIndent`
-            Random 10 Memories:
-             * "fake-key-1" is "fake-value-1"
-            `);
-        });
+    it('should untrigger a memory', async () => {
+        interaction.options.getSubcommand.mockReturnValue('untrigger');
+        interaction.options.getString.mockReturnValue('key1');
+        context.tables.Memories.findOne.mockResolvedValue(
+            createRecord({ key: 'key1', value: 'value1', update: jest.fn() }));
 
-        it('trigger <key> has no <key> to trigger', async () => {
-            message.content = '!remember trigger fake-key';
-            await memories(message, Memories);
-            expect(message.channel.send).toBeCalledWith("I can't remember, fake-key.");
-        });
+        await memories.execute(interaction, context);
+
+        expect(interaction.reply).toHaveBeenCalledWith('"key1" is now untriggered.');
+    });
+
+    it('should handle unrecognized command', async () => {
+        interaction.options.getSubcommand.mockReturnValue('unknown');
+
+        await memories.execute(interaction, context);
+
+        expect(interaction.reply).toHaveBeenCalledWith("I don't recognize that command.");
     });
 });

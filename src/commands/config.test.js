@@ -1,85 +1,70 @@
-const run = require('./config');
-const config = require('config');
+const { createInteraction, createContext, createTable } = require('../utils/testHelpers');
+const { execute } = require('./config');
 
 describe('commands/config', () => {
-    describe('should', () => {
-        let message = {},
-            Config = {};
+    let interaction, context, Config;
 
-        beforeEach(() => {
-            message = {
-                author: { id: config.get('owner'), username: 'derek' },
-                channel: { send: jest.fn() }
-            };
-            Config = {
-                upsert: jest.fn(),
-                findOne: jest.fn().mockResolvedValue(false)
-            };
+    beforeEach(() => {
+        interaction = createInteraction();
+        context = createContext();
+        Config = createTable();
+        context.tables.Config = Config;
+    });
+
+    it('should add a new configuration', async () => {
+        interaction.options.getSubcommand.mockReturnValue('add');
+        interaction.options.getString.mockReturnValueOnce('fake-key').mockReturnValueOnce('fake-value');
+        Config.upsert.mockResolvedValue([{}, true]); // Mocks the upsert method to return 'created' flag as true
+        context.tables.Config = Config;
+
+        await execute(interaction, context);
+
+        expect(Config.upsert).toHaveBeenCalledWith({ key: 'fake-key', value: 'fake-value' }, expect.anything());
+        expect(interaction.reply).toHaveBeenCalledWith({
+            content: 'Configuration for `fake-key` has been added.',
+            ephemeral: true,
         });
+    });
 
-        it('create key and value', async () => {
-            message.content = '!config add fake-key fake-value';
-            await run(message, Config);
-            expect(Config.upsert).toBeCalledWith({ key: 'fake-key', value: 'fake-value' });
-            expect(message.channel.send).toBeCalledWith("I've added the config.");
+    it('should update an existing configuration', async () => {
+        interaction.options.getSubcommand.mockReturnValue('add');
+        interaction.options.getString.mockReturnValueOnce('fake-key').mockReturnValueOnce('fake-value');
+        Config.upsert.mockResolvedValue([{}, false]); // Mocks the upsert method to return 'created' flag as false
+        context.tables.Config = Config;
+
+        await execute(interaction, context);
+
+        expect(Config.upsert).toHaveBeenCalledWith({ key: 'fake-key', value: 'fake-value' }, expect.anything());
+        expect(interaction.reply).toHaveBeenCalledWith({
+            content: 'Configuration for `fake-key` has been updated.',
+            ephemeral: true,
         });
+    });
 
-        it('updated key and value', async () => {
-            message.content = '!config add fake-key fake-value';
-            Config.findOne = jest.fn().mockResolvedValue(true);
-            await run(message, Config);
-            expect(Config.upsert).toBeCalledWith({ key: 'fake-key', value: 'fake-value' });
-            expect(message.channel.send).toBeCalledWith("I've updated the config.");
+    it('should remove a configuration', async () => {
+        interaction.options.getSubcommand.mockReturnValue('remove');
+        interaction.options.getString.mockReturnValue('fake-key');
+        Config.findOne.mockResolvedValue({ destroy: jest.fn() });
+        context.tables.Config = Config;
+
+        await execute(interaction, context);
+
+        expect(interaction.reply).toHaveBeenCalledWith({
+            content: 'Configuration for `fake-key` has been removed.',
+            ephemeral: true,
         });
+    });
 
-        it('destroy key and value', async () => {
-            message.content = '!config remove fake-key fake-value';
-            const destroy = jest.fn().mockResolvedValue(true);
-            Config.findOne = jest.fn().mockResolvedValue({ destroy });
-            await run(message, Config);
-            expect(destroy).toBeCalledWith({ force: true });
-            expect(message.channel.send).toBeCalledWith("I've removed the config.");
-        });
+    it('should handle removing a non-existent configuration', async () => {
+        interaction.options.getSubcommand.mockReturnValue('remove');
+        interaction.options.getString.mockReturnValue('fake-key');
+        Config.findOne.mockResolvedValue(null);
+        context.tables.Config = Config;
 
-        it('respond to remove with missing if does not exists', async () => {
-            message.content = '!config remove fake-key fake-value';
-            await run(message, Config);
-            expect(message.channel.send).toBeCalledWith("I don't know that config.");
-        });
-
-        it('respond to missing command', async () => {
-            message.content = '!config hotgarbage fake-key fake-value';
-            await run(message, Config);
-            expect(message.channel.send).toBeCalledWith(
-                'Invalid subcommand. Use `config add|remove key value?`'
-            );
-        });
-
-        it('respond to unauthorized user', async () => {
-            message.author.id = 'not-derek';
-            message.content = '!config add fake-key fake-value';
-            await run(message, Config);
-            expect(message.channel.send).toBeCalledWith('You may not pass!');
-        });
-
-        it('respond to missing key on add', async () => {
-            message.content = '!config add';
-            await run(message, Config);
-            expect(message.channel.send).toBeCalledWith('Missing key. Use `config add key value`');
-        });
-
-        it('respond to missing key on remove', async () => {
-            message.content = '!config remove';
-            await run(message, Config);
-            expect(message.channel.send).toBeCalledWith('Missing key. Use `config remove key`');
-        });
-
-        it('respond to missing value on add', async () => {
-            message.content = '!config add fake-key';
-            await run(message, Config);
-            expect(message.channel.send).toBeCalledWith(
-                'Missing value. Use `config add key value`'
-            );
+        await execute(interaction, context)
+        await expect(interaction.reply).toHaveBeenCalledWith({
+            content: 'An error occurred: No configuration found for key `fake-key`.',
+            ephemeral: true,
         });
     });
 });

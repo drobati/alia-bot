@@ -9,7 +9,7 @@ module.exports = {
     async execute(interaction, { log }) {
         try {
             const response = await axios.get('https://icanhazdadjoke.com/', {
-                headers: { Accept: 'application/json', 'User-Agent': 'Alia Discord Bot' }
+                headers: { Accept: 'application/json', 'User-Agent': 'Alia Discord Bot' },
             });
 
             const joke = get(response, 'data.joke', 'No joke. Seriously.');
@@ -18,4 +18,4 @@ module.exports = {
             log.error(`Error fetching joke: ${error.message}`);
             return await interaction.reply('Sorry, I couldn’t fetch a joke at this time.');
         }
-    }};
+    } };

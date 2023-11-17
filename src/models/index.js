@@ -9,5 +9,5 @@ module.exports = {
     Config,
     Louds,
     Memories,
-    Twitch
+    Twitch,
 };

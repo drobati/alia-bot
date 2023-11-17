@@ -1,10 +1,11 @@
+/* eslint-disable no-console */
 const hapi = require('@hapi/hapi');
 const config = require('config');
 
 module.exports = async (client, channel, embed, model) => {
     const { Twitch_Users, Twitch_Notifications } = model;
     const server = hapi.server({
-        port: config.get('webhook.port')
+        port: config.get('webhook.port'),
     });
 
     // TODO: Add support for secret verification.
@@ -16,7 +17,7 @@ module.exports = async (client, channel, embed, model) => {
             console.log(challenge);
             h.response('success').code(200);
             return challenge;
-        }
+        },
     });
 
     server.route({
@@ -29,12 +30,12 @@ module.exports = async (client, channel, embed, model) => {
                 // const username = request.payload.data[0].user_name;
                 const id = request.payload.data[0].id;
                 const notification = await Twitch_Notifications.findOne({
-                    where: { notification_id: id }
+                    where: { notification_id: id },
                 });
                 if (!notification) {
                     await Twitch_Notifications.create({ notification_id: id });
                     const user = await Twitch_Users.findOne({
-                        where: { twitch_id: request.payload.data[0].user_id }
+                        where: { twitch_id: request.payload.data[0].user_id },
                     });
                     if (user) {
                         h.response('success').code(200);
@@ -45,7 +46,7 @@ module.exports = async (client, channel, embed, model) => {
                                 .setColor('#0099ff')
                                 .setTitle(data.title)
                                 .setURL('https://www.twitch.tv/' + data.user_name)
-                                .setDescription(`${discord_user} is ${data.type}`)
+                                .setDescription(`${discord_user} is ${data.type}`),
                         );
                     }
                     h.response('success').code(200);
@@ -55,7 +56,7 @@ module.exports = async (client, channel, embed, model) => {
             }
             h.response('success').code(200);
             return '';
-        }
+        },
     });
 
     await server.start();

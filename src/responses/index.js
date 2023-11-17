@@ -5,5 +5,5 @@ const Triggers = require('./triggers');
 module.exports = {
     Adlibs,
     Louds,
-    Triggers
+    Triggers,
 };

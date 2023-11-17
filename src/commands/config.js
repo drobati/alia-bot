@@ -15,20 +15,21 @@ async function handleAddCommand(interaction, context) {
     }
 
     // Prevent concurrent writes to the same key.
-    const result = await context.sequelize.transaction(async (transaction) => {
+    const result = await context.sequelize.transaction(async transaction => {
         const [, created] = await context.tables.Config.upsert({ key, value }, { transaction });
         return created;
     });
 
-    const replyMessage = result ? `Configuration for \`${key}\` has been added.` : `Configuration for \`${key}\` has been updated.`;
+    const replyMessage = result ?
+        `Configuration for \`${key}\` has been added.` :
+        `Configuration for \`${key}\` has been updated.`;
     await interaction.reply({ content: replyMessage, ephemeral: true });
 }
-
 
 async function handleRemoveCommand(interaction, context) {
     const key = interaction.options.getString('key');
 
-    await context.sequelize.transaction(async (transaction) => {
+    await context.sequelize.transaction(async transaction => {
         const record = await context.tables.Config.findOne({ where: { key }, transaction });
         if (!record) {
             throw new Error(`No configuration found for key \`${key}\`.`);
@@ -74,9 +75,9 @@ module.exports = {
             const records = await Config.findAll({
                 where: {
                     key: {
-                        [Op.like]: `${keyFragment}%` // Op.like for partial matches, requires Sequelize Op import
-                    }
-                }
+                        [Op.like]: `${keyFragment}%`, // Op.like for partial matches, requires Sequelize Op import
+                    },
+                },
             });
             const choices = records.map(record => ({ name: record.key, value: record.key }));
             await interaction.respond(choices);
@@ -96,5 +97,5 @@ module.exports = {
             log.error('Error executing config command:', error);
             await interaction.reply({ content: `An error occurred: ${error.message}`, ephemeral: true });
         }
-    }
+    },
 };

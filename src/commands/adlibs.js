@@ -12,7 +12,7 @@
 // Commands:
 //   adlib add [TEXT]    - Add an adlib to the database.
 //   adlib delete [TEXT] - Delete an adlib from the database.
-const {SlashCommandBuilder} = require("discord.js");
+const { SlashCommandBuilder } = require("discord.js");
 
 module.exports = {
     data: new SlashCommandBuilder()
@@ -43,17 +43,16 @@ module.exports = {
                 const suggestions = await context.tables.Adlibs.findAll({
                     where: {
                         value: {
-                            [context.Sequelize.Op.like]: `%${searchQuery}%`
-                        }
+                            [context.Sequelize.Op.like]: `%${searchQuery}%`,
+                        },
                     },
-                    limit: 25 // limit the number of suggestions
+                    limit: 25, // limit the number of suggestions
                 });
 
                 const choices = suggestions.map(adlib => ({ name: adlib.value, value: adlib.value }));
                 await interaction.respond(choices);
             } catch (error) {
-                console.error('Error fetching adlib suggestions:', error);
-                // Handle error appropriately
+                context.log.error('Error fetching adlib suggestions:', error);
             }
         }
     },
@@ -67,7 +66,7 @@ module.exports = {
             default:
                 return await interaction.reply("I don't recognize that command.");
         }
-    }
+    },
 };
 
 async function addAdlib(interaction, context) {

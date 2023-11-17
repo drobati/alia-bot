@@ -28,7 +28,7 @@ module.exports = async (message, { tables }) => {
         if (!exists && !banned) {
             await Louds.create({
                 message: newLoud,
-                username: message.author.id
+                username: message.author.id,
             });
         }
     }

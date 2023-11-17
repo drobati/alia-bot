@@ -14,7 +14,7 @@ module.exports = {
             One day you will cry out for help. One day each of you will find yourselves alone.
         `);
 
-        const devChannel = client.channels.cache.find((chan) => chan.name === 'deploy');
+        const devChannel = client.channels.cache.find(chan => chan.name === 'deploy');
         if (devChannel) {
             devChannel.send(`Successfully deployed on ${process.env.NODE_ENV}. Version ${VERSION}.`);
         } else {
@@ -22,7 +22,7 @@ module.exports = {
         }
 
         // Sync tables with error handling.
-        Object.keys(tables).forEach((key) => {
+        Object.keys(tables).forEach(key => {
             try {
                 tables[key].sync();
             } catch (error) {
@@ -32,7 +32,7 @@ module.exports = {
         });
 
         // Start server for webhooks.
-        const genChannel = client.channels.cache.find((chan) => chan.name === 'general');
+        const genChannel = client.channels.cache.find(chan => chan.name === 'general');
         if (genChannel) {
             const twitchEmbed = new EmbedBuilder();
             try {

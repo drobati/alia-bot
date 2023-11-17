@@ -28,6 +28,7 @@
         "@hapi/hapi": "^20.2.1",
         "axios": "^0.24.0",
         "bunyan": "^1.8.15",
+        "chartjs-node-canvas": "^4.1.6",
         "common-tags": "^1.8.2",
         "config": "^3.3.6",
         "discord.js": "^14.13.0",

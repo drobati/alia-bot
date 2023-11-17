@@ -46,28 +46,28 @@ module.exports = {
                 const loudSearch = await Louds.findAll({
                     where: {
                         message: {
-                            [Op.like]: `${searchText}%` // Use "like" operator for partial matches
-                        }
+                            [Op.like]: `${searchText}%`, // Use "like" operator for partial matches
+                        },
                     },
-                    limit: 25
+                    limit: 25,
                 });
                 choices = loudSearch.map(record => ({
                     name: record.message,
-                    value: record.message
+                    value: record.message,
                 }));
             } else if (subcommand === 'unban') {
                 // For unban command, we only want to autocomplete with banned louds
                 const bannedSearch = await Banned.findAll({
                     where: {
                         message: {
-                            [Op.like]: `${searchText}%` // Use "like" operator for partial matches
-                        }
+                            [Op.like]: `${searchText}%`, // Use "like" operator for partial matches
+                        },
                     },
-                    limit: 25
+                    limit: 25,
                 });
                 choices = bannedSearch.map(record => ({
                     name: record.message,
-                    value: record.message
+                    value: record.message,
                 }));
             }
 
@@ -102,7 +102,7 @@ module.exports = {
             default:
                 return interaction.reply("I don't recognize that command.");
         }
-    }
+    },
 };
 
 const remove = async (model, interaction, response) => {
@@ -120,7 +120,7 @@ const add = async (model, interaction) => {
     if (!exists) {
         await model.create({
             message: text,
-            username: interaction.user.id
+            username: interaction.user.id,
         });
     }
 };

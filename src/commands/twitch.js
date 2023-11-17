@@ -74,5 +74,5 @@ module.exports = {
                 await interaction.reply('Twitch subcommand does not exist.');
                 break;
         }
-    }
+    },
 };

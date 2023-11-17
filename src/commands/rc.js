@@ -40,7 +40,6 @@ module.exports = {
                         .setName('score')
                         .setDescription('Enter your score')
                         .setRequired(true))),
-
     async autocomplete(interaction, context) {
         const focusedOption = interaction.options.getFocused(true);
 
@@ -48,15 +47,14 @@ module.exports = {
             const search = focusedOption.value;
             const users = await context.tables.RollCall.findAll({
                 where: {
-                    username: { [Op.like]: `%${search}%` }
+                    username: { [Op.like]: `%${search}%` },
                 },
-                limit: 5
+                limit: 5,
             });
 
             await interaction.respond(users.map(user => ({ name: user.username, value: user.username })));
         }
     },
-
     async execute(interaction, context) {
         const subcommand = interaction.options.getSubcommand();
 
@@ -78,7 +76,7 @@ module.exports = {
             context.log.error(error);
             await interaction.reply({ content: 'An error occurred while executing the command.', ephemeral: true });
         }
-    }
+    },
 };
 
 async function handleForCommand(interaction, context) {
@@ -97,7 +95,7 @@ async function handleForCommand(interaction, context) {
         .setTitle(`${username}'s RC Score`)
         .addFields(
             { name: 'Latest Score', value: lastScore.value.toString(), inline: true },
-            { name: 'Time', value: new Date(lastScore.timestamp).toLocaleString(), inline: true }
+            { name: 'Time', value: new Date(lastScore.timestamp).toLocaleString(), inline: true },
         );
 
     await interaction.reply({ embeds: [embed] });
@@ -122,7 +120,7 @@ async function handleSetCommand(interaction, context) {
     await context.tables.RollCall.create({
         username: user.username,
         value: score,
-        timestamp: new Date()
+        timestamp: new Date(),
     });
     await interaction.reply({ content: `Your RC score has been set to ${score}`, ephemeral: true });
 }
@@ -137,15 +135,15 @@ async function generateSparkline(scores) {
             data: scores.map(score => score.value),
             borderColor: 'rgba(75, 192, 192, 1)',
             borderWidth: 2,
-            fill: false
-        }]
+            fill: false,
+        }],
     };
 
     return canvasRenderService.renderToBufferSync({ type: 'line', data });
 }
 
 async function fetchScores(username, interval, context) {
-    let whereClause = { username };
+    const whereClause = { username };
     if (interval) {
         const now = new Date();
         const pastDate = new Date(now.getTime() - parseInterval(interval));
@@ -154,7 +152,7 @@ async function fetchScores(username, interval, context) {
 
     return await context.tables.RollCall.findAll({
         where: whereClause,
-        order: [['timestamp', 'ASC']]
+        order: [['timestamp', 'ASC']],
     });
 }
 
