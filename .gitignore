@@ -1,5 +1,7 @@
+scripts/discord-commands/config-prod.json
+scripts/discord-commands/config-dev.json
 node_modules
-load_token.bash
+load_token.sh
 database.sqlite
 coverage
 .idea
