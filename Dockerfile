@@ -1,5 +1,5 @@
 # Pull base image from stock node image.
-FROM node:16
+FROM node:20
 
 # Make app directory
 RUN mkdir /opt/app
