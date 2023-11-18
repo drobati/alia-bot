@@ -1,9 +1,11 @@
-const { SlashCommandBuilder, EmbedBuilder, MessageAttachment } = require('discord.js');
-const { CanvasRenderService } = require('chartjs-node-canvas');
+const { SlashCommandBuilder, EmbedBuilder, AttachmentBuilder } = require('discord.js');
+const { ChartJSNodeCanvas } = require('chartjs-node-canvas');
 const { Op } = require('sequelize');
+const { uniq } = require('lodash');
 
-const width = 400; // Width of the graph
-const height = 200; // Height of the graph
+const scale = 2; // Scale of the graph
+const width = 400 / scale; // Width of the graph
+const height = 200 / scale; // Height of the graph
 
 module.exports = {
     data: new SlashCommandBuilder()
@@ -17,6 +19,7 @@ module.exports = {
                     option
                         .setName('username')
                         .setDescription('Enter a username')
+                        .setAutocomplete(true)
                         .setRequired(true))
                 .addStringOption(option =>
                     option
@@ -30,6 +33,7 @@ module.exports = {
                     option
                         .setName('username')
                         .setDescription('Enter a username')
+                        .setAutocomplete(true)
                         .setRequired(true)))
         .addSubcommand(subcommand =>
             subcommand
@@ -52,7 +56,10 @@ module.exports = {
                 limit: 5,
             });
 
-            await interaction.respond(users.map(user => ({ name: user.username, value: user.username })));
+            const usernames = users.map(user => user.username);
+            const uniqUsernames = uniq(usernames);
+
+            await interaction.respond(uniqUsernames.map(username => ({ name: username, value: username })));
         }
     },
     async execute(interaction, context) {
@@ -103,43 +110,67 @@ async function handleForCommand(interaction, context) {
 
 async function handleGraphCommand(interaction, context) {
     const username = interaction.options.getString('username');
-    const scores = await fetchScores(username, null, context);
+    // trim the excess scores down to the first 10
+    const allScores = await fetchScores(username, null, context);
+    const scores = allScores.slice(0, 10);
     if (scores.length === 0) {
         await interaction.reply({ content: `No scores found for ${username}`, ephemeral: true });
         return;
     }
 
     const chartBuffer = await generateSparkline(scores);
-    const attachment = new MessageAttachment(chartBuffer, 'graph.png');
+    const attachment = new AttachmentBuilder(chartBuffer, { name: 'graph.png' });
     await interaction.reply({ files: [attachment] });
 }
 
 async function handleSetCommand(interaction, context) {
     const user = interaction.user;
     const score = interaction.options.getNumber('score');
+
+    if (score < 0 || score > 100) {
+        // database still validates but still.
+        await interaction.reply({ content: 'Score must be between 0 and 100', ephemeral: true });
+        return;
+    }
+
     await context.tables.RollCall.create({
         username: user.username,
         value: score,
         timestamp: new Date(),
     });
-    await interaction.reply({ content: `Your RC score has been set to ${score}`, ephemeral: true });
+    await interaction.reply({ content: `Your roll call has been set to ${score}`, ephemeral: true });
 }
 
 async function generateSparkline(scores) {
-    const canvasRenderService = new CanvasRenderService(width, height, () => {});
+    const chartJSNodeCanvas = new ChartJSNodeCanvas({ width, height });
 
     const data = {
         labels: scores.map(score => score.timestamp.toLocaleString()),
         datasets: [{
-            label: 'RC Score',
+            label: 'Roll Call Score',
             data: scores.map(score => score.value),
-            borderColor: 'rgba(75, 192, 192, 1)',
-            borderWidth: 2,
+            borderColor: 'rgba(255, 255, 255, 1)',
             fill: false,
+            tension: 0.2,
+            borderWidth: 1,
         }],
     };
 
-    return canvasRenderService.renderToBufferSync({ type: 'line', data });
+    const options = {
+        scales: {
+            x: { display: false },
+            y: { display: false },
+        },
+        plugins: {
+            legend: { display: false },
+        },
+        devicePixelRatio: 1,
+        elements: {
+            point: { radius: 0 },
+        },
+    };
+
+    return chartJSNodeCanvas.renderToBuffer({ type: 'line', data, options });
 }
 
 async function fetchScores(username, interval, context) {
