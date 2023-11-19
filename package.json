@@ -31,7 +31,7 @@
         "chartjs-node-canvas": "^4.1.6",
         "common-tags": "^1.8.2",
         "config": "^3.3.6",
-        "discord.js": "^14.13.0",
+        "discord.js": "^14.14.1",
         "dotenv": "^10.0.0",
         "fuse.js": "^6.4.6",
         "js-yaml": "^4.1.0",
