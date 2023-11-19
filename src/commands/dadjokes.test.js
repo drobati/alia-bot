@@ -1,32 +1,31 @@
-const dadjokes = require('./dadjokes');
+const { createInteraction, createContext } = require('../utils/testHelpers');
+const { execute } = require('./dadjokes');
 const axios = require('axios');
 jest.mock('axios');
 
 describe('commands/dadjokes', () => {
-    describe('should', () => {
-        let message = {};
+    let interaction, context;
 
-        beforeEach(() => {
-            message = {
-                author: { id: '1234', username: 'guy' },
-                channel: { send: jest.fn() }
-            };
-            axios.get.mockResolvedValue({ data: { joke: 'fake-dad-joke' } });
+    beforeEach(() => {
+        interaction = createInteraction();
+        context = createContext();
+        axios.get.mockResolvedValue({ data: { joke: 'fake-dad-joke' } });
+    });
+
+    it('responds with a dad joke', async () => {
+        await execute(interaction, context);
+
+        expect(interaction.reply).toBeCalledWith('fake-dad-joke');
+        expect(axios.get).toBeCalledWith('https://icanhazdadjoke.com/', {
+            headers: { Accept: 'application/json', 'User-Agent': 'Alia Discord Bot' },
         });
+    });
 
-        const run = (msg) => {
-            return dadjokes(msg);
-        };
+    it('handles errors gracefully', async () => {
+        axios.get.mockRejectedValue(new Error('error'));
 
-        it('respond to dadjoke', async () => {
-            await run(message);
-            expect(message.channel.send).toBeCalledTimes(1);
-            expect(message.channel.send).toBeCalledWith('fake-dad-joke');
-        });
+        await execute(interaction, context);
 
-        it('throw error if there is an error', async () => {
-            axios.get.mockRejectedValue(new Error('error'));
-            await expect(run(message)).rejects.toThrow('error');
-        });
+        expect(interaction.reply).toBeCalledWith('Sorry, I couldn’t fetch a joke at this time.');
     });
 });
