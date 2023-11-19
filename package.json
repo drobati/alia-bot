@@ -26,7 +26,7 @@
     "homepage": "https://github.com/desert-planet/alia#readme",
     "dependencies": {
         "@hapi/hapi": "^20.2.1",
-        "axios": "^0.24.0",
+        "axios": "^1.6.0",
         "bunyan": "^1.8.15",
         "chartjs-node-canvas": "^4.1.6",
         "common-tags": "^1.8.2",
