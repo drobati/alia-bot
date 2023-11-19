@@ -8,7 +8,7 @@ module.exports = {
         try {
             if (message.author.bot) {return false;}
 
-            await Promise.all([
+            await Promise.allSettled([
                 response.Louds(message, context),
                 response.Adlibs(message, context),
                 response.Triggers(message, context),
