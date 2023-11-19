@@ -7,13 +7,13 @@ version: "1.0"
 profile:
   name: qodana.starter
 #Enable inspections
-#include:
-#  - name: <SomeEnabledInspectionId>
+include:
+  - name: Eslint
 #Disable inspections
-#exclude:
-#  - name: <SomeDisabledInspectionId>
-#    paths:
-#      - <path/where/not/run/inspection>
+exclude:
+  - name: All
+    paths:
+      - scripts
 #Execute shell command before Qodana execution (Applied in CI/CD pipeline)
 bootstrap: npm install
 #Install IDE plugins before Qodana execution (Applied in CI/CD pipeline)
@@ -21,7 +21,3 @@ bootstrap: npm install
 #  - id: <plugin.id> #(plugin id can be found at https://plugins.jetbrains.com)
 #Specify Qodana linter for analysis (Applied in CI/CD pipeline)
 linter: jetbrains/qodana-js:latest
-exclude:
-  - name: All
-    paths:
-      - scripts
