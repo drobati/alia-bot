@@ -14,14 +14,14 @@ describe('commands/twitch', () => {
         context.tables.Twitch_Users = Twitch_Users;
 
         // Mock API calls
-        api.getUserId.mockImplementation(async (username: any) => {
+        (api.getUserId as jest.Mock).mockImplementation(async (username: any) => {
             if (username === 'fake-user') {
                 return 'fake-user-id';
             } else {
                 return undefined;
             }
         });
-        api.setWebhook.mockResolvedValue('');
+        (api.setWebhook as jest.Mock).mockResolvedValue('');
     });
 
     it('responds to subscribe with an existing Twitch user', async () => {
