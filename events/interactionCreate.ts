@@ -1,7 +1,7 @@
 import { CommandInteraction, Events, Interaction } from "discord.js";
 import { Command, Context, Event, ExtendedClient } from "../src/utils/types";
 
-const interactionCreateEventHandler: Event<Events.InteractionCreate> = {
+const interactionCreateEventHandler: Event = {
     name: Events.InteractionCreate,
     async execute(interaction: Interaction, context: Context) {
         const { log } = context;

@@ -3,7 +3,7 @@ import { Context, Event } from '../src/utils/types';
 import server from '../src/lib/server';
 import { stripIndent } from 'common-tags';
 
-const clientReadyEvent: Event<Events.ClientReady> = {
+const clientReadyEvent: Event = {
     name: Events.ClientReady,
     once: true,
     async execute(client: Client, context: Context) {

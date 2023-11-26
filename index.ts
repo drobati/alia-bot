@@ -1,11 +1,11 @@
-import { Client, ClientEvents, Collection, Events, GatewayIntentBits, Partials } from 'discord.js';
+import { Client, ClientEvents, Collection, GatewayIntentBits, Partials } from 'discord.js';
 import db from 'sequelize';
 import models from './src/models';
 import config from "config";
 import bunyan from "bunyan";
 import { join } from "path";
 import { readdirSync } from "fs";
-import { Command, Context, Event, ExecuteFunction, ExtendedClient } from "./src/utils/types";
+import { Command, Context, Event, ExtendedClient } from "./src/utils/types";
 
 const VERSION = '2.0.0';
 
@@ -57,7 +57,7 @@ function loadFiles<T>(directory: string, extension: string, handleFile: (module:
 
     for (const file of files) {
         const fullPath = join(filePath, file);
-        const module: T = require(fullPath);
+        const { default: module } = require(fullPath);
         handleFile(module, fullPath);
     }
 }
@@ -70,16 +70,16 @@ function handleCommandFile(command: Command, fullPath: string) {
     }
 }
 
-function handleEventFile(event: Event<keyof ClientEvents>) {
+function handleEventFile(event: Event) {
     if (event.once) {
-        client.once(event.name, (...args) => { event.execute(...args); });
+        client.once(event.name, (...args) => { event.execute(...args, context); });
     } else {
-        client.on(event.name, (...args) => { event.execute(...args); });
+        client.on(event.name, (...args) => { event.execute(...args, context); });
     }
 }
 
 loadFiles<Command>('src/commands', '.js', handleCommandFile, 'test.js');
-loadFiles<Event<keyof ClientEvents>>('events', '.js', handleEventFile, 'test.js');
+loadFiles<Event>('events', '.js', handleEventFile, 'test.js');
 
 client.login(process.env.BOT_TOKEN).then(() => {
     log.info(`Logged in. Version ${VERSION}`);

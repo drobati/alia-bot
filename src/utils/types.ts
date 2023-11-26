@@ -16,13 +16,9 @@ export interface Command {
     autocomplete?: (interaction: Interaction, context: Context) => Promise<void>;
 }
 
-export type EventHandlers = {
-    [K in keyof ClientEvents]: (...args: [...ClientEvents[K], Context]) => Promise<void>;
-}
-
-export interface Event<K extends keyof ClientEvents> {
-    name: K;
-    execute: EventHandlers[K];
+export interface Event {
+    name: string;
+    execute: (...args: any[]) => Promise<void>;
     once?: boolean;
 }
 
