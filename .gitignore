@@ -1,5 +1,6 @@
 scripts/discord-commands/config-prod.json
 scripts/discord-commands/config-dev.json
+dist
 node_modules
 load_token.sh
 database.sqlite
