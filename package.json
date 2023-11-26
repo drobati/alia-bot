@@ -2,9 +2,10 @@
     "name": "alia-bot",
     "version": "1.0.0",
     "description": "Bot for Arrakis Discord",
-    "main": "index.js",
+    "main": "index.ts",
     "scripts": {
-        "start": "node index.js",
+        "build": "tsc",
+        "start": "node dist/index.js",
         "lint": "eslint .",
         "test": "cross-env NODE_ENV=test jest",
         "coverage": "cross-env NODE_ENV=test jest --collectCoverage --"
