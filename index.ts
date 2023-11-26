@@ -1,4 +1,4 @@
-import { Client, ClientEvents, Collection, GatewayIntentBits, Partials } from 'discord.js';
+import { Client, Collection, GatewayIntentBits, Partials } from 'discord.js';
 import db from 'sequelize';
 import models from './src/models';
 import config from "config";
@@ -72,9 +72,9 @@ function handleCommandFile(command: Command, fullPath: string) {
 
 function handleEventFile(event: Event) {
     if (event.once) {
-        client.once(event.name, (...args) => { event.execute(...args, context); });
+        client.once(event.name, (...args) => { event.execute(...args, context).then(r => r); });
     } else {
-        client.on(event.name, (...args) => { event.execute(...args, context); });
+        client.on(event.name, (...args) => { event.execute(...args, context).then(r => r); });
     }
 }
 

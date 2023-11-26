@@ -1,6 +1,6 @@
 /* eslint-disable no-unused-vars */
 import bunyan from 'bunyan';
-import { Client, ClientEvents, Collection, Events, Interaction, Message } from 'discord.js';
+import { Client, Collection, Interaction } from 'discord.js';
 import db from 'sequelize';
 
 export interface ExtendedClient extends Client {
