@@ -1,7 +1,10 @@
-const { SlashCommandBuilder } = require('discord.js');
-const api = require('../lib/apis/twitch'); // Ensure this path is correct
+import { SlashCommandBuilder } from "discord.js";
+import api from "../lib/apis/twitch"; // Ensure this path is correct
 
-async function handleSubscribe(interaction, { tables, log }) {
+async function handleSubscribe(interaction: any, {
+    tables,
+    log,
+}: any) {
     const username = interaction.options.getString('username');
     const user_id = interaction.user.id;
     const record = await tables.Twitch_Users.findOne({ where: { user_id } });
@@ -12,6 +15,8 @@ async function handleSubscribe(interaction, { tables, log }) {
     }
 
     try {
+        // renew token
+        await api.renewToken(tables.Config);
         const userId = await api.getUserId(username, tables.Config);
         if (userId) {
             await api.setWebhook({ userId, mode: 'subscribe', leaseTime: 864000 }, tables.Config, log);
@@ -26,7 +31,10 @@ async function handleSubscribe(interaction, { tables, log }) {
     }
 }
 
-async function handleUnsubscribe(interaction, { tables, log }) {
+async function handleUnsubscribe(interaction: any, {
+    tables,
+    log,
+}: any) {
     const user_id = interaction.user.id;
     const record = await tables.Twitch_Users.findOne({ where: { user_id } });
 
@@ -45,23 +53,20 @@ async function handleUnsubscribe(interaction, { tables, log }) {
     }
 }
 
-module.exports = {
+export default {
     data: new SlashCommandBuilder()
         .setName('twitch')
         .setDescription('Manage Twitch webhooks subscriptions.')
-        .addSubcommand(subcommand =>
-            subcommand
-                .setName('subscribe')
-                .setDescription('Start a subscription to a Twitch user.')
-                .addStringOption(option =>
-                    option.setName('username')
-                        .setDescription('The Twitch username to subscribe to.')
-                        .setRequired(true)))
-        .addSubcommand(subcommand =>
-            subcommand
-                .setName('unsubscribe')
-                .setDescription('End a subscription to a Twitch user.')),
-    async execute(interaction, context) {
+        .addSubcommand((subcommand: any) => subcommand
+            .setName('subscribe')
+            .setDescription('Start a subscription to a Twitch user.')
+            .addStringOption((option: any) => option.setName('username')
+                .setDescription('The Twitch username to subscribe to.')
+                .setRequired(true)))
+        .addSubcommand((subcommand: any) => subcommand
+            .setName('unsubscribe')
+            .setDescription('End a subscription to a Twitch user.')),
+    async execute(interaction: any, context: any) {
         const action = interaction.options.getSubcommand();
         switch (action) {
             case 'subscribe':

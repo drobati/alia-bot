@@ -1,13 +1,18 @@
-const { Sequelize } = require('sequelize');
+import { DataTypes, Model, Sequelize, InferAttributes, InferCreationAttributes } from "sequelize";
 
-module.exports = sequelize => ({
-    Config: sequelize.define('configs', {
+interface ConfigModel extends Model<InferAttributes<ConfigModel>, InferCreationAttributes<ConfigModel>> {
+    key: string;
+    value: string;
+}
+
+export default (sequelize: Sequelize) => ({
+    Config: sequelize.define<ConfigModel>('configs', {
         key: {
-            type: Sequelize.STRING,
+            type: DataTypes.STRING,
             unique: true,
         },
         value: {
-            type: Sequelize.STRING,
+            type: DataTypes.STRING,
         },
     }),
-});
+})

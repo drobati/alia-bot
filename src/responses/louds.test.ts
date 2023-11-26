@@ -1,9 +1,9 @@
-const louds = require('./louds');
-const { createTable, createContext } = require("../utils/testHelpers");
+import { createContext, createTable } from "../utils/testHelpers";
+import louds from "./louds";
 
 describe('response/louds', () => {
-    let context, message, Louds, Louds_Banned, mockChannelSend;
-    let oldLoud;
+    let context: any, message: any, Louds: any, Louds_Banned: any, mockChannelSend: any;
+    let oldLoud: any;
 
     beforeEach(() => {
         context = createContext();

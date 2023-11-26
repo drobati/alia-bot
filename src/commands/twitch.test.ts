@@ -1,10 +1,11 @@
-const { createInteraction, createContext, createTable } = require('../utils/testHelpers');
-const twitchCommand = require('./twitch');
-const api = require('../lib/apis/twitch'); // Ensure this path is correct
+import { createContext, createInteraction, createTable } from "../utils/testHelpers";
+import twitchCommand from "./twitch";
+import api from "../lib/apis/twitch";
+
 jest.mock('../lib/apis/twitch');
 
 describe('commands/twitch', () => {
-    let interaction, context, Twitch_Users;
+    let interaction: any, context: any, Twitch_Users: any;
 
     beforeEach(() => {
         interaction = createInteraction();
@@ -13,7 +14,7 @@ describe('commands/twitch', () => {
         context.tables.Twitch_Users = Twitch_Users;
 
         // Mock API calls
-        api.getUserId.mockImplementation(async username => {
+        api.getUserId.mockImplementation(async (username: any) => {
             if (username === 'fake-user') {
                 return 'fake-user-id';
             } else {

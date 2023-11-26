@@ -1,8 +1,8 @@
-const { execute } = require('./fear');
-const { createInteraction } = require('../utils/testHelpers'); // Adjust the path as necessary
+import { createInteraction } from "../utils/testHelpers";
+import fear from "./fear";
 
 describe('commands/fear', () => {
-    let interaction;
+    let interaction: any;
 
     beforeEach(() => {
         // Create a mock interaction using your test helper
@@ -10,7 +10,7 @@ describe('commands/fear', () => {
     });
 
     it('responds to fear', async () => {
-        await execute(interaction);
+        await fear.execute(interaction);
 
         // Check that the reply function has been called correctly
         expect(interaction.reply).toBeCalledTimes(1);

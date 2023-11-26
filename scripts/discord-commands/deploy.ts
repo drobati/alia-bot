@@ -1,8 +1,8 @@
 /* eslint-disable no-console */
-const { REST, Routes } = require('discord.js');
-const path = require('node:path');
-const { readdirSync } = require("fs");
-const { join } = require("path");
+import { REST, Routes } from "discord.js";
+import path from "node:path";
+import { readdirSync } from "fs";
+import { join } from "path";
 
 const clientId = process.env.CLIENT_ID;
 const guildId = process.env.GUILD_ID;
@@ -11,7 +11,7 @@ const token = process.env.BOT_TOKEN;
 const commands = [];
 // Grab all the command files from the commands directory you created earlier
 const commandsPath = path.join(__dirname, '../../src/commands');
-const commandFiles = readdirSync(commandsPath).filter(file => file.endsWith('.js'));
+const commandFiles = readdirSync(commandsPath).filter((file: any) => file.endsWith('.js'));
 
 for (const file of commandFiles) {
     const filePath = join(commandsPath, file);

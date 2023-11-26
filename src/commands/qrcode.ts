@@ -1,16 +1,15 @@
-const { SlashCommandBuilder } = require('discord.js');
-const qrcode = require('qrcode');
-const yup = require('yup');
+import { SlashCommandBuilder } from "discord.js";
+import qrcode from "qrcode";
+import yup from "yup";
 
-module.exports = {
+export default {
     data: new SlashCommandBuilder()
         .setName('qr')
         .setDescription('Generate a QR code for the provided URL.')
-        .addStringOption(option =>
-            option.setName('url')
-                .setDescription('The URL to generate a QR code for')
-                .setRequired(true)),
-    async execute(interaction, context) {
+        .addStringOption((option: any) => option.setName('url')
+            .setDescription('The URL to generate a QR code for')
+            .setRequired(true)),
+    async execute(interaction: any, context: any) {
         let url = interaction.options.getString('url');
 
         // Add protocol if it's missing
@@ -29,6 +28,7 @@ module.exports = {
         }
 
         try {
+            // @ts-expect-error TS(2554): Expected 2 arguments, but got 1.
             const buffer = await generateQR(url);
             await interaction.reply({
                 files: [{
@@ -44,7 +44,7 @@ module.exports = {
     },
 };
 
-const generateQR = async (text,  context) => {
+const generateQR = async (text: any,  context: any) => {
     try {
         const data = await qrcode.toDataURL(text);
         return Buffer.from(data.split(',')[1], 'base64');

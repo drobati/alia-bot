@@ -1,7 +1,6 @@
-// This script will respond with adlibs to the syntax of ---.
-const Sequelize = require('sequelize');
+import Sequelize from "sequelize";
 
-module.exports = async (message, { tables }) => {
+export default async (message: any, { tables }: any) => {
     const { Adlibs } = tables;
     let response = message.content;
     const regex = /(-{3,})+/g;
@@ -9,7 +8,7 @@ module.exports = async (message, { tables }) => {
         const matches = response.match(regex);
 
         await Promise.all(
-            matches.map(async match => {
+            matches.map(async (match: any) => {
                 // Pick an adlib from the stored list and say it. Skip if there are no adlibs.
                 const word = match.trim();
                 const adlib = await Adlibs.findOne({ order: Sequelize.literal('rand()') });
@@ -23,4 +22,4 @@ module.exports = async (message, { tables }) => {
 
         message.channel.send(response);
     }
-};
+}

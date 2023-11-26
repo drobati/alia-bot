@@ -1,10 +1,14 @@
-const { Sequelize } = require('sequelize');
+import { DataTypes, Model, Sequelize, InferAttributes, InferCreationAttributes } from "sequelize";
 
-module.exports = sequelize => ({
-    Adlibs: sequelize.define('adlib', {
+interface AdlibsModel extends Model<InferAttributes<AdlibsModel>, InferCreationAttributes<AdlibsModel>> {
+    value: string;
+}
+
+export default (sequelize: Sequelize) => ({
+    Adlibs: sequelize.define<AdlibsModel>('adlib', {
         value: {
-            type: Sequelize.STRING,
+            type: DataTypes.STRING,
             unique: true,
         },
     }),
-});
+})

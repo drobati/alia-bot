@@ -1,19 +1,20 @@
-const { createInteraction, createContext } = require('../utils/testHelpers');
-const { execute } = require('./dadjokes');
-const axios = require('axios');
+import { createContext, createInteraction } from "../utils/testHelpers";
+import dadjokes from "./dadjokes";
+import axios from "axios";
+
 jest.mock('axios');
 
 describe('commands/dadjokes', () => {
-    let interaction, context;
+    let interaction: any, context: any;
 
     beforeEach(() => {
         interaction = createInteraction();
         context = createContext();
-        axios.get.mockResolvedValue({ data: { joke: 'fake-dad-joke' } });
+        (axios.get as jest.Mock).mockResolvedValue({ data: { joke: 'fake-dad-joke' } });
     });
 
     it('responds with a dad joke', async () => {
-        await execute(interaction, context);
+        await dadjokes.execute(interaction, context);
 
         expect(interaction.reply).toBeCalledWith('fake-dad-joke');
         expect(axios.get).toBeCalledWith('https://icanhazdadjoke.com/', {
@@ -22,9 +23,9 @@ describe('commands/dadjokes', () => {
     });
 
     it('handles errors gracefully', async () => {
-        axios.get.mockRejectedValue(new Error('error'));
+        (axios.get as jest.Mock).mockRejectedValue(new Error('error'));
 
-        await execute(interaction, context);
+        await dadjokes.execute(interaction, context);
 
         expect(interaction.reply).toBeCalledWith('Sorry, I couldn’t fetch a joke at this time.');
     });

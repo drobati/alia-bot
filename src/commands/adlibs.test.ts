@@ -1,8 +1,8 @@
-const { createInteraction, createTable, createRecord } = require('../utils/testHelpers');
-const { execute } = require('./adlibs');
+import { createInteraction, createRecord, createTable } from "../utils/testHelpers";
+import adlibs from "./adlibs";
 
 describe('commands/adlibs', () => {
-    let interaction, Adlibs;
+    let interaction: any, Adlibs: any;
 
     beforeEach(() => {
         interaction = createInteraction();
@@ -15,7 +15,7 @@ describe('commands/adlibs', () => {
         interaction.options.getString.mockReturnValue('fake-value');
         Adlibs.findOne.mockResolvedValue(null);
 
-        await execute(interaction, { tables: { Adlibs } });
+        await adlibs.execute(interaction, { tables: { Adlibs } });
         expect(interaction.reply).toHaveBeenCalledWith("I've added that adlib.");
     });
 
@@ -24,7 +24,7 @@ describe('commands/adlibs', () => {
         interaction.options.getString.mockReturnValue('fake-value');
         Adlibs.findOne.mockResolvedValue({ value: 'fake-value' });
 
-        await execute(interaction, { tables: { Adlibs } });
+        await adlibs.execute(interaction, { tables: { Adlibs } });
         expect(interaction.reply).toHaveBeenCalledWith('That adlib already exists.');
     });
 
@@ -33,7 +33,7 @@ describe('commands/adlibs', () => {
         interaction.options.getString.mockReturnValue('fake-value');
         Adlibs.findOne.mockResolvedValue(createRecord({ value: 'fake-value' }));
 
-        await execute(interaction, { tables: { Adlibs } });
+        await adlibs.execute(interaction, { tables: { Adlibs } });
         expect(interaction.reply).toHaveBeenCalledWith("I've removed that adlib.");
     });
 
@@ -42,14 +42,14 @@ describe('commands/adlibs', () => {
         interaction.options.getString.mockReturnValue('fake-value');
         Adlibs.findOne.mockResolvedValue(null);
 
-        await execute(interaction, { tables: { Adlibs } });
+        await adlibs.execute(interaction, { tables: { Adlibs } });
         expect(interaction.reply).toHaveBeenCalledWith("I don't recognize that adlib.");
     });
 
     it("I don't recognize that command.", async () => {
         interaction.options.getSubcommand.mockReturnValue('unknown');
 
-        await execute(interaction, { tables: { Adlibs } });
+        await adlibs.execute(interaction, { tables: { Adlibs } });
         expect(interaction.reply).toHaveBeenCalledWith("I don't recognize that command.");
     });
 });

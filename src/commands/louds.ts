@@ -1,38 +1,35 @@
-const { SlashCommandBuilder } = require('discord.js');
-const { Op } = require('sequelize');
+import { SlashCommandBuilder } from "discord.js";
+import { Op } from "sequelize";
 
-module.exports = {
+export default {
     data: new SlashCommandBuilder()
         .setName('loud')
         .setDescription('Manage loud messages.')
-        .addSubcommand(subcommand =>
-            subcommand
-                .setName('delete')
-                .setDescription('Delete the loud with the matching text.')
-                .addStringOption(option =>
-                    option.setName('text')
-                        .setDescription('The text of the loud to delete.')
-                        .setRequired(true)
-                        .setAutocomplete(true)))
-        .addSubcommand(subcommand =>
-            subcommand
-                .setName('ban')
-                .setDescription('Forbid a certain loud.')
-                .addStringOption(option =>
-                    option.setName('text')
-                        .setDescription('The text of the loud to ban.')
-                        .setRequired(true)
-                        .setAutocomplete(true)))
-        .addSubcommand(subcommand =>
-            subcommand
-                .setName('unban')
-                .setDescription('Remove a forbidden loud.')
-                .addStringOption(option =>
-                    option.setName('text')
-                        .setDescription('The text of the loud to unban.')
-                        .setRequired(true)
-                        .setAutocomplete(true))),
-    async autocomplete(interaction, { tables, log }) {
+        .addSubcommand((subcommand: any) => subcommand
+            .setName('delete')
+            .setDescription('Delete the loud with the matching text.')
+            .addStringOption((option: any) => option.setName('text')
+                .setDescription('The text of the loud to delete.')
+                .setRequired(true)
+                .setAutocomplete(true)))
+        .addSubcommand((subcommand: any) => subcommand
+            .setName('ban')
+            .setDescription('Forbid a certain loud.')
+            .addStringOption((option: any) => option.setName('text')
+                .setDescription('The text of the loud to ban.')
+                .setRequired(true)
+                .setAutocomplete(true)))
+        .addSubcommand((subcommand: any) => subcommand
+            .setName('unban')
+            .setDescription('Remove a forbidden loud.')
+            .addStringOption((option: any) => option.setName('text')
+                .setDescription('The text of the loud to unban.')
+                .setRequired(true)
+                .setAutocomplete(true))),
+    async autocomplete(interaction: any, {
+        tables,
+        log,
+    }: any) {
         const { Louds, Louds_Banned: Banned } = tables;
         const subcommand = interaction.options.getSubcommand();
         const focusedOption = interaction.options.getFocused(true);
@@ -51,7 +48,7 @@ module.exports = {
                     },
                     limit: 25,
                 });
-                choices = loudSearch.map(record => ({
+                choices = loudSearch.map((record: any) => ({
                     name: record.message,
                     value: record.message,
                 }));
@@ -65,7 +62,7 @@ module.exports = {
                     },
                     limit: 25,
                 });
-                choices = bannedSearch.map(record => ({
+                choices = bannedSearch.map((record: any) => ({
                     name: record.message,
                     value: record.message,
                 }));
@@ -75,7 +72,9 @@ module.exports = {
         }
         await interaction.respond(choices.slice(0, 25));
     },
-    async execute(interaction, { tables }) {
+    async execute(interaction: any, {
+        tables,
+    }: any) {
         const { Louds, Louds_Banned: Banned } = tables;
         const subcommand = interaction.options.getSubcommand();
         const text = interaction.options.getString('text');
@@ -105,7 +104,7 @@ module.exports = {
     },
 };
 
-const remove = async (model, interaction, response) => {
+const remove = async (model: any, interaction: any, response: any) => {
     const text = interaction.options.getString('text');
     const rowCount = await model.destroy({ where: { message: text } });
     if (!rowCount) {
@@ -114,7 +113,7 @@ const remove = async (model, interaction, response) => {
     return interaction.reply(response);
 };
 
-const add = async (model, interaction) => {
+const add = async (model: any, interaction: any) => {
     const text = interaction.options.getString('text');
     const exists = await model.findOne({ where: { message: text } });
     if (!exists) {

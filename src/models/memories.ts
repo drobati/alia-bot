@@ -1,22 +1,30 @@
-const { Sequelize } = require('sequelize');
+import { DataTypes, Model, Sequelize, InferAttributes, InferCreationAttributes } from "sequelize";
 
-module.exports = sequelize => ({
-    Memories: sequelize.define('memories', {
+interface MemoriesModel extends Model<InferAttributes<MemoriesModel>, InferCreationAttributes<MemoriesModel>> {
+    key: string;
+    value: string;
+    username: string;
+    read_count: number;
+    triggered: boolean;
+}
+
+export default (sequelize: Sequelize) => ({
+    Memories: sequelize.define<MemoriesModel>('memories', {
         key: {
-            type: Sequelize.STRING,
+            type: DataTypes.STRING,
             unique: true,
         },
-        value: Sequelize.STRING,
-        username: Sequelize.STRING,
+        value: DataTypes.STRING,
+        username: DataTypes.STRING,
         read_count: {
-            type: Sequelize.INTEGER,
+            type: DataTypes.INTEGER,
             defaultValue: 0,
             allowNull: false,
         },
         triggered: {
-            type: Sequelize.BOOLEAN,
+            type: DataTypes.BOOLEAN,
             defaultValue: false,
             allowNull: false,
         },
     }),
-});
+})

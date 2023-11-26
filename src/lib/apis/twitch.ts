@@ -1,8 +1,8 @@
-const axios = require('axios');
-const { oneLineTrim } = require('common-tags');
-const { first, get, size } = require('lodash');
+import axios from "axios";
+import { oneLineTrim } from "common-tags";
+import { first, get } from "lodash";
 
-const createToken = async (client_id, secret, model) => {
+const createToken = async (client_id: any, secret: any, model: any) => {
     const record = await model.findOne({ where: { key: 'TOKEN' } });
     try {
         const response = await axios.post(oneLineTrim`
@@ -18,59 +18,59 @@ const createToken = async (client_id, secret, model) => {
             await record.update({ key: 'TOKEN', value: response.data.access_token });
         }
     } catch (error) {
+        // @ts-expect-error TS(2571): Object is of type 'unknown'.
         throw error.response;
     }
 };
 
-const renewToken = async model => {
+const renewToken = async (model: any) => {
     const clientId = await model.findOne({ where: { key: 'CLIENT_ID' } });
     const clientSecret = await model.findOne({ where: { key: 'CLIENT_SECRET' } });
 
     return await createToken(clientId.get('value'), clientSecret.get('value'), model);
 };
 
-const isTokenValid = async (error, model) => {
-    if (error) {
-        if (error.statusText === 'Unauthorized' && error.status === 401) {
-            return await renewToken(model);
-        }
-    } else {
-        throw error;
-    }
-};
+interface User {
+    id: string;
+    login: string;
+    display_name: string;
+    type: string;
+    broadcaster_type: string;
+    description: string;
+    profile_image_url: string;
+    offline_image_url: string;
+    view_count: number;
+    email: string;
+}
 
-const getUser = async (username, model) => {
-    try {
-        const token = await model.findOne({ where: { key: 'TOKEN' } });
-        const response = await axios.get(
-            oneLineTrim`
-                https://api.twitch.tv/helix/users
-                ?login=${username}
-            `,
-            {
-                headers: {
-                    Authorization: 'Bearer ' + token.get('value'),
-                },
+/**
+ * Get user data from Twitch API
+ * @param username
+ * @param model
+ * @returns {Promise<User>}
+ */
+const getUser = async (username: any, model: any): Promise<User> => {
+    const token = await model.findOne({ where: { key: 'TOKEN' } });
+    const response = await axios.get(
+        oneLineTrim`
+            https://api.twitch.tv/helix/users
+            ?login=${username}
+        `,
+        {
+            headers: {
+                Authorization: 'Bearer ' + token.get('value'),
             },
-        );
-        const users = response.data.data;
-        if (size(users) > 1) {
-            throw { code: 1, message: 'More then one user.' };
-        } else if (size(users) < 1) {
-            throw { code: 1, message: 'No user.' };
-        } else {
-            return first(users);
-        }
-    } catch (error) {
-        if (error.code === 1) {
-            throw error;
-        }
-        await isTokenValid(error.response, model);
-        return await getUser(username, model);
-    }
+        },
+    );
+    const users = response.data.data;
+    return first(users) as User;
 };
 
-const setWebhook = async ({ userId, mode, leaseTime }, model, log) => {
+const setWebhook = async ({
+    userId,
+    mode,
+    leaseTime,
+}: any, model: any, log: any) => {
     const address = await model.findOne({ where: { key: 'ADDRESS' } });
     const clientId = await model.findOne({ where: { key: 'CLIENT_ID' } });
     try {
@@ -94,11 +94,12 @@ const setWebhook = async ({ userId, mode, leaseTime }, model, log) => {
         return response.data;
     } catch (error) {
         log.error(error);
+        // @ts-expect-error TS(2571): Object is of type 'unknown'.
         throw error.response;
     }
 };
 
-const validateToken = async token => {
+const validateToken = async (token: any) => {
     try {
         return await axios.get(
             oneLineTrim`
@@ -109,11 +110,12 @@ const validateToken = async token => {
             },
         );
     } catch (error) {
+        // @ts-expect-error TS(2571): Object is of type 'unknown'.
         throw error.response;
     }
 };
 
-const validateSubscription = async token => {
+const validateSubscription = async (token: any) => {
     try {
         const response = await axios.get(
             oneLineTrim`
@@ -127,15 +129,17 @@ const validateSubscription = async token => {
         );
         return response.data;
     } catch (error) {
+        // @ts-expect-error TS(2571): Object is of type 'unknown'.
         throw error.response;
     }
 };
 
-module.exports = {
+export default {
     createToken,
+    renewToken,
     validateToken,
     validateSubscription,
     getUser,
-    getUserId: async (username, model) => get(await getUser(username, model), 'id'),
+    getUserId: async (username: any, model: any) => get(await getUser(username, model), 'id'),
     setWebhook,
 };

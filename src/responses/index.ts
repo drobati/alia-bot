@@ -1,8 +1,8 @@
-const Adlibs = require('./adlibs');
-const Louds = require('./louds');
-const Triggers = require('./triggers');
+import Adlibs from "./adlibs";
+import Louds from "./louds";
+import Triggers from "./triggers";
 
-module.exports = {
+export default {
     Adlibs,
     Louds,
     Triggers,

@@ -1,8 +1,8 @@
-const adlibs = require('./adlibs');
-const { createTable, createContext } = require("../utils/testHelpers");
+import adlibs from "./adlibs";
+import { createContext, createTable } from "../utils/testHelpers";
 
 describe('response/adlibs', () => {
-    let context, message, Adlibs;
+    let context: any, message: any, Adlibs: any;
 
     beforeEach(() => {
         context = createContext();

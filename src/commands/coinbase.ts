@@ -1,8 +1,8 @@
 // !coinbase <currency> <currency> <amount>
-const axios = require('axios');
-const { get, find } = require('lodash');
-const Fuse = require('fuse.js');
-const { SlashCommandBuilder } = require("discord.js");
+import axios from "axios";
+import { find, get } from "lodash";
+import Fuse from "fuse.js";
+import { SlashCommandBuilder } from "discord.js";
 
 const cache = {
     data: null,
@@ -14,7 +14,7 @@ function isCacheValid() {
     return (Date.now() - cache.lastFetch) < fiveMinutes;
 }
 
-async function getCurrenciesWithCache(context) {
+async function getCurrenciesWithCache(context: any) {
     const { log } = context;
 
     if (cache.data && isCacheValid()) {
@@ -43,24 +43,21 @@ async function getCurrenciesWithCache(context) {
     }
 }
 
-module.exports = {
+export default {
     data: new SlashCommandBuilder()
         .setName('exchange')
         .setDescription('Get exchange rates from coinbase.')
-        .addStringOption(option =>
-            option.setName('source')
-                .setDescription('Source currency.')
-                .setAutocomplete(true)
-                .setRequired(true))
-        .addStringOption(option =>
-            option.setName('target')
-                .setDescription('Target currency.')
-                .setAutocomplete(true)
-                .setRequired(true))
-        .addNumberOption(option =>
-            option.setName('amount')
-                .setDescription('Amount of source currency.')),
-    async autocomplete(interaction, context) {
+        .addStringOption((option: any) => option.setName('source')
+            .setDescription('Source currency.')
+            .setAutocomplete(true)
+            .setRequired(true))
+        .addStringOption((option: any) => option.setName('target')
+            .setDescription('Target currency.')
+            .setAutocomplete(true)
+            .setRequired(true))
+        .addNumberOption((option: any) => option.setName('amount')
+            .setDescription('Amount of source currency.')),
+    async autocomplete(interaction: any, context: any) {
         const { log } = context;
         const focusedValue = interaction.options.getFocused();
         log.debug('focusedValue', focusedValue);
@@ -68,11 +65,13 @@ module.exports = {
         log.debug('choices', currencies);
         const fuse = new Fuse(currencies, { keys: ['id', 'name'] });
         const results = fuse.search(focusedValue, { limit: 10 })
-            .map(({ item }) => ({ name: `${item.id} - ${item.name}`, value: item.id }));
+            .map(({
+                item,
+            }: any) => ({ name: `${item.id} - ${item.name}`, value: item.id }));
         log.debug('results', results);
         await interaction.respond(results);
     },
-    async execute(interaction, context) {
+    async execute(interaction: any, context: any) {
         const { log } = context;
         const source = interaction.options.get('source');
         const target = interaction.options.get('target');

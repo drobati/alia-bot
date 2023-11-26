@@ -1,11 +1,6 @@
-const Sequelize = require('sequelize');
+import Sequelize from "sequelize";
 
-// https://github.com/desert-planet/hayt/blob/master/scripts/loud.coffee
-// Description:
-//   ENCOURAGE SHOUTING. LOUD TEXT IS FOREVER.
-//   LOUD WILL CAUSE YOUR HUBOT TO STORE ALL-CAPS MESSAGES FROM THE CHANNEL,
-//   AND SPIT THEM BACK AT RANDOM IN RESPONSE.
-module.exports = async (message, { tables }) => {
+export default async (message: any, { tables }: any) => {
     const { Louds, Louds_Banned } = tables;
     const regex = /^\s*([A-Z"][A-Z0-9 .,'"()?!&%$#@+-]+)$/;
     if (regex.test(message.content)) {
@@ -32,4 +27,4 @@ module.exports = async (message, { tables }) => {
             });
         }
     }
-};
+}

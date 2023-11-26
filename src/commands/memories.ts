@@ -1,71 +1,56 @@
-const { SlashCommandBuilder } = require('discord.js');
-const { literal } = require('sequelize');
+import { SlashCommandBuilder } from "discord.js";
+import { literal } from "sequelize";
 
-module.exports = {
+export default {
     data: new SlashCommandBuilder()
         .setName('remember')
         .setDescription('Memory management for the bot.')
-        .addSubcommand(subcommand =>
-            subcommand
-                .setName('get')
-                .setDescription('Returns a remembered value.')
-                .addStringOption(option =>
-                    option.setName('key')
-                        .setDescription('The key to get the memory for')
-                        .setRequired(true)))
-        .addSubcommand(subcommand =>
-            subcommand
-                .setName('add')
-                .setDescription('Remembers a new key and value.')
-                .addStringOption(option =>
-                    option.setName('key')
-                        .setDescription('The key to remember')
-                        .setRequired(true))
-                .addStringOption(option =>
-                    option.setName('value')
-                        .setDescription('The value to remember')
-                        .setRequired(true)))
-        .addSubcommand(subcommand =>
-            subcommand
-                .setName('delete')
-                .setDescription('Removes a key from memory.')
-                .addStringOption(option =>
-                    option.setName('key')
-                        .setDescription('The key to delete')
-                        .setRequired(true)))
-        .addSubcommand(subcommand =>
-            subcommand
-                .setName('top')
-                .setDescription('Returns the top remembered keys.')
-                .addIntegerOption(option =>
-                    option.setName('amount')
-                        .setDescription('The number of top keys to return')
-                        .setRequired(false)))
-        .addSubcommand(subcommand =>
-            subcommand
-                .setName('random')
-                .setDescription('Returns random remembered keys.')
-                .addIntegerOption(option =>
-                    option.setName('amount')
-                        .setDescription('The number of random keys to return')
-                        .setRequired(false)))
-        .addSubcommand(subcommand =>
-            subcommand
-                .setName('trigger')
-                .setDescription('Flags a key as triggered.')
-                .addStringOption(option =>
-                    option.setName('key')
-                        .setDescription('The key to trigger')
-                        .setRequired(true)))
-        .addSubcommand(subcommand =>
-            subcommand
-                .setName('untrigger')
-                .setDescription('Unflags a triggered key.')
-                .addStringOption(option =>
-                    option.setName('key')
-                        .setDescription('The key to untrigger')
-                        .setRequired(true))),
-    async execute(interaction, context) {
+        .addSubcommand((subcommand: any) => subcommand
+            .setName('get')
+            .setDescription('Returns a remembered value.')
+            .addStringOption((option: any) => option.setName('key')
+                .setDescription('The key to get the memory for')
+                .setRequired(true)))
+        .addSubcommand((subcommand: any) => subcommand
+            .setName('add')
+            .setDescription('Remembers a new key and value.')
+            .addStringOption((option: any) => option.setName('key')
+                .setDescription('The key to remember')
+                .setRequired(true))
+            .addStringOption((option: any) => option.setName('value')
+                .setDescription('The value to remember')
+                .setRequired(true)))
+        .addSubcommand((subcommand: any) => subcommand
+            .setName('delete')
+            .setDescription('Removes a key from memory.')
+            .addStringOption((option: any) => option.setName('key')
+                .setDescription('The key to delete')
+                .setRequired(true)))
+        .addSubcommand((subcommand: any) => subcommand
+            .setName('top')
+            .setDescription('Returns the top remembered keys.')
+            .addIntegerOption((option: any) => option.setName('amount')
+                .setDescription('The number of top keys to return')
+                .setRequired(false)))
+        .addSubcommand((subcommand: any) => subcommand
+            .setName('random')
+            .setDescription('Returns random remembered keys.')
+            .addIntegerOption((option: any) => option.setName('amount')
+                .setDescription('The number of random keys to return')
+                .setRequired(false)))
+        .addSubcommand((subcommand: any) => subcommand
+            .setName('trigger')
+            .setDescription('Flags a key as triggered.')
+            .addStringOption((option: any) => option.setName('key')
+                .setDescription('The key to trigger')
+                .setRequired(true)))
+        .addSubcommand((subcommand: any) => subcommand
+            .setName('untrigger')
+            .setDescription('Unflags a triggered key.')
+            .addStringOption((option: any) => option.setName('key')
+                .setDescription('The key to untrigger')
+                .setRequired(true))),
+    async execute(interaction: any, context: any) {
         switch (interaction.options.getSubcommand()) {
             case 'get':
                 await getMemory(interaction, context);
@@ -94,7 +79,7 @@ module.exports = {
     },
 };
 
-const upsertMemory = async (interaction, context) => {
+const upsertMemory = async (interaction: any, context: any) => {
     const key = interaction.options.getString('key');
     const value = interaction.options.getString('value');
     const record = await context.tables.Memories.findOne({ where: { key } });
@@ -108,7 +93,7 @@ const upsertMemory = async (interaction, context) => {
     }
 };
 
-const getMemory = async (interaction, context) => {
+const getMemory = async (interaction: any, context: any) => {
     const key = interaction.options.getString('key');
     const record = await context.tables.Memories.findOne({ where: { key } });
     if (record) {
@@ -118,7 +103,7 @@ const getMemory = async (interaction, context) => {
     }
 };
 
-const removeMemory = async (interaction, context) => {
+const removeMemory = async (interaction: any, context: any) => {
     const key = interaction.options.getString('key');
     const record = await context.tables.Memories.findOne({ where: { key } });
     if (record) {
@@ -129,7 +114,7 @@ const removeMemory = async (interaction, context) => {
     }
 };
 
-const getTopMemories = async (interaction, context) => {
+const getTopMemories = async (interaction: any, context: any) => {
     const amount = interaction.options.getInteger('amount') || 5;
     const records = await context.tables.Memories.findAll({
         order: [['read_count', 'DESC']],
@@ -137,7 +122,7 @@ const getTopMemories = async (interaction, context) => {
     });
     if (records.length > 0) {
         let response = `Top ${amount} Memories:\n`;
-        records.forEach(record => {
+        records.forEach((record: any) => {
             response += ` * "${record.key}" - Accessed ${record.read_count} times\n`;
         });
         await interaction.reply(response);
@@ -146,7 +131,7 @@ const getTopMemories = async (interaction, context) => {
     }
 };
 
-const getRandomMemories = async (interaction, context) => {
+const getRandomMemories = async (interaction: any, context: any) => {
     const amount = interaction.options.getInteger('amount') || 5;
     const records = await context.tables.Memories.findAll({
         order: literal('RAND()'),
@@ -154,7 +139,7 @@ const getRandomMemories = async (interaction, context) => {
     });
     if (records.length > 0) {
         let response = `Random ${amount} Memories:\n`;
-        records.forEach(record => {
+        records.forEach((record: any) => {
             response += ` * "${record.key}" - "${record.value}"\n`;
         });
         await interaction.reply(response);
@@ -163,7 +148,7 @@ const getRandomMemories = async (interaction, context) => {
     }
 };
 
-const flagTriggered = async (interaction, context, triggered) => {
+const flagTriggered = async (interaction: any, context: any, triggered: any) => {
     const key = interaction.options.getString('key');
     const record = await context.tables.Memories.findOne({ where: { key } });
     if (record) {

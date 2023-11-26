@@ -1,16 +1,19 @@
-const { execute, autocomplete } = require('./coinbase');
-const { createInteraction, createContext } = require('../utils/testHelpers');
-const axios = require('axios');
+import { createContext, createInteraction } from "../utils/testHelpers";
+import coinbase from "./coinbase";
+import axios from "axios";
+
 jest.mock('axios');
 
 describe('commands/coinbase', () => {
-    let interaction, context, currencies, exchanges;
+    let interaction: any, context: any, currencies: any, exchanges;
 
     beforeEach(() => {
         interaction = createInteraction()
         interaction.options.getFocused.mockReturnValue('BTC');
-        interaction.options.get = jest.fn(name => ({ value: interaction.options[name] }));
-        interaction.options.getNumber = jest.fn(name => interaction.options[name]);
+        interaction.options.get = jest.fn((name: any) => ({
+            value: interaction.options[name],
+        }));
+        interaction.options.getNumber = jest.fn((name: any) => interaction.options[name]);
         context = createContext();
         currencies = { data: { data: [{ id: 'USD', name: 'United States Dollar' }, { id: 'BTC', name: 'Bitcoin' }] } };
         exchanges = { data: { data: { rates: { USD: 2 } } } };
@@ -22,7 +25,7 @@ describe('commands/coinbase', () => {
             interaction.options.source = 'BTC';
             interaction.options.target = 'USD';
             interaction.options.amount = 1;
-            await execute(interaction, context);
+            await coinbase.execute(interaction, context);
             expect(interaction.reply).toHaveBeenCalledWith('1 Bitcoin is 2 United States Dollar.');
         });
 
@@ -32,7 +35,7 @@ describe('commands/coinbase', () => {
             interaction.options.source = 'BTC';
             interaction.options.target = 'USD';
             interaction.options.amount = 1;
-            await execute(interaction, context);
+            await coinbase.execute(interaction, context);
             expect(interaction.reply).toHaveBeenCalledWith(
                 'Bitcoin to United States Dollar exchange rate is not valid.',
             );
@@ -41,7 +44,7 @@ describe('commands/coinbase', () => {
 
     describe('autocomplete', () => {
         it('responds with suggestions', async function () {
-            await autocomplete(interaction, context);
+            await coinbase.autocomplete(interaction, context);
             expect(interaction.respond).toHaveBeenCalled();
         });
     });

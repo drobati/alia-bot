@@ -1,9 +1,9 @@
-const { createInteraction, createTable, createContext, createRecord } = require('../utils/testHelpers');
-const memories = require('./memories');
-const { stripIndent } = require("common-tags");
+import { createContext, createInteraction, createRecord, createTable } from "../utils/testHelpers";
+import memories from "./memories";
+import { stripIndent } from "common-tags";
 
 describe('commands/memories', () => {
-    let interaction, context, Memories;
+    let interaction: any, context: any, Memories;
 
     beforeEach(() => {
         interaction = createInteraction();

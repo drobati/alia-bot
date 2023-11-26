@@ -1,8 +1,8 @@
-const { createInteraction, createContext, createTable } = require('../utils/testHelpers');
-const { execute } = require('./config');
+import { createContext, createInteraction, createTable } from "../utils/testHelpers";
+import config from "./config";
 
 describe('commands/config', () => {
-    let interaction, context, Config;
+    let interaction: any, context: any, Config: any;
 
     beforeEach(() => {
         interaction = createInteraction();
@@ -17,7 +17,7 @@ describe('commands/config', () => {
         Config.upsert.mockResolvedValue([{}, true]); // Mocks the upsert method to return 'created' flag as true
         context.tables.Config = Config;
 
-        await execute(interaction, context);
+        await config.execute(interaction, context);
 
         expect(Config.upsert).toHaveBeenCalledWith({ key: 'fake-key', value: 'fake-value' }, expect.anything());
         expect(interaction.reply).toHaveBeenCalledWith({
@@ -32,7 +32,7 @@ describe('commands/config', () => {
         Config.upsert.mockResolvedValue([{}, false]); // Mocks the upsert method to return 'created' flag as false
         context.tables.Config = Config;
 
-        await execute(interaction, context);
+        await config.execute(interaction, context);
 
         expect(Config.upsert).toHaveBeenCalledWith({ key: 'fake-key', value: 'fake-value' }, expect.anything());
         expect(interaction.reply).toHaveBeenCalledWith({
@@ -47,7 +47,7 @@ describe('commands/config', () => {
         Config.findOne.mockResolvedValue({ destroy: jest.fn() });
         context.tables.Config = Config;
 
-        await execute(interaction, context);
+        await config.execute(interaction, context);
 
         expect(interaction.reply).toHaveBeenCalledWith({
             content: 'Configuration for `fake-key` has been removed.',
@@ -61,8 +61,8 @@ describe('commands/config', () => {
         Config.findOne.mockResolvedValue(null);
         context.tables.Config = Config;
 
-        await execute(interaction, context)
-        await expect(interaction.reply).toHaveBeenCalledWith({
+        await config.execute(interaction, context)
+        expect(interaction.reply).toHaveBeenCalledWith({
             content: 'An error occurred: No configuration found for key `fake-key`.',
             ephemeral: true,
         });

@@ -1,12 +1,12 @@
-const { SlashCommandBuilder } = require('discord.js');
-const { stripIndent } = require('common-tags');
+import { SlashCommandBuilder } from "discord.js";
+import { stripIndent } from "common-tags";
 
-module.exports = {
+export default {
     // Litany Against Fear
     data: new SlashCommandBuilder()
         .setName('fear')
         .setDescription('Litany Against Fear'),
-    async execute(interaction) {
+    async execute(interaction: any) {
         await interaction.reply({
             content: stripIndent`
                 I must not fear.

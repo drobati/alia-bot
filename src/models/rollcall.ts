@@ -1,7 +1,13 @@
-const { DataTypes } = require('sequelize');
+import { DataTypes, Model, Sequelize, InferAttributes, InferCreationAttributes } from "sequelize";
 
-module.exports = sequelize => ({
-    RollCall: sequelize.define('rollcalls', {
+interface RollCallModel extends Model<InferAttributes<RollCallModel>, InferCreationAttributes<RollCallModel>> {
+    username: string;
+    value: number;
+    timestamp: Date;
+}
+
+export default (sequelize: Sequelize) => ({
+    RollCall: sequelize.define<RollCallModel>('rollcalls', {
         username: {
             type: DataTypes.STRING,
             allowNull: false,
@@ -19,4 +25,4 @@ module.exports = sequelize => ({
             allowNull: false,
         },
     }),
-});
+})

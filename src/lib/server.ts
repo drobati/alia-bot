@@ -1,8 +1,8 @@
 /* eslint-disable no-console */
-const hapi = require('@hapi/hapi');
-const config = require('config');
+import hapi from '@hapi/hapi';
+import config from "config";
 
-module.exports = async (client, channel, embed, model) => {
+export default async (client: any, channel: any, embed: any, model: any) => {
     const { Twitch_Users, Twitch_Notifications } = model;
     const server = hapi.server({
         port: config.get('webhook.port'),
@@ -12,7 +12,7 @@ module.exports = async (client, channel, embed, model) => {
     server.route({
         method: 'GET',
         path: '/api/webhook',
-        handler: (request, h) => {
+        handler: (request: any, h: any) => {
             const challenge = request.query['hub.challenge'];
             console.log(challenge);
             h.response('success').code(200);
@@ -23,7 +23,7 @@ module.exports = async (client, channel, embed, model) => {
     server.route({
         method: 'POST',
         path: '/api/webhook',
-        handler: async (request, h) => {
+        handler: async (request: any, h: any) => {
             if (request.payload.data) {
                 console.log(request.payload.data);
                 const data = request.payload.data[0];
@@ -62,4 +62,4 @@ module.exports = async (client, channel, embed, model) => {
     await server.start();
 
     console.log('Server running at:', server.info.uri);
-};
+}

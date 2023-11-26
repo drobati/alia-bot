@@ -1,10 +1,11 @@
-const { Client, Collection, GatewayIntentBits, Partials } = require('discord.js');
-const db = require('sequelize');
-const models = require('./src/models');
-const config = require('config');
-const bunyan = require('bunyan');
-const { join } = require("path");
-const { readdirSync } = require("fs");
+import { Client, ClientEvents, Collection, Events, GatewayIntentBits, Partials } from 'discord.js';
+import db from 'sequelize';
+import models from './src/models';
+import config from "config";
+import bunyan from "bunyan";
+import { join } from "path";
+import { readdirSync } from "fs";
+import { Command, Context, Event, ExecuteFunction, ExtendedClient } from "./src/utils/types";
 
 const VERSION = '2.0.0';
 
@@ -15,9 +16,9 @@ const client = new Client({
         GatewayIntentBits.MessageContent,
     ],
     partials: [Partials.Channel],
-});
-const log = bunyan.createLogger({ name: 'aliabot', level: config.get('level') });
+}) as ExtendedClient;
 
+const log = bunyan.createLogger({ name: 'alia-bot', level: config.get('level') });
 log.info(`NODE_ENV: ${process.env.NODE_ENV}`);
 
 const sequelize = new db.Sequelize(
@@ -30,7 +31,7 @@ const sequelize = new db.Sequelize(
     },
 );
 
-const context = {
+const context: Context = {
     tables: {},
     sequelize,
     log,
@@ -38,46 +39,47 @@ const context = {
 };
 
 Object.keys(models).forEach(key => {
-    const modelsForTable = models[key](sequelize);
+    const modelsForTable = models[key as keyof typeof models](sequelize);
     Object.keys(modelsForTable).forEach(key => {
-        context.tables[key] = modelsForTable[key];
+        // context.tables[key] = modelsForTable[key];
+        context.tables[key] = modelsForTable[key as keyof typeof modelsForTable];
     });
 });
 
-client.commands = new Collection();
+client.commands = new Collection<string, Command>();
 
-function loadFiles(directory, extension, handleFile, filterFile = '') {
+// Couldn't figure out how to get eslint not to complain about (module: T, path: string) => void.
+/* eslint-disable no-unused-vars */
+function loadFiles<T>(directory: string, extension: string, handleFile: (module: T, path: string) => void,
+    filterFile = '') {
     const filePath = join(__dirname, directory);
     const files = readdirSync(filePath).filter(file => file.endsWith(extension) && !file.includes(filterFile));
 
     for (const file of files) {
         const fullPath = join(filePath, file);
-        const module = require(fullPath);
+        const module: T = require(fullPath);
         handleFile(module, fullPath);
     }
 }
 
-// Handling commands
-function handleCommandFile(command, fullPath) {
-    if ('data' in command && 'execute' in command) {
+function handleCommandFile(command: Command, fullPath: string) {
+    if (command.data) {
         client.commands.set(command.data.name, command);
     } else {
-        log.warn(`The command at ${fullPath} is missing a required "data" or "execute" property.`);
+        log.warn(`The command at ${fullPath} is missing a required "data" property.`);
     }
 }
 
-// Handling events
-function handleEventFile(event) {
+function handleEventFile(event: Event<keyof ClientEvents>) {
     if (event.once) {
-        client.once(event.name, (...args) => event.execute(...args, context));
+        client.once(event.name, (...args) => { event.execute(...args); });
     } else {
-        client.on(event.name, (...args) => event.execute(...args, context));
+        client.on(event.name, (...args) => { event.execute(...args); });
     }
 }
 
-// Load commands and events
-loadFiles('src/commands', '.js', handleCommandFile, 'test.js');
-loadFiles('events', '.js', handleEventFile, 'test.js');
+loadFiles<Command>('src/commands', '.js', handleCommandFile, 'test.js');
+loadFiles<Event<keyof ClientEvents>>('events', '.js', handleEventFile, 'test.js');
 
 client.login(process.env.BOT_TOKEN).then(() => {
     log.info(`Logged in. Version ${VERSION}`);

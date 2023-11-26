@@ -12,29 +12,26 @@
 // Commands:
 //   adlib add [TEXT]    - Add an adlib to the database.
 //   adlib delete [TEXT] - Delete an adlib from the database.
-const { SlashCommandBuilder } = require("discord.js");
+import { SlashCommandBuilder } from "discord.js";
+import { Op } from "sequelize";
 
-module.exports = {
+export default {
     data: new SlashCommandBuilder()
         .setName('adlibs')
         .setDescription('Add or remove adlibs.')
-        .addSubcommand(subcommand =>
-            subcommand
-                .setName('add')
-                .setDescription('Add an adlib.')
-                .addStringOption(option =>
-                    option
-                        .setName('adlib')
-                        .setDescription('The adlib to add.')))
-        .addSubcommand(subcommand =>
-            subcommand
-                .setName('remove')
-                .setDescription('Remove an adlib.')
-                .addStringOption(option =>
-                    option
-                        .setName('adlib')
-                        .setDescription('The adlib to remove.'))),
-    async autocomplete(interaction, context) {
+        .addSubcommand((subcommand: any) => subcommand
+            .setName('add')
+            .setDescription('Add an adlib.')
+            .addStringOption((option: any) => option
+                .setName('adlib')
+                .setDescription('The adlib to add.')))
+        .addSubcommand((subcommand: any) => subcommand
+            .setName('remove')
+            .setDescription('Remove an adlib.')
+            .addStringOption((option: any) => option
+                .setName('adlib')
+                .setDescription('The adlib to remove.'))),
+    async autocomplete(interaction: any, context: any) {
         if (interaction.options.getSubcommand() === 'remove') {
             const focusedOption = interaction.options.getFocused(true);
             const searchQuery = focusedOption.value;
@@ -43,20 +40,23 @@ module.exports = {
                 const suggestions = await context.tables.Adlibs.findAll({
                     where: {
                         value: {
-                            [context.Sequelize.Op.like]: `%${searchQuery}%`,
+                            [Op.like]: `%${searchQuery}%`,
                         },
                     },
                     limit: 25, // limit the number of suggestions
                 });
 
-                const choices = suggestions.map(adlib => ({ name: adlib.value, value: adlib.value }));
+                const choices = suggestions.map((adlib: any) => ({
+                    name: adlib.value,
+                    value: adlib.value,
+                }));
                 await interaction.respond(choices);
             } catch (error) {
                 context.log.error('Error fetching adlib suggestions:', error);
             }
         }
     },
-    async execute(interaction, context) {
+    async execute(interaction: any, context: any) {
         const subcommand = interaction.options.getSubcommand();
         switch (subcommand) {
             case 'add':
@@ -69,7 +69,7 @@ module.exports = {
     },
 };
 
-async function addAdlib(interaction, context) {
+async function addAdlib(interaction: any, context: any) {
     try {
         const value = interaction.options.getString('adlib');
         const record = await context.tables.Adlibs.findOne({ where: { value } });
@@ -85,7 +85,7 @@ async function addAdlib(interaction, context) {
     }
 }
 
-async function removeAdlib(interaction, context) {
+async function removeAdlib(interaction: any, context: any) {
     try {
         const value = interaction.options.getString('adlib');
         const record = await context.tables.Adlibs.findOne({ where: { value } });

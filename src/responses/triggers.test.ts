@@ -1,8 +1,8 @@
-const triggers = require('./triggers');
-const { createTable, createContext } = require("../utils/testHelpers");
+import { createContext, createTable } from "../utils/testHelpers";
+import triggers from "./triggers";
 
 describe('responses/triggers', () => {
-    let context, message, Memories;
+    let context: any, message: any, Memories: any;
 
     beforeEach(() => {
         context = createContext();

@@ -1,50 +1,43 @@
-const { SlashCommandBuilder, EmbedBuilder, AttachmentBuilder } = require('discord.js');
-const { ChartJSNodeCanvas } = require('chartjs-node-canvas');
-const { Op } = require('sequelize');
-const { uniq } = require('lodash');
+import { AttachmentBuilder, EmbedBuilder, SlashCommandBuilder } from "discord.js";
+import { ChartJSNodeCanvas } from "chartjs-node-canvas";
+import { Op } from "sequelize";
+import { uniq } from "lodash";
 
 const scale = 2; // Scale of the graph
 const width = 400 / scale; // Width of the graph
 const height = 200 / scale; // Height of the graph
 
-module.exports = {
+export default {
     data: new SlashCommandBuilder()
         .setName('rc')
         .setDescription('Roll Call command')
-        .addSubcommand(subcommand =>
-            subcommand
-                .setName('for')
-                .setDescription('Get RC score for a user')
-                .addStringOption(option =>
-                    option
-                        .setName('username')
-                        .setDescription('Enter a username')
-                        .setAutocomplete(true)
-                        .setRequired(true))
-                .addStringOption(option =>
-                    option
-                        .setName('interval')
-                        .setDescription('Enter time interval (e.g., 3h, 2d)')))
-        .addSubcommand(subcommand =>
-            subcommand
-                .setName('graph')
-                .setDescription('Show RC graph for a user')
-                .addStringOption(option =>
-                    option
-                        .setName('username')
-                        .setDescription('Enter a username')
-                        .setAutocomplete(true)
-                        .setRequired(true)))
-        .addSubcommand(subcommand =>
-            subcommand
-                .setName('set')
-                .setDescription('Set your RC score')
-                .addNumberOption(option =>
-                    option
-                        .setName('score')
-                        .setDescription('Enter your score')
-                        .setRequired(true))),
-    async autocomplete(interaction, context) {
+        .addSubcommand((subcommand: any) => subcommand
+            .setName('for')
+            .setDescription('Get RC score for a user')
+            .addStringOption((option: any) => option
+                .setName('username')
+                .setDescription('Enter a username')
+                .setAutocomplete(true)
+                .setRequired(true))
+            .addStringOption((option: any) => option
+                .setName('interval')
+                .setDescription('Enter time interval (e.g., 3h, 2d)')))
+        .addSubcommand((subcommand: any) => subcommand
+            .setName('graph')
+            .setDescription('Show RC graph for a user')
+            .addStringOption((option: any) => option
+                .setName('username')
+                .setDescription('Enter a username')
+                .setAutocomplete(true)
+                .setRequired(true)))
+        .addSubcommand((subcommand: any) => subcommand
+            .setName('set')
+            .setDescription('Set your RC score')
+            .addNumberOption((option: any) => option
+                .setName('score')
+                .setDescription('Enter your score')
+                .setRequired(true))),
+    async autocomplete(interaction: any, context: any) {
         const focusedOption = interaction.options.getFocused(true);
 
         if (focusedOption.name === 'username') {
@@ -56,13 +49,16 @@ module.exports = {
                 limit: 5,
             });
 
-            const usernames = users.map(user => user.username);
+            const usernames = users.map((user: any) => user.username);
             const uniqUsernames = uniq(usernames);
 
-            await interaction.respond(uniqUsernames.map(username => ({ name: username, value: username })));
+            await interaction.respond(uniqUsernames.map((username: any) => ({
+                name: username,
+                value: username,
+            })));
         }
     },
-    async execute(interaction, context) {
+    async execute(interaction: any, context: any) {
         const subcommand = interaction.options.getSubcommand();
 
         try {
@@ -86,7 +82,7 @@ module.exports = {
     },
 };
 
-async function handleForCommand(interaction, context) {
+async function handleForCommand(interaction: any, context: any) {
     const username = interaction.options.getString('username');
     const interval = interaction.options.getString('interval');
 
@@ -108,7 +104,7 @@ async function handleForCommand(interaction, context) {
     await interaction.reply({ embeds: [embed] });
 }
 
-async function handleGraphCommand(interaction, context) {
+async function handleGraphCommand(interaction: any, context: any) {
     const username = interaction.options.getString('username');
     // trim the excess scores down to the first 10
     const allScores = await fetchScores(username, null, context);
@@ -123,7 +119,7 @@ async function handleGraphCommand(interaction, context) {
     await interaction.reply({ files: [attachment] });
 }
 
-async function handleSetCommand(interaction, context) {
+async function handleSetCommand(interaction: any, context: any) {
     const user = interaction.user;
     const score = interaction.options.getNumber('score');
 
@@ -141,14 +137,14 @@ async function handleSetCommand(interaction, context) {
     await interaction.reply({ content: `Your roll call has been set to ${score}`, ephemeral: true });
 }
 
-async function generateSparkline(scores) {
+async function generateSparkline(scores: any) {
     const chartJSNodeCanvas = new ChartJSNodeCanvas({ width, height });
 
     const data = {
-        labels: scores.map(score => score.timestamp.toLocaleString()),
+        labels: scores.map((score: any) => score.timestamp.toLocaleString()),
         datasets: [{
             label: 'Roll Call Score',
-            data: scores.map(score => score.value),
+            data: scores.map((score: any) => score.value),
             borderColor: 'rgba(255, 255, 255, 1)',
             fill: false,
             tension: 0.2,
@@ -173,8 +169,8 @@ async function generateSparkline(scores) {
     return chartJSNodeCanvas.renderToBuffer({ type: 'line', data, options });
 }
 
-async function fetchScores(username, interval, context) {
-    const whereClause = { username };
+async function fetchScores(username: any, interval: any, context: any) {
+    const whereClause = { username, timestamp: { [Op.gte]: new Date(0) } };
     if (interval) {
         const now = new Date();
         const pastDate = new Date(now.getTime() - parseInterval(interval));
@@ -187,7 +183,7 @@ async function fetchScores(username, interval, context) {
     });
 }
 
-function parseInterval(interval) {
+function parseInterval(interval: any) {
     const match = interval.match(/^(\d+)([hmd])$/);
     if (!match) {
         throw new Error('Invalid interval format. Use format like "3h", "2d".');

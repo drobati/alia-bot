@@ -1,8 +1,8 @@
-const { createInteraction, createContext, createTable, createRecord } = require('../utils/testHelpers');
-const { execute } = require('./louds');
+import { createContext, createInteraction, createRecord, createTable } from "../utils/testHelpers";
+import louds from "./louds";
 
 describe('commands/louds', () => {
-    let interaction, context, Louds, Louds_Banned;
+    let interaction: any, context: any, Louds: any, Louds_Banned: any;
 
     beforeEach(() => {
         interaction = createInteraction();
@@ -19,7 +19,7 @@ describe('commands/louds', () => {
         Louds.destroy.mockResolvedValue(1); // Mocks that one record was deleted
         context.tables.Louds = Louds;
 
-        await execute(interaction, context);
+        await louds.execute(interaction, context);
 
         expect(Louds.destroy).toHaveBeenCalledWith({ where: { message: 'fake-data' } });
         expect(interaction.reply).toHaveBeenCalledWith("I've removed that loud.");
@@ -32,7 +32,7 @@ describe('commands/louds', () => {
         Louds.findOne.mockResolvedValue(createRecord({ message: 'fake-data' }));
         Louds.destroy.mockResolvedValue(1);
 
-        await execute(interaction, context);
+        await louds.execute(interaction, context);
 
         expect(Louds.destroy).toHaveBeenCalledWith({ where: { message: 'fake-data' } });
         expect(Louds_Banned.create).toHaveBeenCalledWith({ message: 'fake-data', username: 'fake-user-id' });
@@ -45,7 +45,7 @@ describe('commands/louds', () => {
         Louds_Banned.findOne.mockResolvedValue(createRecord({ message: 'fake-data' }));
         Louds_Banned.destroy.mockResolvedValue(1);
 
-        await execute(interaction, context);
+        await louds.execute(interaction, context);
 
         expect(Louds.create).toHaveBeenCalledWith({ message: 'fake-data', username: 'fake-user-id' });
         expect(Louds_Banned.destroy).toHaveBeenCalledWith({ where: { message: 'fake-data' } });
@@ -55,10 +55,8 @@ describe('commands/louds', () => {
     it('should reply with error for unrecognized command', async () => {
         interaction.options.getSubcommand.mockReturnValue('garbo');
 
-        await execute(interaction, context);
+        await louds.execute(interaction, context);
 
         expect(interaction.reply).toHaveBeenCalledWith("I don't recognize that command.");
     });
-
-    // Additional tests for failed deletes, already banned cases, etc., can be added here...
 });

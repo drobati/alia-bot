@@ -1,11 +1,11 @@
-const Adlibs = require('./adlibs');
-const Config = require('./config');
-const Louds = require('./louds');
-const Memories = require('./memories');
-const RollCall = require('./rollcall');
-const Twitch = require('./twitch');
+import Adlibs from "./adlibs";
+import Config from "./config";
+import Louds from "./louds";
+import Memories from "./memories";
+import RollCall from "./rollcall";
+import Twitch from "./twitch";
 
-module.exports = {
+export default {
     Adlibs,
     Config,
     Louds,
