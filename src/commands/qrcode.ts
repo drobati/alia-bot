@@ -1,6 +1,6 @@
 import { SlashCommandBuilder } from "discord.js";
 import qrcode from "qrcode";
-import yup from "yup";
+import * as yup from "yup";
 
 export default {
     data: new SlashCommandBuilder()
