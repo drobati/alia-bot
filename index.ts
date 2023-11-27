@@ -57,6 +57,7 @@ function loadFiles<T>(directory: string, extension: string, handleFile: (module:
 
     for (const file of files) {
         const fullPath = join(filePath, file);
+        // eslint-disable-next-line @typescript-eslint/no-var-requires
         const { default: module } = require(fullPath);
         handleFile(module, fullPath);
     }

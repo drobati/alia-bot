@@ -14,6 +14,7 @@ async function reloadCommand(client: any, commandName: any, log: any) {
     await client.commands.delete(commandName);
     log.info(`Command \`${commandName}\` was deleted.`);
 
+    // eslint-disable-next-line @typescript-eslint/no-var-requires
     const newCommand = require(`./${commandName}.js`);
     await client.commands.set(newCommand.data.name, newCommand);
     log.info(`Command \`${newCommand.data.name}\` was added.`);
