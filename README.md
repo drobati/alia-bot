@@ -66,6 +66,8 @@ By using a test guild, you can freely experiment, make changes, and encounter er
 
 #### Steps to Set Up a Test Guild
 
+DiscordJS Guide has a great guide on this if you need a second reference [Setting up a bot application](https://discordjs.guide/preparations/setting-up-a-bot-application.html)
+
 1. **Create a New Discord Guild**:
     - Open Discord and click on the plus icon on the left sidebar to create a new guild (server).
     - Follow the prompts to set up your new guild.
@@ -113,12 +115,15 @@ The onboarding script should automate the following tasks:
 You can create a script (e.g., `onboarding.js`) in your project's root directory with the necessary logic and then include instructions in the README on how to run it.
 
 #### Running the Onboarding Script 
-    TODO: WRITE THE ONBOARDING SCRIPT
+
+####### TODO: WRITE THE ONBOARDING SCRIPT
 
 After setting up your `.env` file and starting the MySQL database, run the onboarding script to set up your database:
 
+The goal of this onboarding script will be to prepopulate the database with test data.
+
 ```shell
-node onboarding.js
+node onboarding.js 
 ```
 
 #### Handling Docker Volumes
@@ -134,7 +139,11 @@ docker-compose down
 
 This will delete the existing database data, so make sure you have backups if needed.
 Find the volume name using docker volume ls.
-Remove the volume using docker volume rm [VOLUME_NAME].
+Remove the volume using 
+
+```shell
+docker volume rm [VOLUME_NAME]
+```
 
 3. **Restart the Services:**
 
