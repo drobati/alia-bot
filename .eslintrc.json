@@ -5,9 +5,15 @@
         "node": true,
         "jest": true
     },
-    "extends": "eslint:recommended",
+    "extends": [
+        "eslint:recommended",
+        "plugin:@typescript-eslint/recommended"
+    ],
+    "parser": "@typescript-eslint/parser",
     "parserOptions": {
-        "ecmaVersion": "latest"
+        "ecmaVersion": "latest",
+        "sourceType": "module",
+        "project": "./tsconfig.json"
     },
     "rules": {
         "array-bracket-spacing": ["error", "never"],
@@ -31,6 +37,7 @@
         "space-before-function-paren": ["error", { "anonymous": "always", "named": "never", "asyncArrow": "always" }],
         "space-in-parens": ["error", "never"],
         "space-infix-ops": "error",
-        "switch-colon-spacing": ["error", { "after": true, "before": false }]
+        "switch-colon-spacing": ["error", { "after": true, "before": false }],
+        "@typescript-eslint/no-explicit-any": "off"
     }
 }

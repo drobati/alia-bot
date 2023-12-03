@@ -1,21 +1,20 @@
 # Pull base image from stock node image.
 FROM node:20
 
-# Make app directory
-RUN mkdir /opt/app
-
-# Add the current working folder to the /opt/src dir
-# TODO: Clean this up, theres a bunch of stuff that doesn't need to be included.
-ADD . /opt/app
-
-# Set the current working directory to the new mapped folder.
+# Set the working directory in the container
 WORKDIR /opt/app
 
-# Install package.json
-RUN npm i
+# Copy package.json and package-lock.json (or yarn.lock if you use Yarn) to the working directory
+COPY . .
 
-# Expose Twitch Webhooks
+# Install dependencies
+RUN npm install
+
+# Compile TypeScript to JavaScript
+RUN npm run build
+
+# Expose the port the app runs on
 EXPOSE 8080
 
 # Start the app
-CMD npm start
+CMD ["npm", "start"]
