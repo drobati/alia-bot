@@ -28,7 +28,7 @@ export default async (message: Message, context: Context) => {
     if (confidence > CONFIDENCE_THRESHOLD) {
         if (intent === 'general-knowledge') {
             const response = await generateResponse(message.content, context);
-            if (response) {
+            if (response && message.channel && 'send' in message.channel) {
                 message.channel.send(response);
             }
         }
