@@ -43,6 +43,7 @@ export function createTable() {
         create: jest.fn(),
         upsert: jest.fn(),
         destroy: jest.fn(),
+        count: jest.fn(),
     };
 }
 

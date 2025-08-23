@@ -25,7 +25,16 @@ export default {
             .addStringOption((option: any) => option.setName('text')
                 .setDescription('The text of the loud to unban.')
                 .setRequired(true)
-                .setAutocomplete(true))),
+                .setAutocomplete(true)))
+        .addSubcommand((subcommand: any) => subcommand
+            .setName('count')
+            .setDescription('Show total number of louds.'))
+        .addSubcommand((subcommand: any) => subcommand
+            .setName('list')
+            .setDescription('List recent louds.')
+            .addIntegerOption((option: any) => option.setName('limit')
+                .setDescription('Number of louds to show (default: 10)')
+                .setRequired(false))),
     async autocomplete(interaction: any, {
         tables,
         log,
@@ -98,6 +107,12 @@ export default {
                     return interaction.reply("That's not banned.");
                 }
 
+            case 'count':
+                return await showCount(Louds, interaction);
+
+            case 'list':
+                return await showList(Louds, interaction);
+
             default:
                 return interaction.reply("I don't recognize that command.");
         }
@@ -122,4 +137,30 @@ const add = async (model: any, interaction: any) => {
             username: interaction.user.id,
         });
     }
+};
+
+const showCount = async (Louds: any, interaction: any) => {
+    const count = await Louds.count();
+    const message = count === 1 ? "I have **1** loud stored." : `I have **${count}** louds stored.`;
+    return interaction.reply(message);
+};
+
+const showList = async (Louds: any, interaction: any) => {
+    const limit = interaction.options.getInteger('limit') || 10;
+    const louds = await Louds.findAll({
+        limit: Math.min(limit, 50), // Cap at 50 to avoid spam
+        order: [['createdAt', 'DESC']], // Most recent first
+    });
+
+    if (louds.length === 0) {
+        return interaction.reply("I don't have any louds stored yet.");
+    }
+
+    let response = `**${louds.length}** recent loud${louds.length !== 1 ? 's' : ''}:\n`;
+    louds.forEach((loud: any, index: number) => {
+        const truncated = loud.message.length > 100 ? loud.message.substring(0, 97) + '...' : loud.message;
+        response += `${index + 1}. "${truncated}"\n`;
+    });
+
+    return interaction.reply(response);
 };
