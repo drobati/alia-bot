@@ -1,12 +1,12 @@
-import { SlashCommandBuilder } from "discord.js";
+import { SlashCommandBuilder, ChatInputCommandInteraction } from "discord.js";
 import { stripIndent } from "common-tags";
 
-export default {
+const fearCommand = {
     // Litany Against Fear
     data: new SlashCommandBuilder()
         .setName('fear')
         .setDescription('Litany Against Fear'),
-    async execute(interaction: any) {
+    async execute(interaction: ChatInputCommandInteraction) {
         await interaction.reply({
             content: stripIndent`
                 I must not fear.
@@ -21,3 +21,5 @@ export default {
         });
     },
 };
+
+export default fearCommand;

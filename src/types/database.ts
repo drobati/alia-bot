@@ -61,7 +61,7 @@ export interface TwitchAttributes {
 
 // Model class interfaces
 export interface AdlibsModel extends Model<AdlibsAttributes>, AdlibsAttributes {
-    update(values: Partial<AdlibsAttributes>): Promise<AdlibsModel>;
+    update(values: Partial<AdlibsAttributes>): Promise<this>;
     destroy(): Promise<void>;
 }
 

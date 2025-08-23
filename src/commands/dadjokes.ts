@@ -19,7 +19,7 @@ const dadJokeCommand = {
             return await interaction.reply(joke);
         } catch (error) {
             log.error({ error }, 'Error fetching joke');
-            return await interaction.reply('Sorry, I couldn't fetch a joke at this time.');
+            return await interaction.reply('Sorry, I could not fetch a joke at this time.');
         }
     }
 };
