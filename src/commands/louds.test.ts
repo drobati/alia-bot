@@ -2,7 +2,10 @@ import { createContext, createInteraction, createRecord, createTable } from "../
 import louds from "./louds";
 
 describe('commands/louds', () => {
-    let interaction: any, context: any, Louds: any, Louds_Banned: any;
+    let interaction: ReturnType<typeof createInteraction>;
+    let context: ReturnType<typeof createContext>;
+    let Louds: ReturnType<typeof createTable>;
+    let Louds_Banned: ReturnType<typeof createTable>;
 
     beforeEach(() => {
         interaction = createInteraction();
@@ -14,7 +17,7 @@ describe('commands/louds', () => {
     });
 
     // Helper function to setup list command tests
-    const setupListTest = (limit: number | null, mockLouds: any[] = []) => {
+    const setupListTest = (limit: number | null, mockLouds: unknown[] = []) => {
         interaction.options.getSubcommand.mockReturnValue('list');
         interaction.options.getInteger.mockReturnValue(limit);
         Louds.findAll.mockResolvedValue(mockLouds);
@@ -33,7 +36,7 @@ describe('commands/louds', () => {
         Louds.destroy.mockResolvedValue(1); // Mocks that one record was deleted
         context.tables.Louds = Louds;
 
-        await louds.execute(interaction, context);
+        await louds.execute(interaction as never, context as never);
 
         expect(Louds.destroy).toHaveBeenCalledWith({ where: { message: 'fake-data' } });
         expect(interaction.reply).toHaveBeenCalledWith("I've removed that loud.");
@@ -46,11 +49,11 @@ describe('commands/louds', () => {
         Louds.destroy.mockResolvedValue(1);
         Louds_Banned.findOrCreate.mockResolvedValue([createRecord({ message: 'fake-data' }), true]);
 
-        await louds.execute(interaction, context);
+        await louds.execute(interaction as never, context as never);
 
         expect(Louds_Banned.findOrCreate).toHaveBeenCalledWith({
             where: { message: 'fake-data' },
-            defaults: { message: 'fake-data', username: 'fake-user-id' }
+            defaults: { message: 'fake-data', username: 'fake-user-id' },
         });
         expect(Louds.destroy).toHaveBeenCalledWith({ where: { message: 'fake-data' } });
         expect(interaction.reply).toHaveBeenCalledWith("I've removed & banned that loud.");
@@ -64,12 +67,12 @@ describe('commands/louds', () => {
         Louds_Banned.destroy.mockResolvedValue(1);
         Louds.findOrCreate.mockResolvedValue([createRecord({ message: 'fake-data' }), true]);
 
-        await louds.execute(interaction, context);
+        await louds.execute(interaction as never, context as never);
 
         expect(Louds_Banned.findOne).toHaveBeenCalledWith({ where: { message: 'fake-data' } });
         expect(Louds.findOrCreate).toHaveBeenCalledWith({
             where: { message: 'fake-data' },
-            defaults: { message: 'fake-data', username: 'fake-user-id' }
+            defaults: { message: 'fake-data', username: 'fake-user-id' },
         });
         expect(Louds_Banned.destroy).toHaveBeenCalledWith({ where: { message: 'fake-data' } });
         expect(interaction.reply).toHaveBeenCalledWith("I've added & unbanned that loud.");
@@ -80,7 +83,7 @@ describe('commands/louds', () => {
         interaction.options.getString.mockReturnValue('fake-data');
         Louds_Banned.findOne.mockResolvedValue(null); // Not found in banned list
 
-        await louds.execute(interaction, context);
+        await louds.execute(interaction as never, context as never);
 
         expect(Louds_Banned.findOne).toHaveBeenCalledWith({ where: { message: 'fake-data' } });
         expect(Louds.findOrCreate).not.toHaveBeenCalled();
@@ -92,7 +95,7 @@ describe('commands/louds', () => {
         interaction.options.getSubcommand.mockReturnValue('count');
         Louds.count.mockResolvedValue(42);
 
-        await louds.execute(interaction, context);
+        await louds.execute(interaction as never, context as never);
 
         expect(Louds.count).toHaveBeenCalled();
         expect(interaction.reply).toHaveBeenCalledWith("I have **42** louds stored.");
@@ -102,7 +105,7 @@ describe('commands/louds', () => {
         interaction.options.getSubcommand.mockReturnValue('count');
         Louds.count.mockResolvedValue(1);
 
-        await louds.execute(interaction, context);
+        await louds.execute(interaction as never, context as never);
 
         expect(interaction.reply).toHaveBeenCalledWith("I have **1** loud stored.");
     });
@@ -115,7 +118,7 @@ describe('commands/louds', () => {
             ];
             setupListTest(null, mockLouds);
 
-            await louds.execute(interaction, context);
+            await louds.execute(interaction as never, context as never);
 
             expectListQuery(10);
             expect(interaction.reply).toHaveBeenCalledWith('**2** recent louds:\n1. "First loud"\n2. "Second loud"\n');
@@ -125,7 +128,7 @@ describe('commands/louds', () => {
             const mockLouds = [{ message: 'Test loud', createdAt: new Date() }];
             setupListTest(5, mockLouds);
 
-            await louds.execute(interaction, context);
+            await louds.execute(interaction as never, context as never);
 
             expectListQuery(5);
             expect(interaction.reply).toHaveBeenCalledWith('**1** recent loud:\n1. "Test loud"\n');
@@ -134,7 +137,7 @@ describe('commands/louds', () => {
         it('should handle empty results', async () => {
             setupListTest(null, []);
 
-            await louds.execute(interaction, context);
+            await louds.execute(interaction as never, context as never);
 
             expect(interaction.reply).toHaveBeenCalledWith("I don't have any louds stored yet.");
         });
@@ -144,7 +147,7 @@ describe('commands/louds', () => {
             const mockLouds = [{ message: longMessage, createdAt: new Date() }];
             setupListTest(null, mockLouds);
 
-            await louds.execute(interaction, context);
+            await louds.execute(interaction as never, context as never);
 
             const expectedTruncated = 'A'.repeat(97) + '...';
             expect(interaction.reply).toHaveBeenCalledWith(`**1** recent loud:\n1. "${expectedTruncated}"\n`);
@@ -154,7 +157,7 @@ describe('commands/louds', () => {
     it('should reply with error for unrecognized command', async () => {
         interaction.options.getSubcommand.mockReturnValue('garbo');
 
-        await louds.execute(interaction, context);
+        await louds.execute(interaction as never, context as never);
 
         expect(interaction.reply).toHaveBeenCalledWith("I don't recognize that command.");
     });

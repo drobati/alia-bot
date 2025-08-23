@@ -21,7 +21,7 @@ const dadJokeCommand = {
             log.error({ error }, 'Error fetching joke');
             return await interaction.reply('Sorry, I could not fetch a joke at this time.');
         }
-    }
+    },
 };
 
 export default dadJokeCommand;

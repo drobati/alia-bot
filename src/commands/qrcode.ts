@@ -12,7 +12,7 @@ const qrcodeCommand = {
             .setRequired(true)),
     async execute(interaction: ChatInputCommandInteraction, context: Context) {
         let url = interaction.options.getString('url');
-        
+
         if (!url) {
             await interaction.reply({ content: 'Please provide a URL.', ephemeral: true });
             return;

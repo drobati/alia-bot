@@ -5,7 +5,8 @@ import axios from "axios";
 jest.mock('axios');
 
 describe('commands/dadjokes', () => {
-    let interaction: any, context: any;
+    let interaction: ReturnType<typeof createInteraction>;
+    let context: ReturnType<typeof createContext>;
 
     beforeEach(() => {
         interaction = createInteraction();
@@ -14,7 +15,7 @@ describe('commands/dadjokes', () => {
     });
 
     it('responds with a dad joke', async () => {
-        await dadjokes.execute(interaction, context);
+        await dadjokes.execute(interaction as never, context as never);
 
         expect(interaction.reply).toBeCalledWith('fake-dad-joke');
         expect(axios.get).toBeCalledWith('https://icanhazdadjoke.com/', {
@@ -25,8 +26,8 @@ describe('commands/dadjokes', () => {
     it('handles errors gracefully', async () => {
         (axios.get as jest.Mock).mockRejectedValue(new Error('error'));
 
-        await dadjokes.execute(interaction, context);
+        await dadjokes.execute(interaction as never, context as never);
 
-        expect(interaction.reply).toBeCalledWith('Sorry, I couldn’t fetch a joke at this time.');
+        expect(interaction.reply).toBeCalledWith('Sorry, I could not fetch a joke at this time.');
     });
 });

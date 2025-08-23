@@ -1,10 +1,11 @@
-import { 
-    SlashCommandBuilder, 
-    CommandInteraction, 
+/* eslint-disable no-unused-vars */
+import {
+    SlashCommandBuilder,
+    CommandInteraction,
     AutocompleteInteraction,
     Message,
     Client,
-    Collection
+    Collection,
 } from 'discord.js';
 import { Context } from './index';
 
@@ -62,11 +63,11 @@ export interface CommandOptionNumber {
     max_value?: number;
 }
 
-// Subcommand builder type
+// Subcommand builder type (simplified to avoid unused params)
 export interface SubcommandBuilder {
     setName(name: string): SubcommandBuilder;
     setDescription(description: string): SubcommandBuilder;
-    addStringOption(option: (builder: any) => any): SubcommandBuilder;
-    addIntegerOption(option: (builder: any) => any): SubcommandBuilder;
-    addNumberOption(option: (builder: any) => any): SubcommandBuilder;
+    addStringOption(option: (builder: unknown) => unknown): SubcommandBuilder;
+    addIntegerOption(option: (builder: unknown) => unknown): SubcommandBuilder;
+    addNumberOption(option: (builder: unknown) => unknown): SubcommandBuilder;
 }

@@ -15,7 +15,9 @@ export default async (message: Message, { tables }: Context) => {
 
     for (const { key, value } of triggers) {
         if (messageLower.includes(key)) {
-            return await message.channel.send(value);
+            if ('send' in message.channel) {
+                return await message.channel.send(value);
+            }
         }
     }
 }

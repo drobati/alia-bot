@@ -83,22 +83,22 @@ export default {
 const upsertMemory = async (interaction: any, context: any) => {
     const key = interaction.options.getString('key');
     const value = interaction.options.getString('value');
-    
+
     // Get old value for response message
     const existingRecord = await context.tables.Memories.findOne({ where: { key } });
     const oldValue = existingRecord?.value;
-    
+
     // Use upsert for atomic operation
     const [record, created] = await context.tables.Memories.upsert(
         { key, value },
-        { returning: true }
+        { returning: true },
     );
-    
+
     // Update cache if this is a triggered memory
     if (record.triggered) {
         triggerCache.addTrigger(key, value);
     }
-    
+
     if (created) {
         await interaction.reply(`"${key}" is now "${value}".`);
     } else {
@@ -123,12 +123,12 @@ const removeMemory = async (interaction: any, context: any) => {
         try {
             // First destroy the record
             await record.destroy();
-            
+
             // Only remove from cache after successful database deletion
             if (record.triggered) {
                 triggerCache.removeTrigger(key);
             }
-            
+
             await interaction.reply(`Forgotten: "${key}".`);
         } catch (error) {
             context.log?.error({ error, key }, 'Failed to delete memory record');

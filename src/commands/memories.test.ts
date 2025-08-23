@@ -3,7 +3,9 @@ import memories from "./memories";
 import { stripIndent } from "common-tags";
 
 describe('commands/memories', () => {
-    let interaction: any, context: any, Memories;
+    let interaction: ReturnType<typeof createInteraction>;
+    let context: ReturnType<typeof createContext>;
+    let Memories: ReturnType<typeof createTable>;
 
     beforeEach(() => {
         interaction = createInteraction();
@@ -18,7 +20,7 @@ describe('commands/memories', () => {
         context.tables.Memories.findOne.mockResolvedValue(
             createRecord({ key: 'key1', value: 'value1', read_count: 1 }),
         );
-        await memories.execute(interaction, context);
+        await memories.execute(interaction as never, context as never);
 
         expect(interaction.reply).toHaveBeenCalledWith('"key1" is "value1".');
     });
@@ -28,7 +30,7 @@ describe('commands/memories', () => {
         interaction.options.getString.mockReturnValueOnce('key1').mockReturnValueOnce('value1');
         context.tables.Memories.findOne.mockResolvedValue(null);
 
-        await memories.execute(interaction, context);
+        await memories.execute(interaction as never, context as never);
 
         expect(interaction.reply).toHaveBeenCalledWith('"key1" is now "value1".');
     });
@@ -39,7 +41,7 @@ describe('commands/memories', () => {
         context.tables.Memories.findOne.mockResolvedValue(
             createRecord({ key: 'key1', value: 'value1' }));
 
-        await memories.execute(interaction, context);
+        await memories.execute(interaction as never, context as never);
 
         expect(interaction.reply).toHaveBeenCalledWith('Forgotten: "key1".');
     });
@@ -52,7 +54,7 @@ describe('commands/memories', () => {
             { key: 'key2', value: 'value2', read_count: 5 },
         ]);
 
-        await memories.execute(interaction, context);
+        await memories.execute(interaction as never, context as never);
 
         expect(interaction.reply).toHaveBeenCalledWith(stripIndent`
             Top 5 Memories:
@@ -69,7 +71,7 @@ describe('commands/memories', () => {
             { key: 'key2', value: 'value2' },
         ]);
 
-        await memories.execute(interaction, context);
+        await memories.execute(interaction as never, context as never);
 
         expect(interaction.reply).toHaveBeenCalledWith(stripIndent`
             Random 2 Memories:
@@ -84,7 +86,7 @@ describe('commands/memories', () => {
         context.tables.Memories.findOne.mockResolvedValue(
             createRecord({ key: 'key1', value: 'value1', update: jest.fn() }));
 
-        await memories.execute(interaction, context);
+        await memories.execute(interaction as never, context as never);
 
         expect(interaction.reply).toHaveBeenCalledWith('"key1" is now triggered.');
     });
@@ -95,7 +97,7 @@ describe('commands/memories', () => {
         context.tables.Memories.findOne.mockResolvedValue(
             createRecord({ key: 'key1', value: 'value1', update: jest.fn() }));
 
-        await memories.execute(interaction, context);
+        await memories.execute(interaction as never, context as never);
 
         expect(interaction.reply).toHaveBeenCalledWith('"key1" is now untriggered.');
     });
@@ -103,7 +105,7 @@ describe('commands/memories', () => {
     it('should handle unrecognized command', async () => {
         interaction.options.getSubcommand.mockReturnValue('unknown');
 
-        await memories.execute(interaction, context);
+        await memories.execute(interaction as never, context as never);
 
         expect(interaction.reply).toHaveBeenCalledWith("I don't recognize that command.");
     });

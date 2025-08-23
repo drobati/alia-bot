@@ -1,4 +1,11 @@
-import { SlashCommandBuilder, AutocompleteInteraction, ChatInputCommandInteraction, SlashCommandSubcommandBuilder, SlashCommandStringOption, SlashCommandIntegerOption } from "discord.js";
+import {
+    SlashCommandBuilder,
+    AutocompleteInteraction,
+    ChatInputCommandInteraction,
+    SlashCommandSubcommandBuilder,
+    SlashCommandStringOption,
+    SlashCommandIntegerOption,
+} from "discord.js";
 import { Op } from "sequelize";
 import { Context, AutocompleteChoice } from "../types";
 
@@ -58,7 +65,7 @@ const loudsCommand = {
                     },
                     limit: 25,
                 });
-                choices = loudSearch.map((record) => ({
+                choices = loudSearch.map(record => ({
                     name: record.message,
                     value: record.message,
                 }));
@@ -72,7 +79,7 @@ const loudsCommand = {
                     },
                     limit: 25,
                 });
-                choices = bannedSearch.map((record) => ({
+                choices = bannedSearch.map(record => ({
                     name: record.message,
                     value: record.message,
                 }));
@@ -165,7 +172,7 @@ const showList = async (Louds: any, interaction: ChatInputCommandInteraction) =>
     }
 
     let response = `**${louds.length}** recent loud${louds.length !== 1 ? 's' : ''}:\n`;
-    louds.forEach((loud, index: number) => {
+    louds.forEach((loud: { message: string }, index: number) => {
         const truncated = loud.message.length > 100 ? loud.message.substring(0, 97) + '...' : loud.message;
         response += `${index + 1}. "${truncated}"\n`;
     });
