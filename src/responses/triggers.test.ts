@@ -8,7 +8,7 @@ describe('responses/triggers', () => {
     beforeEach(() => {
         // Reset cache before each test
         triggerCache.invalidateCache();
-        
+
         context = createContext();
         message = {
             content: '',

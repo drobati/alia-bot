@@ -19,7 +19,8 @@ async function generateResponse(message: string, context: Context): Promise<stri
             messages: [
                 {
                     role: 'system',
-                    content: 'You are Alia, a helpful Discord bot. Provide concise, friendly responses to general knowledge questions. ' +
+                    content: 'You are Alia, a helpful Discord bot. ' +
+                        'Provide concise, friendly responses to general knowledge questions. ' +
                         'Keep responses under 2000 characters to fit Discord message limits.',
                 },
                 {

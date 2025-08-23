@@ -7,7 +7,7 @@ describe('Triggers Performance Test', () => {
 
     beforeEach(() => {
         triggerCache.invalidateCache();
-        
+
         context = createContext();
         message = {
             content: 'test message',
@@ -47,26 +47,28 @@ describe('Triggers Performance Test', () => {
         Memories.findAll.mockResolvedValue(manyTriggers);
 
         const start = Date.now();
-        
+
         // Load cache once
         await triggers(message, context);
-        
+
         // Process 100 messages without hitting database
         for (let i = 0; i < 100; i++) {
             message.content = `test message ${i}`;
             await triggers(message, context);
         }
-        
+
         const end = Date.now();
         const duration = end - start;
-        
+
         // Should be very fast (under 100ms for 100 messages + 1000 triggers)
         expect(duration).toBeLessThan(100);
-        
+
         // Database should only be called once (for initial cache load)
         expect(Memories.findAll).toHaveBeenCalledTimes(1);
-        
+
+        // eslint-disable-next-line no-console
         console.log(`Processed 100 messages with 1000 triggers in ${duration}ms`);
+        // eslint-disable-next-line no-console
         console.log(`Average: ${duration / 100}ms per message`);
     });
 });

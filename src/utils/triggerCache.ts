@@ -38,10 +38,10 @@ class TriggerCache {
 
     addTrigger(key: string, value: string): void {
         const normalizedKey = key.toLowerCase();
-        
+
         // Remove existing trigger with same key
         this.triggers = this.triggers.filter(t => t.key !== normalizedKey);
-        
+
         // Add new trigger
         this.triggers.push({
             key: normalizedKey,
@@ -56,7 +56,7 @@ class TriggerCache {
 
     updateTriggerStatus(key: string, triggered: boolean, value: string): void {
         const normalizedKey = key.toLowerCase();
-        
+
         if (triggered) {
             this.addTrigger(normalizedKey, value);
         } else {
