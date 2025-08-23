@@ -1,16 +1,18 @@
+import { triggerCache } from '../utils/triggerCache';
+
 export default async (message: any, { tables }: any) => {
     const { Memories } = tables;
-    // feel like caching this would be a good idea, honestly this is so unhinged of me
-    const triggers = await Memories.findAll({
-        where: {
-            triggered: true,
-        },
-    });
+
+    // Load triggers into cache if not already loaded
+    if (!triggerCache.isReady()) {
+        await triggerCache.loadTriggers(Memories);
+    }
 
     const messageLower = message.content.toLowerCase();
+    const triggers = triggerCache.getTriggers();
 
     for (const { key, value } of triggers) {
-        if (messageLower.includes(key.toLowerCase())) {
+        if (messageLower.includes(key)) {
             return await message.channel.send(value);
         }
     }

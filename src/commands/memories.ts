@@ -1,4 +1,5 @@
 import { SlashCommandBuilder } from "discord.js";
+import { triggerCache } from '../utils/triggerCache';
 import { literal } from "sequelize";
 
 export default {
@@ -82,14 +83,26 @@ export default {
 const upsertMemory = async (interaction: any, context: any) => {
     const key = interaction.options.getString('key');
     const value = interaction.options.getString('value');
-    const record = await context.tables.Memories.findOne({ where: { key } });
-    if (record) {
-        const oldValue = record.value;
-        await record.update({ value });
-        await interaction.reply(`"${key}" is now "${value}" (previously: "${oldValue}").`);
-    } else {
-        await context.tables.Memories.create({ key, value });
+    
+    // Get old value for response message
+    const existingRecord = await context.tables.Memories.findOne({ where: { key } });
+    const oldValue = existingRecord?.value;
+    
+    // Use upsert for atomic operation
+    const [record, created] = await context.tables.Memories.upsert(
+        { key, value },
+        { returning: true }
+    );
+    
+    // Update cache if this is a triggered memory
+    if (record.triggered) {
+        triggerCache.addTrigger(key, value);
+    }
+    
+    if (created) {
         await interaction.reply(`"${key}" is now "${value}".`);
+    } else {
+        await interaction.reply(`"${key}" is now "${value}" (previously: "${oldValue}").`);
     }
 };
 
@@ -107,8 +120,20 @@ const removeMemory = async (interaction: any, context: any) => {
     const key = interaction.options.getString('key');
     const record = await context.tables.Memories.findOne({ where: { key } });
     if (record) {
-        await record.destroy();
-        await interaction.reply(`Forgotten: "${key}".`);
+        try {
+            // First destroy the record
+            await record.destroy();
+            
+            // Only remove from cache after successful database deletion
+            if (record.triggered) {
+                triggerCache.removeTrigger(key);
+            }
+            
+            await interaction.reply(`Forgotten: "${key}".`);
+        } catch (error) {
+            context.log?.error({ error, key }, 'Failed to delete memory record');
+            await interaction.reply(`Failed to forget "${key}". Please try again.`);
+        }
     } else {
         await interaction.reply(`I can't remember "${key}" to forget it.`);
     }
@@ -153,6 +178,10 @@ const flagTriggered = async (interaction: any, context: any, triggered: any) => 
     const record = await context.tables.Memories.findOne({ where: { key } });
     if (record) {
         await record.update({ triggered });
+
+        // Update trigger cache
+        triggerCache.updateTriggerStatus(key, triggered, record.value);
+
         const triggeredStatus = triggered ? 'triggered' : 'untriggered';
         await interaction.reply(`"${key}" is now ${triggeredStatus}.`);
     } else {
