@@ -41,7 +41,8 @@ export function createTable() {
         findAll: jest.fn(),
         findOne: jest.fn(),
         create: jest.fn(),
-        upsert: jest.fn(),
+        upsert: jest.fn().mockResolvedValue([{}, true]), // Returns [record, created]
+        findOrCreate: jest.fn().mockResolvedValue([{}, true]), // Returns [record, created]
         destroy: jest.fn(),
         count: jest.fn(),
     };
