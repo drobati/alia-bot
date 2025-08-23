@@ -83,38 +83,44 @@ export default {
     },
     async execute(interaction: any, {
         tables,
+        log,
     }: any) {
         const { Louds, Louds_Banned: Banned } = tables;
         const subcommand = interaction.options.getSubcommand();
         const text = interaction.options.getString('text');
 
-        switch (subcommand) {
-            case 'delete':
-                return await remove(Louds, interaction, "I've removed that loud.");
+        try {
+            switch (subcommand) {
+                case 'delete':
+                    return await remove(Louds, interaction, "I've removed that loud.");
 
-            case 'ban':
-                await add(Banned, interaction);
-                if (await Louds.findOne({ where: { message: text } })) {
-                    return await remove(Louds, interaction, "I've removed & banned that loud.");
-                }
-                return interaction.reply("I've banned that loud.");
+                case 'ban':
+                    await add(Banned, interaction);
+                    if (await Louds.findOne({ where: { message: text } })) {
+                        return await remove(Louds, interaction, "I've removed & banned that loud.");
+                    }
+                    return interaction.reply("I've banned that loud.");
 
-            case 'unban':
-                if (await Banned.findOne({ where: { message: text } })) {
-                    await add(Louds, interaction);
-                    return await remove(Banned, interaction, "I've added & unbanned that loud.");
-                } else {
-                    return interaction.reply("That's not banned.");
-                }
+                case 'unban':
+                    if (await Banned.findOne({ where: { message: text } })) {
+                        await add(Louds, interaction);
+                        return await remove(Banned, interaction, "I've added & unbanned that loud.");
+                    } else {
+                        return interaction.reply("That's not banned.");
+                    }
 
-            case 'count':
-                return await showCount(Louds, interaction);
+                case 'count':
+                    return await showCount(Louds, interaction);
 
-            case 'list':
-                return await showList(Louds, interaction);
+                case 'list':
+                    return await showList(Louds, interaction);
 
-            default:
-                return interaction.reply("I don't recognize that command.");
+                default:
+                    return interaction.reply("I don't recognize that command.");
+            }
+        } catch (error) {
+            log.error({ error, subcommand, text }, 'Error executing louds command');
+            return interaction.reply("Sorry, there was an error processing your request. Please try again.");
         }
     },
 };
@@ -130,13 +136,14 @@ const remove = async (model: any, interaction: any, response: any) => {
 
 const add = async (model: any, interaction: any) => {
     const text = interaction.options.getString('text');
-    const exists = await model.findOne({ where: { message: text } });
-    if (!exists) {
-        await model.create({
+    // Use findOrCreate to handle race conditions atomically
+    await model.findOrCreate({
+        where: { message: text },
+        defaults: {
             message: text,
             username: interaction.user.id,
-        });
-    }
+        },
+    });
 };
 
 const showCount = async (Louds: any, interaction: any) => {

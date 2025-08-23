@@ -46,7 +46,7 @@ describe('Triggers Performance Test', () => {
         }));
         Memories.findAll.mockResolvedValue(manyTriggers);
 
-        const start = Date.now();
+        const start = performance.now();
 
         // Load cache once
         await triggers(message, context);
@@ -57,7 +57,7 @@ describe('Triggers Performance Test', () => {
             await triggers(message, context);
         }
 
-        const end = Date.now();
+        const end = performance.now();
         const duration = end - start;
 
         // Should be very fast (under 100ms for 100 messages + 1000 triggers)
