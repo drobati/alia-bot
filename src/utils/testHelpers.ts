@@ -1,3 +1,4 @@
+/* eslint-disable no-unused-vars */
 export function createInteraction() {
     return {
         user: {
