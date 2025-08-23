@@ -59,38 +59,38 @@ export interface TwitchAttributes {
     updatedAt?: Date;
 }
 
-// Model class interfaces
-export interface AdlibsModel extends Model<AdlibsAttributes>, AdlibsAttributes {
-    update(values: Partial<AdlibsAttributes>): Promise<this>;
+// Simplified model interfaces for now - avoiding complex Sequelize inheritance issues
+export interface AdlibsModel extends AdlibsAttributes {
+    update(values: Partial<AdlibsAttributes>): Promise<AdlibsModel>;
     destroy(): Promise<void>;
 }
 
-export interface ConfigModel extends Model<ConfigAttributes>, ConfigAttributes {
+export interface ConfigModel extends ConfigAttributes {
     update(values: Partial<ConfigAttributes>): Promise<ConfigModel>;
     destroy(): Promise<void>;
 }
 
-export interface LoudsModel extends Model<LoudsAttributes>, LoudsAttributes {
+export interface LoudsModel extends LoudsAttributes {
     update(values: Partial<LoudsAttributes>): Promise<LoudsModel>;
     destroy(): Promise<void>;
 }
 
-export interface LoudsBannedModel extends Model<LoudsBannedAttributes>, LoudsBannedAttributes {
+export interface LoudsBannedModel extends LoudsBannedAttributes {
     update(values: Partial<LoudsBannedAttributes>): Promise<LoudsBannedModel>;
     destroy(): Promise<void>;
 }
 
-export interface MemoriesModel extends Model<MemoriesAttributes>, MemoriesAttributes {
+export interface MemoriesModel extends MemoriesAttributes {
     update(values: Partial<MemoriesAttributes>): Promise<MemoriesModel>;
     destroy(): Promise<void>;
 }
 
-export interface RollCallModel extends Model<RollCallAttributes>, RollCallAttributes {
+export interface RollCallModel extends RollCallAttributes {
     update(values: Partial<RollCallAttributes>): Promise<RollCallModel>;
     destroy(): Promise<void>;
 }
 
-export interface TwitchModel extends Model<TwitchAttributes>, TwitchAttributes {
+export interface TwitchModel extends TwitchAttributes {
     update(values: Partial<TwitchAttributes>): Promise<TwitchModel>;
     destroy(): Promise<void>;
 }
