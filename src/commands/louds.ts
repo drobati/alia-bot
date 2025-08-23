@@ -1,49 +1,57 @@
-import { SlashCommandBuilder } from "discord.js";
+import {
+    SlashCommandBuilder,
+    AutocompleteInteraction,
+    ChatInputCommandInteraction,
+    SlashCommandSubcommandBuilder,
+    SlashCommandStringOption,
+    SlashCommandIntegerOption,
+} from "discord.js";
 import { Op } from "sequelize";
+import { Context, AutocompleteChoice } from "../types";
 
-export default {
+const loudsCommand = {
     data: new SlashCommandBuilder()
         .setName('loud')
         .setDescription('Manage loud messages.')
-        .addSubcommand((subcommand: any) => subcommand
+        .addSubcommand((subcommand: SlashCommandSubcommandBuilder) => subcommand
             .setName('delete')
             .setDescription('Delete the loud with the matching text.')
-            .addStringOption((option: any) => option.setName('text')
+            .addStringOption((option: SlashCommandStringOption) => option.setName('text')
                 .setDescription('The text of the loud to delete.')
                 .setRequired(true)
                 .setAutocomplete(true)))
-        .addSubcommand((subcommand: any) => subcommand
+        .addSubcommand((subcommand: SlashCommandSubcommandBuilder) => subcommand
             .setName('ban')
             .setDescription('Forbid a certain loud.')
-            .addStringOption((option: any) => option.setName('text')
+            .addStringOption((option: SlashCommandStringOption) => option.setName('text')
                 .setDescription('The text of the loud to ban.')
                 .setRequired(true)
                 .setAutocomplete(true)))
-        .addSubcommand((subcommand: any) => subcommand
+        .addSubcommand((subcommand: SlashCommandSubcommandBuilder) => subcommand
             .setName('unban')
             .setDescription('Remove a forbidden loud.')
-            .addStringOption((option: any) => option.setName('text')
+            .addStringOption((option: SlashCommandStringOption) => option.setName('text')
                 .setDescription('The text of the loud to unban.')
                 .setRequired(true)
                 .setAutocomplete(true)))
-        .addSubcommand((subcommand: any) => subcommand
+        .addSubcommand((subcommand: SlashCommandSubcommandBuilder) => subcommand
             .setName('count')
             .setDescription('Show total number of louds.'))
-        .addSubcommand((subcommand: any) => subcommand
+        .addSubcommand((subcommand: SlashCommandSubcommandBuilder) => subcommand
             .setName('list')
             .setDescription('List recent louds.')
-            .addIntegerOption((option: any) => option.setName('limit')
+            .addIntegerOption((option: SlashCommandIntegerOption) => option.setName('limit')
                 .setDescription('Number of louds to show (default: 10)')
                 .setRequired(false))),
-    async autocomplete(interaction: any, {
+    async autocomplete(interaction: AutocompleteInteraction, {
         tables,
         log,
-    }: any) {
+    }: Context) {
         const { Louds, Louds_Banned: Banned } = tables;
         const subcommand = interaction.options.getSubcommand();
         const focusedOption = interaction.options.getFocused(true);
 
-        let choices = [];
+        let choices: AutocompleteChoice[] = [];
         if (focusedOption.name === 'text') {
             const searchText = focusedOption.value;
 
@@ -57,7 +65,7 @@ export default {
                     },
                     limit: 25,
                 });
-                choices = loudSearch.map((record: any) => ({
+                choices = loudSearch.map(record => ({
                     name: record.message,
                     value: record.message,
                 }));
@@ -71,7 +79,7 @@ export default {
                     },
                     limit: 25,
                 });
-                choices = bannedSearch.map((record: any) => ({
+                choices = bannedSearch.map(record => ({
                     name: record.message,
                     value: record.message,
                 }));
@@ -81,10 +89,10 @@ export default {
         }
         await interaction.respond(choices.slice(0, 25));
     },
-    async execute(interaction: any, {
+    async execute(interaction: ChatInputCommandInteraction, {
         tables,
         log,
-    }: any) {
+    }: Context) {
         const { Louds, Louds_Banned: Banned } = tables;
         const subcommand = interaction.options.getSubcommand();
         const text = interaction.options.getString('text');
@@ -125,7 +133,7 @@ export default {
     },
 };
 
-const remove = async (model: any, interaction: any, response: any) => {
+const remove = async (model: any, interaction: ChatInputCommandInteraction, response: string) => {
     const text = interaction.options.getString('text');
     const rowCount = await model.destroy({ where: { message: text } });
     if (!rowCount) {
@@ -134,7 +142,7 @@ const remove = async (model: any, interaction: any, response: any) => {
     return interaction.reply(response);
 };
 
-const add = async (model: any, interaction: any) => {
+const add = async (model: any, interaction: ChatInputCommandInteraction) => {
     const text = interaction.options.getString('text');
     // Use findOrCreate to handle race conditions atomically
     await model.findOrCreate({
@@ -146,13 +154,13 @@ const add = async (model: any, interaction: any) => {
     });
 };
 
-const showCount = async (Louds: any, interaction: any) => {
+const showCount = async (Louds: any, interaction: ChatInputCommandInteraction) => {
     const count = await Louds.count();
     const message = count === 1 ? "I have **1** loud stored." : `I have **${count}** louds stored.`;
     return interaction.reply(message);
 };
 
-const showList = async (Louds: any, interaction: any) => {
+const showList = async (Louds: any, interaction: ChatInputCommandInteraction) => {
     const limit = interaction.options.getInteger('limit') || 10;
     const louds = await Louds.findAll({
         limit: Math.min(limit, 50), // Cap at 50 to avoid spam
@@ -164,10 +172,12 @@ const showList = async (Louds: any, interaction: any) => {
     }
 
     let response = `**${louds.length}** recent loud${louds.length !== 1 ? 's' : ''}:\n`;
-    louds.forEach((loud: any, index: number) => {
+    louds.forEach((loud: { message: string }, index: number) => {
         const truncated = loud.message.length > 100 ? loud.message.substring(0, 97) + '...' : loud.message;
         response += `${index + 1}. "${truncated}"\n`;
     });
 
     return interaction.reply(response);
 };
+
+export default loudsCommand;

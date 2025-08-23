@@ -1,6 +1,8 @@
+import { Message } from 'discord.js';
 import { triggerCache } from '../utils/triggerCache';
+import { Context } from '../types';
 
-export default async (message: any, { tables }: any) => {
+export default async (message: Message, { tables }: Context) => {
     const { Memories } = tables;
 
     // Load triggers into cache if not already loaded
@@ -13,7 +15,9 @@ export default async (message: any, { tables }: any) => {
 
     for (const { key, value } of triggers) {
         if (messageLower.includes(key)) {
-            return await message.channel.send(value);
+            if ('send' in message.channel) {
+                return await message.channel.send(value);
+            }
         }
     }
 }

@@ -15,6 +15,14 @@
         "sourceType": "module",
         "project": "./tsconfig.json"
     },
+    "ignorePatterns": [
+        "dist/",
+        "coverage/",
+        "node_modules/",
+        "db/",
+        "scripts/",
+        "*.js"
+    ],
     "rules": {
         "array-bracket-spacing": ["error", "never"],
         "arrow-body-style": ["error", "as-needed"],

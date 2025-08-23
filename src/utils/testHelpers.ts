@@ -1,3 +1,4 @@
+/* eslint-disable no-unused-vars */
 export function createInteraction() {
     return {
         user: {
@@ -18,11 +19,11 @@ export function createInteraction() {
 
 export function createContext() {
     return {
-        tables: {},
+        tables: {} as Record<string, ReturnType<typeof createTable>>,
         log: { info: jest.fn(), debug: jest.fn(), error: jest.fn(), warn: jest.fn() },
         VERSION: 'fake-version',
         sequelize: {
-            transaction: jest.fn(async (transactionCallback: any) => {
+            transaction: jest.fn(async (transactionCallback: (t: unknown) => Promise<unknown>) => {
                 // Mock transaction object
                 const mockTransaction = {
                     commit: jest.fn(),
@@ -48,7 +49,7 @@ export function createTable() {
     };
 }
 
-export function createRecord(values: any) {
+export function createRecord(values: Record<string, unknown>) {
     return {
         ...values,
         update: jest.fn(),

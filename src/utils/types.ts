@@ -1,33 +1,31 @@
 /* eslint-disable no-unused-vars */
 import bunyan from 'bunyan';
-import { Client, Collection, Interaction } from 'discord.js';
-import db from 'sequelize';
+import { Sequelize } from 'sequelize';
+import { DatabaseTables } from '../types/database';
 
-export interface ExtendedClient extends Client {
-    commands: Collection<string, Command>;
+// Re-export types from dedicated type files
+export { BotCommand, ExtendedClient, BotEvent, MessageResponse } from '../types/discord';
+export { DatabaseTables } from '../types/database';
 
+// Core context interface
+export interface Context {
+    tables: DatabaseTables;
+    log: bunyan.Logger;
+    sequelize: Sequelize;
+    VERSION: string;
 }
 
+// Legacy exports for backward compatibility (will be removed gradually)
 export interface Command {
     data: {
         name: string;
     };
-    execute: (interaction: Interaction, context: Context) => Promise<void>;
-    autocomplete?: (interaction: Interaction, context: Context) => Promise<void>;
+    execute: (interaction: unknown, context: Context) => Promise<void>;
+    autocomplete?: (interaction: unknown, context: Context) => Promise<void>;
 }
 
 export interface Event {
     name: string;
-    execute: (...args: any[]) => Promise<void>;
+    execute: (...args: unknown[]) => Promise<void>;
     once?: boolean;
-}
-
-export interface tables {
-    [key: string]: any;
-}
-export interface Context {
-    tables: tables;
-    log: bunyan;
-    sequelize: db.Sequelize;
-    VERSION: string;
 }
