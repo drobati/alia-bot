@@ -23,18 +23,6 @@ const memeCommand = {
                 .addStringOption((option: SlashCommandStringOption) => option
                     .setName('bottom')
                     .setDescription('Bottom text for the meme')
-                    .setRequired(false))
-                .addStringOption((option: SlashCommandStringOption) => option
-                    .setName('text1')
-                    .setDescription('First text line')
-                    .setRequired(false))
-                .addStringOption((option: SlashCommandStringOption) => option
-                    .setName('text2')
-                    .setDescription('Second text line')
-                    .setRequired(false))
-                .addStringOption((option: SlashCommandStringOption) => option
-                    .setName('text3')
-                    .setDescription('Third text line')
                     .setRequired(false)),
         )
         .addSubcommand(subcommand =>
@@ -129,6 +117,8 @@ async function handleCreateMeme(interaction: ChatInputCommandInteraction, contex
     await interaction.deferReply();
 
     const templateName = interaction.options.getString('template', true);
+    const topText = interaction.options.getString('top');
+    const bottomText = interaction.options.getString('bottom');
 
     const template = await context.tables.MemeTemplate.findOne({
         where: { name: templateName, is_active: true },
@@ -139,34 +129,21 @@ async function handleCreateMeme(interaction: ChatInputCommandInteraction, contex
         return;
     }
 
-    const textLines: string[] = [];
-    const topText = interaction.options.getString('top');
-    const bottomText = interaction.options.getString('bottom');
-    const text1 = interaction.options.getString('text1');
-    const text2 = interaction.options.getString('text2');
-    const text3 = interaction.options.getString('text3');
-
-    if (topText) {textLines[0] = topText;}
-    if (bottomText && template.text_positions.length >= 2) {
-        textLines[template.text_positions.length - 1] = bottomText;
-    }
-
-    if (text1) {textLines[0] = text1;}
-    if (text2) {textLines[1] = text2;}
-    if (text3) {textLines[2] = text3;}
-
-    if (textLines.length === 0 || textLines.every(line => !line || line.trim() === '')) {
-        await interaction.editReply('At least one text field must be provided.');
+    if (!topText && !bottomText) {
+        await interaction.editReply('At least one text field (top or bottom) must be provided.');
         return;
     }
 
     try {
-        const memeBuffer = await MemeGenerator.generateMeme(template, textLines);
+        const memeBuffer = await MemeGenerator.generateMeme(template, topText || undefined, bottomText || undefined);
 
-        await context.tables.MemeTemplate.upsert({
-            ...template,
-            usage_count: template.usage_count + 1,
-        });
+        // Increment usage count
+        if (template.id) {
+            await context.sequelize.query(
+                'UPDATE meme_templates SET usage_count = usage_count + 1 WHERE id = ?',
+                { replacements: [template.id] }
+            );
+        }
 
         await interaction.editReply({
             files: [{
@@ -199,30 +176,8 @@ async function handleCustomMeme(interaction: ChatInputCommandInteraction, contex
         return;
     }
 
-    const texts = [];
-    if (topText) {
-        texts.push({
-            text: topText.toUpperCase(),
-            x: 300,
-            y: 50,
-            fontSize: 40,
-            align: 'center' as const,
-            baseline: 'top' as const,
-        });
-    }
-    if (bottomText) {
-        texts.push({
-            text: bottomText.toUpperCase(),
-            x: 300,
-            y: 550,
-            fontSize: 40,
-            align: 'center' as const,
-            baseline: 'bottom' as const,
-        });
-    }
-
     try {
-        const memeBuffer = await MemeGenerator.generateCustomMeme(imageUrl, texts);
+        const memeBuffer = await MemeGenerator.generateCustomMeme(imageUrl, topText || undefined, bottomText || undefined);
 
         await interaction.editReply({
             files: [{

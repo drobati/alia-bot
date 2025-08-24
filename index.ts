@@ -1,3 +1,4 @@
+import 'dotenv/config';
 import { Client, Collection, GatewayIntentBits, Partials } from 'discord.js';
 import db from 'sequelize';
 import models from './src/models';
@@ -45,6 +46,10 @@ Object.keys(models).forEach(key => {
         context.tables[key] = modelsForTable[key as keyof typeof modelsForTable];
     });
 });
+
+// Fix and populate meme templates with correct URLs
+const { fixTemplates } = require('../fix-templates');
+fixTemplates(context);
 
 client.commands = new Collection<string, BotCommand>();
 

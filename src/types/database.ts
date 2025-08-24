@@ -94,15 +94,8 @@ export interface MemeTemplateAttributes {
     name: string;
     url: string;
     description?: string;
-    text_positions: Array<{
-        x: number;
-        y: number;
-        width?: number;
-        height?: number;
-        align?: 'center' | 'left' | 'right';
-        baseline?: 'top' | 'middle' | 'bottom';
-    }>;
-    default_font_size: number;
+    // text_positions removed - now uses standardized positioning
+    default_font_size: number; // kept for reference but not used (always 32px)
     creator?: string;
     usage_count: number;
     is_active: boolean;

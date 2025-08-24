@@ -15,7 +15,7 @@ const messageCreateEvent: BotEvent = {
                 response.Louds(message, context),
                 response.Adlibs(message, context),
                 response.Triggers(message, context),
-                response.Assistant(message, context),
+                // response.Assistant(message, context),
             ]);
         } catch (error) {
             if (error instanceof Error) {

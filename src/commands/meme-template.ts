@@ -222,7 +222,7 @@ async function handleAddTemplate(interaction: ChatInputCommandInteraction, conte
             name,
             url,
             description: description || undefined,
-            text_positions: textPositions,
+            // text_positions removed - now uses standardized positioning
             default_font_size: fontSize,
             creator: interaction.user.username,
             usage_count: 0,
@@ -323,9 +323,8 @@ async function handleEditTemplate(interaction: ChatInputCommandInteraction, cont
         if (newPositionsJson) {
             try {
                 const parsed = JSON.parse(newPositionsJson);
-                if (Array.isArray(parsed) && parsed.length > 0) {
-                    updates.text_positions = parsed;
-                }
+                // text_positions removed - all templates now use standardized positioning
+                // This field is ignored
             } catch {
                 await interaction.reply({
                     content: 'Invalid JSON format for positions.',
@@ -423,7 +422,7 @@ async function handleTemplateInfo(interaction: ChatInputCommandInteraction, cont
                 { name: 'Status', value: template.is_active ? '✅ Active' : '❌ Inactive', inline: true },
                 { name: 'Usage Count', value: template.usage_count.toString(), inline: true },
                 { name: 'Font Size', value: template.default_font_size.toString(), inline: true },
-                { name: 'Text Positions', value: template.text_positions.length.toString(), inline: true },
+                { name: 'Text Positions', value: 'Standardized (top/bottom)', inline: true },
                 { name: 'Creator', value: template.creator || 'Unknown', inline: true },
                 { name: 'Created',
                     value: template.createdAt ? new Date(template.createdAt).toDateString() : 'Unknown', inline: true },
