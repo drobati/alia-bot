@@ -1,7 +1,7 @@
 import { CommandInteraction, Events, Interaction } from "discord.js";
-import { Command, Context, Event, ExtendedClient } from "../src/utils/types";
+import { Command, Context, BotEvent, ExtendedClient } from "../src/utils/types";
 
-const interactionCreateEventHandler: Event = {
+const interactionCreateEventHandler: BotEvent = {
     name: Events.InteractionCreate,
     async execute(interaction: Interaction, context: Context) {
         const { log } = context;

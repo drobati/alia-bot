@@ -24,7 +24,7 @@ export interface ExtendedClient extends Client {
 // Event handler interface
 export interface BotEvent {
     name: string;
-    execute(...args: unknown[]): Promise<void>;
+    execute(...args: any[]): Promise<void>;
     once?: boolean;
 }
 

@@ -10,7 +10,7 @@ export { DatabaseTables } from '../types/database';
 // Core context interface
 export interface Context {
     tables: DatabaseTables;
-    log: bunyan.Logger;
+    log: bunyan;
     sequelize: Sequelize;
     VERSION: string;
 }
