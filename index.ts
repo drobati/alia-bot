@@ -5,7 +5,7 @@ import config from "config";
 import bunyan from "bunyan";
 import { join } from "path";
 import { readdirSync } from "fs";
-import { Command, Context, Event, ExtendedClient } from "./src/utils/types";
+import { BotCommand, Context, BotEvent, ExtendedClient } from "./src/utils/types";
 
 const VERSION = '2.0.0';
 
@@ -32,7 +32,7 @@ const sequelize = new db.Sequelize(
 );
 
 const context: Context = {
-    tables: {},
+    tables: {} as any,
     sequelize,
     log,
     VERSION,
@@ -46,7 +46,7 @@ Object.keys(models).forEach(key => {
     });
 });
 
-client.commands = new Collection<string, Command>();
+client.commands = new Collection<string, BotCommand>();
 
 // Couldn't figure out how to get eslint not to complain about (module: T, path: string) => void.
 /* eslint-disable no-unused-vars */
@@ -63,7 +63,7 @@ function loadFiles<T>(directory: string, extension: string, handleFile: (module:
     }
 }
 
-function handleCommandFile(command: Command, fullPath: string) {
+function handleCommandFile(command: BotCommand, fullPath: string) {
     if (command.data) {
         client.commands.set(command.data.name, command);
     } else {
@@ -71,7 +71,7 @@ function handleCommandFile(command: Command, fullPath: string) {
     }
 }
 
-function handleEventFile(event: Event) {
+function handleEventFile(event: BotEvent) {
     if (event.once) {
         client.once(event.name, (...args) => { event.execute(...args, context).then(r => r); });
     } else {
@@ -79,8 +79,8 @@ function handleEventFile(event: Event) {
     }
 }
 
-loadFiles<Command>('src/commands', '.js', handleCommandFile, 'test.js');
-loadFiles<Event>('events', '.js', handleEventFile, 'test.js');
+loadFiles<BotCommand>('src/commands', '.js', handleCommandFile, 'test.js');
+loadFiles<BotEvent>('events', '.js', handleEventFile, 'test.js');
 
 client.login(process.env.BOT_TOKEN).then(() => {
     log.info(`Logged in. Version ${VERSION}`);

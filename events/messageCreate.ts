@@ -1,8 +1,8 @@
 import { Events, Message } from 'discord.js';
-import { Context, Event } from '../src/utils/types';
+import { Context, BotEvent } from '../src/utils/types';
 import response from '../src/responses'; // Adjust the import path as needed
 
-const messageCreateEvent: Event = {
+const messageCreateEvent: BotEvent = {
     name: Events.MessageCreate,
     async execute(message: Message, context: Context) {
         const { log } = context;

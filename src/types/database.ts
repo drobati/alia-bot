@@ -205,4 +205,5 @@ export interface DatabaseTables {
     Memories: MemoriesModelStatic;
     RollCall: RollCallModelStatic;
     Twitch: TwitchModelStatic;
+    [key: string]: any; // Allow dynamic table access
 }
