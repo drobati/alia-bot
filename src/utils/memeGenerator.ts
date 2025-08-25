@@ -145,8 +145,19 @@ export class MemeGenerator {
             
             // Load image with Jimp
             console.log('Loading image with Jimp...');
-            const image = await Jimp.read(imageBuffer);
-            console.log(`Image loaded: ${image.width}x${image.height}`);
+            let image = await Jimp.read(imageBuffer);
+            console.log(`Original image loaded: ${image.width}x${image.height}`);
+            
+            // Scale image down to Discord display width (500px) while maintaining aspect ratio
+            const TARGET_WIDTH = 500;
+            if (image.width > TARGET_WIDTH) {
+                console.log(`Scaling image down to ${TARGET_WIDTH}px width...`);
+                // Use contain to scale down maintaining aspect ratio
+                image = (image as any).contain({ w: TARGET_WIDTH, h: TARGET_WIDTH });
+                console.log(`Scaled image: ${image.width}x${image.height}`);
+            } else {
+                console.log(`Image already at or below ${TARGET_WIDTH}px width, no scaling needed`);
+            }
             
             // Analyze image brightness to determine optimal text color
             console.log('Analyzing image brightness...');
@@ -160,15 +171,12 @@ export class MemeGenerator {
             
             console.log(`Using ${mainFontColor} text with ${outlineFontColor} outline`);
             
-            // Load fonts for text overlay - Scale font size with image dimensions
+            // Load fonts for text overlay - Use consistent size for standardized image width
             console.log('Loading fonts...');
-            // Calculate font size based on image dimensions (minimum 32px, maximum 64px)
-            const baseFontSize = Math.max(32, Math.min(64, Math.floor(image.width / 16)));
-            console.log(`Calculated font size: ${baseFontSize}px for image width: ${image.width}px`);
-            
-            // Use 64px font for larger images, 32px for smaller ones
-            const fontSize = baseFontSize >= 48 ? 64 : 32;
-            console.log(`Using font size: ${fontSize}px`);
+            // All images are now scaled to max 500px width, so we can use consistent font sizing
+            // 32px font works well for ~500px width images in Discord
+            const fontSize = 32;
+            console.log(`Using consistent font size: ${fontSize}px (optimized for ${TARGET_WIDTH}px max width)`);
             
             const fontPath = path.join(process.cwd(), `node_modules/@jimp/plugin-print/dist/fonts/open-sans/open-sans-${fontSize}-${mainFontColor}/open-sans-${fontSize}-${mainFontColor}.fnt`);
             const outlineFontPath = path.join(process.cwd(), `node_modules/@jimp/plugin-print/dist/fonts/open-sans/open-sans-${fontSize}-${outlineFontColor}/open-sans-${fontSize}-${outlineFontColor}.fnt`);
