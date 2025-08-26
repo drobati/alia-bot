@@ -141,8 +141,11 @@ export class MemeGenerator {
             // Scale image down to Discord display width (500px) while maintaining aspect ratio
             const TARGET_WIDTH = 500;
             if (image.width > TARGET_WIDTH) {
-                // Use contain to scale down maintaining aspect ratio
-                image = (image as any).contain({ w: TARGET_WIDTH, h: TARGET_WIDTH });
+                // Calculate proportional height to maintain aspect ratio
+                const aspectRatio = image.height / image.width;
+                const targetHeight = Math.round(TARGET_WIDTH * aspectRatio);
+                // Use any type to avoid Jimp type issues
+                image = (image as any).resize(TARGET_WIDTH, targetHeight);
             }
 
             // Analyze image brightness to determine optimal text color
