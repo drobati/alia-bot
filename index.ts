@@ -7,7 +7,6 @@ import bunyan from "bunyan";
 import { join } from "path";
 import { readdirSync } from "fs";
 import { BotCommand, Context, BotEvent, ExtendedClient } from "./src/utils/types";
-import { fixTemplates } from './src/utils/fixTemplates';
 
 const VERSION = '2.0.0';
 
@@ -47,9 +46,6 @@ Object.keys(models).forEach(key => {
         context.tables[key] = modelsForTable[key as keyof typeof modelsForTable];
     });
 });
-
-// Fix and populate meme templates with correct URLs
-fixTemplates(context);
 
 client.commands = new Collection<string, BotCommand>();
 

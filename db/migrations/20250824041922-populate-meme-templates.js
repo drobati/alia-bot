@@ -3,7 +3,7 @@
 /** @type {import('sequelize-cli').Migration} */
 module.exports = {
   async up (queryInterface, Sequelize) {
-    // Clean template data - matches fix-templates.js for consistency
+    // Clean template data for initial seeding
     const templates = [
       {
         name: 'This Is Fine',
