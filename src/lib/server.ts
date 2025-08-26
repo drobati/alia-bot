@@ -110,7 +110,22 @@ export default async (client: any, channel: any, embed: any, model: any) => {
                 console.log(`Testing custom meme generation: ${imageUrl} with texts:`, texts);
 
                 // Generate the custom meme
-                const imageBuffer = await MemeGenerator.generateCustomMeme(imageUrl, texts);
+                // Assume texts is an array [topText, bottomText] or object with topText/bottomText properties
+                let topText: string | undefined;
+                let bottomText: string | undefined;
+                
+                if (Array.isArray(texts)) {
+                    topText = texts[0];
+                    bottomText = texts[1];
+                } else if (typeof texts === 'object' && texts !== null) {
+                    topText = texts.topText;
+                    bottomText = texts.bottomText;
+                } else if (typeof texts === 'string') {
+                    // If single string, use as topText
+                    topText = texts;
+                }
+
+                const imageBuffer = await MemeGenerator.generateCustomMeme(imageUrl, topText, bottomText);
 
                 // Return the image
                 return h.response(imageBuffer).type('image/png');
