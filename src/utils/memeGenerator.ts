@@ -152,10 +152,8 @@ export class MemeGenerator {
             const mainFontColor = useWhiteText ? 'white' : 'black';
             const outlineFontColor = useWhiteText ? 'black' : 'white';
 
-            // Load fonts for text overlay - Use consistent size for standardized image width
-            // All images are now scaled to max 500px width, so we can use consistent font sizing
-            // 32px font works well for ~500px width images in Discord
-            const fontSize = 32;
+            // Load fonts for text overlay using template's configured font size
+            const fontSize = template.default_font_size;
 
             const basePath = 'node_modules/@jimp/plugin-print/dist/fonts/open-sans';
             const mainFontName = `open-sans-${fontSize}-${mainFontColor}`;

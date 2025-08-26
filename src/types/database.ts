@@ -95,7 +95,7 @@ export interface MemeTemplateAttributes {
     url: string;
     description?: string;
     // text_positions removed - now uses standardized positioning
-    default_font_size: number; // kept for reference but not used (always 32px)
+    default_font_size: number;
     creator?: string;
     usage_count: number;
     is_active: boolean;
