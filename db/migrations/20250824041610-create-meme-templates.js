@@ -23,11 +23,6 @@ module.exports = {
         type: Sequelize.TEXT,
         allowNull: true
       },
-      text_positions: {
-        type: Sequelize.JSON,
-        allowNull: false,
-        defaultValue: []
-      },
       default_font_size: {
         type: Sequelize.INTEGER,
         allowNull: false,
