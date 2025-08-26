@@ -41,7 +41,6 @@ export class MemeGenerator {
             });
             return Buffer.from(response.data);
         } catch (error) {
-            // console.error('Image download error:', error);
             throw new Error(`Failed to download image from ${url}: ${error instanceof Error ? error.message : error}`);
         }
     }
@@ -129,65 +128,42 @@ export class MemeGenerator {
         imageUrl: string,
         topText?: string,
         bottomText?: string,
-        templateName?: string,
     ): Promise<Buffer> {
         try {
-            if (templateName) {
-                // console.log(`Starting meme generation for template: ${templateName}`);
-            } else {
-                // console.log('Starting custom meme generation');
-            }
 
             // Download the image
-            // console.log(`Downloading image from: ${imageUrl}`);
             const imageBuffer = await this.downloadImage(imageUrl);
-            // console.log(`Downloaded image, size: ${imageBuffer.length} bytes`);
 
             // Load image with Jimp
-            // console.log('Loading image with Jimp...');
             let image = await Jimp.read(imageBuffer);
-            // console.log(`Original image loaded: ${image.width}x${image.height}`);
 
             // Scale image down to Discord display width (500px) while maintaining aspect ratio
             const TARGET_WIDTH = 500;
             if (image.width > TARGET_WIDTH) {
-                // console.log(`Scaling image down to ${TARGET_WIDTH}px width...`);
                 // Use contain to scale down maintaining aspect ratio
                 image = (image as any).contain({ w: TARGET_WIDTH, h: TARGET_WIDTH });
-                // console.log(`Scaled image: ${image.width}x${image.height}`);
-            } else {
-                // console.log(`Image already at or below ${TARGET_WIDTH}px width, no scaling needed`);
             }
 
             // Analyze image brightness to determine optimal text color
-            // console.log('Analyzing image brightness...');
             const brightness = this.calculateImageBrightness(image);
-            // console.log(`Image brightness: ${brightness.toFixed(2)} (0=dark, 1=bright)`);
 
             // Choose text colors based on brightness
             const useWhiteText = brightness < 0.5;
             const mainFontColor = useWhiteText ? 'white' : 'black';
             const outlineFontColor = useWhiteText ? 'black' : 'white';
 
-            // console.log(`Using ${mainFontColor} text with ${outlineFontColor} outline`);
-
             // Load fonts for text overlay - Use consistent size for standardized image width
-            // console.log('Loading fonts...');
             // All images are now scaled to max 500px width, so we can use consistent font sizing
             // 32px font works well for ~500px width images in Discord
             const fontSize = 32;
-            // console.log(`Using consistent font size: ${fontSize}px (optimized for ${TARGET_WIDTH}px max width)`);
 
             const basePath = 'node_modules/@jimp/plugin-print/dist/fonts/open-sans';
             const mainFontName = `open-sans-${fontSize}-${mainFontColor}`;
             const outlineFontName = `open-sans-${fontSize}-${outlineFontColor}`;
             const fontPath = path.join(process.cwd(), basePath, mainFontName, `${mainFontName}.fnt`);
             const outlineFontPath = path.join(process.cwd(), basePath, outlineFontName, `${outlineFontName}.fnt`);
-            // console.log(`Main font path: ${fontPath}`);
-            // console.log(`Outline font path: ${outlineFontPath}`);
             const font = await loadFont(fontPath);
             const outlineFont = await loadFont(outlineFontPath);
-            // console.log('Fonts loaded successfully');
 
             // PROPORTIONAL POSITIONING - Scales with image size for consistency
             const margin = Math.max(20, Math.floor(image.width * 0.08)); // 8% of width, min 20px
@@ -199,8 +175,6 @@ export class MemeGenerator {
             if (topText) {
                 const upperText = topText.toUpperCase();
                 const lines = this.wrapText(upperText, maxWidth, baseCharWidth);
-
-                // console.log(`Top text "${upperText}" broken into ${lines.length} lines:`, lines);
 
                 // Position top text with margin from top - ALWAYS THE SAME
                 const startY = margin;
@@ -216,8 +190,6 @@ export class MemeGenerator {
                 const upperText = bottomText.toUpperCase();
                 const lines = this.wrapText(upperText, maxWidth, baseCharWidth);
                 const totalTextHeight = lines.length * lineHeight;
-
-                // console.log(`Bottom text "${upperText}" broken into ${lines.length} lines:`, lines);
 
                 // Position bottom text with margin from bottom - ALWAYS THE SAME
                 const startY = image.height - totalTextHeight - margin;
@@ -241,7 +213,7 @@ export class MemeGenerator {
         topText?: string,
         bottomText?: string,
     ): Promise<Buffer> {
-        return await this.generateStandardizedMeme(template.url, topText, bottomText, template.name);
+        return await this.generateStandardizedMeme(template.url, topText, bottomText);
     }
 
     // PUBLIC API - Custom meme generation (uses same standardized approach)

@@ -1,50 +1,52 @@
+import { Context } from '../types';
+
 // Script to fix template URLs and ensure all templates exist
 const correctTemplates = [
     {
         name: 'This Is Fine',
         url: 'https://i.imgflip.com/26hg.jpg', // Correct: Dog in burning room
-        description: 'Dog sitting in burning room saying this is fine'
+        description: 'Dog sitting in burning room saying this is fine',
     },
     {
         name: 'Ancient Aliens',
         url: 'https://i.imgflip.com/26am.jpg', // Correct: Giorgio Tsoukalos
-        description: 'Giorgio Tsoukalos saying aliens'
+        description: 'Giorgio Tsoukalos saying aliens',
     },
     {
         name: 'Surprised Pikachu',
         url: 'https://i.imgflip.com/2kbn1e.jpg', // Pikachu
-        description: 'Pikachu with surprised expression'
+        description: 'Pikachu with surprised expression',
     },
     {
         name: 'Hide the Pain Harold',
         url: 'https://i.imgflip.com/gk5el.jpg', // Harold
-        description: 'Harold hiding his pain with a forced smile'
+        description: 'Harold hiding his pain with a forced smile',
     },
     {
         name: 'Mocking SpongeBob',
         url: 'https://i.imgflip.com/1otk96.jpg', // SpongeBob
-        description: 'SpongeBob mocking someone with alternating caps'
+        description: 'SpongeBob mocking someone with alternating caps',
     },
     {
         name: 'Drake Pointing',
         url: 'https://i.imgflip.com/30b1gx.jpg', // Drake
-        description: 'Drake pointing at things he likes/dislikes'
+        description: 'Drake pointing at things he likes/dislikes',
     },
     {
         name: 'Distracted Boyfriend',
         url: 'https://i.imgflip.com/1ur9b0.jpg', // Distracted boyfriend
-        description: 'Man looking at another woman while girlfriend looks on disapprovingly'
-    }
+        description: 'Man looking at another woman while girlfriend looks on disapprovingly',
+    },
 ];
 
-async function fixTemplates(context) {
+export async function fixTemplates(context: Context): Promise<void> {
     try {
-        console.log('Clearing existing templates...');
+        context.log.info('Clearing existing templates...');
         await context.tables.MemeTemplate.destroy({
-            where: { creator: 'system' }
+            where: { creator: 'system' },
         });
-        
-        console.log('Adding corrected templates...');
+
+        context.log.info('Adding corrected templates...');
         for (const template of correctTemplates) {
             await context.tables.MemeTemplate.create({
                 name: template.name,
@@ -53,27 +55,25 @@ async function fixTemplates(context) {
                 default_font_size: 32,
                 creator: 'system',
                 usage_count: 0,
-                is_active: true
+                is_active: true,
             });
-            console.log(`✓ Added: ${template.name}`);
+            context.log.info(`✓ Added: ${template.name}`);
         }
-        
-        console.log(`Fixed ${correctTemplates.length} templates with correct URLs`);
-        
+
+        context.log.info(`Fixed ${correctTemplates.length} templates with correct URLs`);
+
         // List all templates to verify
         const allTemplates = await context.tables.MemeTemplate.findAll({
             where: { is_active: true },
-            order: [['name', 'ASC']]
+            order: [['name', 'ASC']],
         });
-        
-        console.log('\nCurrent templates:');
+
+        context.log.info('Current templates:');
         allTemplates.forEach(template => {
-            console.log(`- ${template.name}: ${template.url}`);
+            context.log.info(`- ${template.name}: ${template.url}`);
         });
-        
+
     } catch (error) {
-        console.error('Error fixing templates:', error);
+        context.log.error({ error }, 'Error fixing templates');
     }
 }
-
-module.exports = { fixTemplates };
