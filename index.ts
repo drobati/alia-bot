@@ -48,6 +48,7 @@ Object.keys(models).forEach(key => {
 });
 
 // Fix and populate meme templates with correct URLs
+// eslint-disable-next-line @typescript-eslint/no-var-requires
 const { fixTemplates } = require('../fix-templates');
 fixTemplates(context);
 

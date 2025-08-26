@@ -42,7 +42,7 @@ describe('MemeGenerator', () => {
                 usage_count: 0,
                 is_active: true,
                 createdAt: new Date(),
-                updatedAt: new Date()
+                updatedAt: new Date(),
             };
 
             // Should not throw when passed a properly structured template

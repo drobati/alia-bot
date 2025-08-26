@@ -141,7 +141,7 @@ async function handleCreateMeme(interaction: ChatInputCommandInteraction, contex
         if (template.id) {
             await context.sequelize.query(
                 'UPDATE meme_templates SET usage_count = usage_count + 1 WHERE id = ?',
-                { replacements: [template.id] }
+                { replacements: [template.id] },
             );
         }
 
@@ -177,7 +177,11 @@ async function handleCustomMeme(interaction: ChatInputCommandInteraction, contex
     }
 
     try {
-        const memeBuffer = await MemeGenerator.generateCustomMeme(imageUrl, topText || undefined, bottomText || undefined);
+        const memeBuffer = await MemeGenerator.generateCustomMeme(
+            imageUrl,
+            topText || undefined,
+            bottomText || undefined,
+        );
 
         await interaction.editReply({
             files: [{

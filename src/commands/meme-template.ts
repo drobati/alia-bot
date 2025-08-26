@@ -322,9 +322,9 @@ async function handleEditTemplate(interaction: ChatInputCommandInteraction, cont
 
         if (newPositionsJson) {
             try {
-                const parsed = JSON.parse(newPositionsJson);
-                // text_positions removed - all templates now use standardized positioning
-                // This field is ignored
+                // Parse to validate JSON, but text_positions removed
+                // All templates now use standardized positioning
+                JSON.parse(newPositionsJson);
             } catch {
                 await interaction.reply({
                     content: 'Invalid JSON format for positions.',

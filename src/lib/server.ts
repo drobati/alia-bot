@@ -67,29 +67,33 @@ export default async (client: any, channel: any, embed: any, model: any) => {
         handler: async (request: any, h: any) => {
             try {
                 const { templateName, topText, bottomText } = request.payload;
-                
+
                 console.log(`Testing meme generation: ${templateName} with texts: "${topText}", "${bottomText}"`);
-                
+
                 // Find the template in database
                 const template = await model.MemeTemplate.findOne({
                     where: { name: templateName, is_active: true },
                 });
-                
+
                 if (!template) {
                     return h.response({ error: 'Template not found' }).code(404);
                 }
-                
+
                 // Generate the meme
-                const imageBuffer = await MemeGenerator.generateMeme(template, topText || undefined, bottomText || undefined);
-                
+                const imageBuffer = await MemeGenerator.generateMeme(
+                    template,
+                    topText || undefined,
+                    bottomText || undefined,
+                );
+
                 // Return the image
                 return h.response(imageBuffer).type('image/png');
-                
+
             } catch (error) {
                 console.error('Meme generation error:', error);
-                return h.response({ 
-                    error: 'Failed to generate meme', 
-                    details: error instanceof Error ? error.message : error 
+                return h.response({
+                    error: 'Failed to generate meme',
+                    details: error instanceof Error ? error.message : error,
                 }).code(500);
             }
         },
@@ -97,25 +101,25 @@ export default async (client: any, channel: any, embed: any, model: any) => {
 
     // Add custom meme testing API endpoint
     server.route({
-        method: 'POST', 
+        method: 'POST',
         path: '/api/test-custom-meme',
         handler: async (request: any, h: any) => {
             try {
                 const { imageUrl, texts } = request.payload;
-                
+
                 console.log(`Testing custom meme generation: ${imageUrl} with texts:`, texts);
-                
+
                 // Generate the custom meme
                 const imageBuffer = await MemeGenerator.generateCustomMeme(imageUrl, texts);
-                
+
                 // Return the image
                 return h.response(imageBuffer).type('image/png');
-                
+
             } catch (error) {
                 console.error('Custom meme generation error:', error);
-                return h.response({ 
-                    error: 'Failed to generate custom meme', 
-                    details: error instanceof Error ? error.message : error 
+                return h.response({
+                    error: 'Failed to generate custom meme',
+                    details: error instanceof Error ? error.message : error,
                 }).code(500);
             }
         },
