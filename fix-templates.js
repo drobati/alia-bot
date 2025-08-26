@@ -2,12 +2,12 @@
 const correctTemplates = [
     {
         name: 'This Is Fine',
-        url: 'https://i.imgflip.com/26am.jpg', // Correct: Dog in burning room
+        url: 'https://i.imgflip.com/26hg.jpg', // Correct: Dog in burning room
         description: 'Dog sitting in burning room saying this is fine'
     },
     {
         name: 'Ancient Aliens',
-        url: 'https://i.imgflip.com/26hg.jpg', // Correct: Giorgio Tsoukalos (was swapped)
+        url: 'https://i.imgflip.com/26am.jpg', // Correct: Giorgio Tsoukalos
         description: 'Giorgio Tsoukalos saying aliens'
     },
     {
