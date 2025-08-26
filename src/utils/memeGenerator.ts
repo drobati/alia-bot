@@ -128,6 +128,7 @@ export class MemeGenerator {
         imageUrl: string,
         topText?: string,
         bottomText?: string,
+        fontSize: number = 32,
     ): Promise<Buffer> {
         try {
 
@@ -152,8 +153,7 @@ export class MemeGenerator {
             const mainFontColor = useWhiteText ? 'white' : 'black';
             const outlineFontColor = useWhiteText ? 'black' : 'white';
 
-            // Load fonts for text overlay using template's configured font size
-            const fontSize = template.default_font_size;
+            // Load fonts for text overlay using provided font size
 
             const basePath = 'node_modules/@jimp/plugin-print/dist/fonts/open-sans';
             const mainFontName = `open-sans-${fontSize}-${mainFontColor}`;
@@ -211,7 +211,7 @@ export class MemeGenerator {
         topText?: string,
         bottomText?: string,
     ): Promise<Buffer> {
-        return await this.generateStandardizedMeme(template.url, topText, bottomText);
+        return await this.generateStandardizedMeme(template.url, topText, bottomText, template.default_font_size);
     }
 
     // PUBLIC API - Custom meme generation (uses same standardized approach)
