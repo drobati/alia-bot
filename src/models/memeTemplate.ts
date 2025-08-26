@@ -20,11 +20,6 @@ export default function (sequelize: Sequelize) {
             type: DataTypes.TEXT,
             allowNull: true,
         },
-        text_positions: {
-            type: DataTypes.JSON,
-            allowNull: false,
-            defaultValue: [],
-        },
         default_font_size: {
             type: DataTypes.INTEGER,
             allowNull: false,
