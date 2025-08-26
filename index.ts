@@ -90,6 +90,5 @@ async function startBot() {
 
 startBot().catch(error => {
     log.error({ error: error.message, stack: error.stack }, 'Failed to start bot');
-    console.error('Full error:', error);
     process.exit(1);
 });

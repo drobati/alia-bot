@@ -131,7 +131,6 @@ export class MemeGenerator {
         fontSize: number = 32,
     ): Promise<Buffer> {
         try {
-
             // Download the image
             const imageBuffer = await this.downloadImage(imageUrl);
 
