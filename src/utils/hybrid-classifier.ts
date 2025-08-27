@@ -304,8 +304,10 @@ export class HybridClassifier {
         }
 
         const hasQuestionWord = HybridClassifier.QUESTION_WORDS.some(word => content.includes(word));
-        const hasKnowledgeTopic = HybridClassifier.KNOWLEDGE_TOPICS.some(topic => this.hasWordBoundary(content, topic)) ||
-                                 HybridClassifier.KNOWLEDGE_REGEX_PATTERNS.some(pattern => pattern.test(content));
+        const hasKnowledgeTopic = HybridClassifier.KNOWLEDGE_TOPICS.some(topic =>
+            this.hasWordBoundary(content, topic)) ||
+            HybridClassifier.KNOWLEDGE_REGEX_PATTERNS.some(pattern =>
+                pattern.test(content));
         const endsWithQuestionMark = content.endsWith('?');
 
         // High confidence if it has question word + knowledge topic + question mark
