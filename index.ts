@@ -39,13 +39,27 @@ const context: Context = {
     VERSION,
 };
 
+// Debug model loading
+log.info('=== MODEL LOADING DEBUG START ===');
+log.info(`Models object keys: ${Object.keys(models).join(', ')}`);
+
 Object.keys(models).forEach(key => {
-    const modelsForTable = models[key as keyof typeof models](sequelize);
-    Object.keys(modelsForTable).forEach(key => {
-        // context.tables[key] = modelsForTable[key];
-        context.tables[key] = modelsForTable[key as keyof typeof modelsForTable];
-    });
+    try {
+        log.info(`Loading model: ${key}`);
+        const modelsForTable = models[key as keyof typeof models](sequelize);
+        log.info(`Model ${key} returned object with keys: ${Object.keys(modelsForTable).join(', ')}`);
+        
+        Object.keys(modelsForTable).forEach(tableKey => {
+            log.info(`Adding table to context: ${tableKey}`);
+            context.tables[tableKey] = modelsForTable[tableKey as keyof typeof modelsForTable];
+        });
+    } catch (modelError) {
+        log.error(`Error loading model ${key}:`, modelError);
+    }
 });
+
+log.info(`Final context.tables keys: ${Object.keys(context.tables).join(', ')}`);
+log.info('=== MODEL LOADING DEBUG END ===');
 
 client.commands = new Collection<string, BotCommand>();
 
