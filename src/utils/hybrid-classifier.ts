@@ -223,6 +223,11 @@ export class HybridClassifier {
             return { intent: 'business-discussion', confidence: 0.95, method: 'keyword' };
         }
 
+        // Filter out contextual/conversational references (high priority)
+        if (this.isContextualReference(content)) {
+            return { intent: 'contextual-reference', confidence: 0.85, method: 'keyword' };
+        }
+
         // High-confidence general knowledge patterns
         if (this.isGeneralKnowledgeQuestion(content)) {
             return { intent: 'general-knowledge', confidence: 0.9, method: 'keyword' };
@@ -404,6 +409,23 @@ export class HybridClassifier {
         }
 
         return false;
+    }
+
+    // Contextual reference patterns (questions about immediate context, not general knowledge)
+    private isContextualReference(content: string): boolean {
+        // Patterns that reference unclear context with "this", "that", "here", "there"
+        const contextualPatterns = [
+            'is this a', 'is this the', 'is that a', 'is that the',
+            'what is this', 'what is that', 'what\'s this', 'what\'s that',
+            'where is this', 'where is that', 'how is this', 'how is that',
+            'is this correct', 'is this right', 'is this wrong',
+            'is this good', 'is this bad', 'is this better',
+            'what about this', 'what about that', 'how about this', 'how about that',
+            'does this', 'can this', 'will this', 'should this',
+            'is here a', 'is there a', 'what\'s here', 'what\'s there',
+        ];
+
+        return contextualPatterns.some(pattern => content.includes(pattern));
     }
 
     // Get detailed classification info for debugging
