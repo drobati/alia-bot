@@ -43,7 +43,7 @@ export class HybridClassifier {
         'politics', 'law', 'constitution', 'democracy', 'republic',
         // Basic math and measurement
         'math', 'mathematics', 'calculation', 'measurement', 'unit', 'metric',
-        // Arithmetic operators and terms (avoiding bare + and - to prevent false positives)
+        // Arithmetic operators and terms (using word boundaries for + and - to prevent false positives)
         '×', '÷', 'plus', 'minus', 'times', 'divided', 'add', 'subtract', 'multiply',
         'equals', 'sum', 'difference', 'product', 'quotient', 'arithmetic',
         // Colors and visual concepts
@@ -60,6 +60,12 @@ export class HybridClassifier {
         // Technology and computing (basic terms)
         'nlp', 'ai', 'computer', 'internet', 'website', 'email', 'software', 'hardware',
         'algorithm', 'data', 'digital', 'technology',
+    ];
+
+    // Regex patterns for knowledge topics (space boundaries to prevent false positives)
+    private static readonly KNOWLEDGE_REGEX_PATTERNS = [
+        /\s\+\s/,  // Plus symbol with spaces around it
+        /\s-\s/,   // Minus symbol with spaces around it  
     ];
 
     private static readonly TECH_TERMS = [
@@ -266,7 +272,8 @@ export class HybridClassifier {
         }
 
         const hasQuestionWord = HybridClassifier.QUESTION_WORDS.some(word => content.includes(word));
-        const hasKnowledgeTopic = HybridClassifier.KNOWLEDGE_TOPICS.some(topic => content.includes(topic));
+        const hasKnowledgeTopic = HybridClassifier.KNOWLEDGE_TOPICS.some(topic => content.includes(topic)) ||
+                                 HybridClassifier.KNOWLEDGE_REGEX_PATTERNS.some(pattern => pattern.test(content));
         const endsWithQuestionMark = content.endsWith('?');
 
         // High confidence if it has question word + knowledge topic + question mark
