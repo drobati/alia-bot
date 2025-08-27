@@ -43,8 +43,8 @@ export class HybridClassifier {
         'politics', 'law', 'constitution', 'democracy', 'republic',
         // Basic math and measurement
         'math', 'mathematics', 'calculation', 'measurement', 'unit', 'metric',
-        // Arithmetic operators and terms
-        '+', '-', '×', '÷', 'plus', 'minus', 'times', 'divided', 'add', 'subtract', 'multiply',
+        // Arithmetic operators and terms (avoiding bare + and - to prevent false positives)
+        '×', '÷', 'plus', 'minus', 'times', 'divided', 'add', 'subtract', 'multiply',
         'equals', 'sum', 'difference', 'product', 'quotient', 'arithmetic',
         // Colors and visual concepts
         'color', 'colour', 'white', 'black', 'red', 'blue', 'green', 'yellow', 'orange', 'purple',

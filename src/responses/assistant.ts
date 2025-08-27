@@ -6,6 +6,9 @@ import { HybridClassifier } from '../utils/hybrid-classifier';
 // Initialize hybrid classifier (combines keyword patterns + Bayesian ML)
 const hybridClassifier = new HybridClassifier();
 
+// Static constants to avoid array recreation on every function call
+const RESPONSE_INTENTS = ['general-knowledge', 'real-time-knowledge', 'technical-question'];
+
 // Hybrid Assistant classifier initialized with keyword patterns + Bayesian ML
 
 export default async (message: Message, context: Context) => {
@@ -48,9 +51,8 @@ export default async (message: Message, context: Context) => {
 
         // Process if confidence threshold is met
         if (confidence > CONFIDENCE_THRESHOLD) {
-            // Define which intents should trigger assistant responses
-            const responseIntents = ['general-knowledge', 'real-time-knowledge', 'technical-question'];
-            const willProcess = responseIntents.includes(intent);
+            // Use static responseIntents constant to avoid array recreation
+            const willProcess = RESPONSE_INTENTS.includes(intent);
             context.log.info('Assistant threshold met, processing intent', {
                 intent,
                 confidence,
