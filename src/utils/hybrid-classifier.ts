@@ -65,7 +65,7 @@ export class HybridClassifier {
     // Regex patterns for knowledge topics (space boundaries to prevent false positives)
     private static readonly KNOWLEDGE_REGEX_PATTERNS = [
         /\s\+\s/,  // Plus symbol with spaces around it
-        /\s-\s/,   // Minus symbol with spaces around it  
+        /\s-\s/,   // Minus symbol with spaces around it
     ];
 
     private static readonly TECH_TERMS = [
