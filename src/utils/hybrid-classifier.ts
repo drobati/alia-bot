@@ -19,6 +19,7 @@ interface TrainingExample {
 export class HybridClassifier {
     private bayesClassifier: natural.BayesClassifier;
     private trainingData: TrainingExample[] = [];
+    private regexCache = new Map<string, RegExp>();
 
     // Static constants to avoid array recreation on every method call
     private static readonly QUESTION_WORDS = [
@@ -32,6 +33,11 @@ export class HybridClassifier {
         'chemical', 'element', 'symbol', 'formula', 'science', 'physics', 'biology', 'chemistry',
         'book', 'novel', 'movie', 'film', 'actor', 'actress', 'director', 'song', 'band', 'artist',
         'sport', 'team', 'player', 'championship', 'olympic', 'record',
+        // Gaming and video games
+        'game', 'games', 'video game', 'gaming', 'gamer', 'console', 'pc gaming',
+        'moba', 'fps', 'rpg', 'mmo', 'rts', 'indie game', 'arcade',
+        'dota', 'dota2', 'league of legends', 'minecraft', 'fortnite', 'valorant', 'overwatch',
+        'nintendo', 'playstation', 'xbox', 'steam', 'esports', 'tournament',
         'food', 'dish', 'cuisine', 'ingredient', 'recipe',
         'animal', 'species', 'mammal', 'bird', 'insect', 'habitat',
         'tallest', 'largest', 'smallest', 'fastest', 'longest', 'highest', 'biggest',
@@ -139,6 +145,21 @@ export class HybridClassifier {
         'this platform does', 'this system does', 'this app does', 'this website does',
         'i\'m using', 'principles i\'m', 'what i\'m', 'how i\'m', 'where i\'m',
         'features i\'m', 'technology i\'m', 'tools i\'m', 'methods i\'m',
+        // Personal hobby, collection, and reflection patterns
+        'i have cards', 'i have stuff', 'i own cards', 'i own art', 'my collection', 'my stuff', 'my cards', 'my art',
+        'i\'m thinking to myself', 'i\'m thinking about', 'i was thinking',
+        'my step-dad has', 'my father has', 'my family has', 'my friend has',
+        'i collect', 'i\'m collecting', 'my hobby', 'my hobbies',
+        'why own something', 'why have something', 'why keep something',
+        // Personal gaming activity patterns
+        'can\'t wait to play', 'can\'t wait to kill', 'gonna play', 'going to play',
+        'i\'m playing', 'i play', 'i love playing', 'i hate playing',
+        'kill in', 'playing in', 'main in', 'ranked in', 'casual in',
+        'my main is', 'my character', 'my build', 'my loadout',
+        // Personal activity/experience sharing patterns
+        'one thing i\'ve been', 'i\'ve been doing', 'i have been doing', 'what i\'ve been doing',
+        'i\'ve been using', 'i\'ve been working', 'i\'ve been trying',
+        'i\'ve been asking', 'i\'ve been getting', 'i\'ve been making',
     ];
 
     private static readonly BUSINESS_CONTEXT = [
@@ -166,6 +187,16 @@ export class HybridClassifier {
         this.bayesClassifier = new natural.BayesClassifier();
         this.loadTrainingData();
         this.trainClassifier();
+    }
+
+    // Helper method to check if a word exists with word boundaries (prevents partial matches)
+    private hasWordBoundary(content: string, word: string): boolean {
+        let regex = this.regexCache.get(word);
+        if (!regex) {
+            regex = new RegExp(`\\b${word}\\b`, 'i');
+            this.regexCache.set(word, regex);
+        }
+        return regex.test(content);
     }
 
     private loadTrainingData() {
@@ -204,6 +235,11 @@ export class HybridClassifier {
         // Filter out business/project discussions first (highest priority)
         if (this.isBusinessDiscussion(content)) {
             return { intent: 'business-discussion', confidence: 0.95, method: 'keyword' };
+        }
+
+        // Filter out contextual/conversational references (high priority)
+        if (this.isContextualReference(content)) {
+            return { intent: 'contextual-reference', confidence: 0.85, method: 'keyword' };
         }
 
         // High-confidence general knowledge patterns
@@ -272,8 +308,10 @@ export class HybridClassifier {
         }
 
         const hasQuestionWord = HybridClassifier.QUESTION_WORDS.some(word => content.includes(word));
-        const hasKnowledgeTopic = HybridClassifier.KNOWLEDGE_TOPICS.some(topic => content.includes(topic)) ||
-                                 HybridClassifier.KNOWLEDGE_REGEX_PATTERNS.some(pattern => pattern.test(content));
+        const hasKnowledgeTopic = HybridClassifier.KNOWLEDGE_TOPICS.some(topic =>
+            this.hasWordBoundary(content, topic)) ||
+            HybridClassifier.KNOWLEDGE_REGEX_PATTERNS.some(pattern =>
+                pattern.test(content));
         const endsWithQuestionMark = content.endsWith('?');
 
         // High confidence if it has question word + knowledge topic + question mark
@@ -387,6 +425,23 @@ export class HybridClassifier {
         }
 
         return false;
+    }
+
+    // Contextual reference patterns (questions about immediate context, not general knowledge)
+    private isContextualReference(content: string): boolean {
+        // Patterns that reference unclear context with "this", "that", "here", "there"
+        const contextualPatterns = [
+            'is this a', 'is this the', 'is that a', 'is that the',
+            'what is this', 'what is that', 'what\'s this', 'what\'s that',
+            'where is this', 'where is that', 'how is this', 'how is that',
+            'is this correct', 'is this right', 'is this wrong',
+            'is this good', 'is this bad', 'is this better',
+            'what about this', 'what about that', 'how about this', 'how about that',
+            'does this', 'can this', 'will this', 'should this',
+            'is here a', 'is there a', 'what\'s here', 'what\'s there',
+        ];
+
+        return contextualPatterns.some(pattern => content.includes(pattern));
     }
 
     // Get detailed classification info for debugging
