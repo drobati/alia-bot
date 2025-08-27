@@ -168,6 +168,12 @@ export class HybridClassifier {
         this.trainClassifier();
     }
 
+    // Helper method to check if a word exists with word boundaries (prevents partial matches)
+    private hasWordBoundary(content: string, word: string): boolean {
+        const regex = new RegExp(`\\b${word}\\b`, 'i');
+        return regex.test(content);
+    }
+
     private loadTrainingData() {
         const classifiersPath = path.join(process.cwd(), 'src/data/classifiers.json');
         this.trainingData = JSON.parse(fs.readFileSync(classifiersPath, 'utf-8'));
@@ -272,7 +278,7 @@ export class HybridClassifier {
         }
 
         const hasQuestionWord = HybridClassifier.QUESTION_WORDS.some(word => content.includes(word));
-        const hasKnowledgeTopic = HybridClassifier.KNOWLEDGE_TOPICS.some(topic => content.includes(topic)) ||
+        const hasKnowledgeTopic = HybridClassifier.KNOWLEDGE_TOPICS.some(topic => this.hasWordBoundary(content, topic)) ||
                                  HybridClassifier.KNOWLEDGE_REGEX_PATTERNS.some(pattern => pattern.test(content));
         const endsWithQuestionMark = content.endsWith('?');
 
