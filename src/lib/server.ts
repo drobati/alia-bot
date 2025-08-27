@@ -113,7 +113,6 @@ export default async (client: any, channel: any, embed: any, model: any) => {
                 // Assume texts is an array [topText, bottomText] or object with topText/bottomText properties
                 let topText: string | undefined;
                 let bottomText: string | undefined;
-                
                 if (Array.isArray(texts)) {
                     topText = texts[0];
                     bottomText = texts[1];
