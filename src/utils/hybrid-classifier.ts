@@ -19,6 +19,7 @@ interface TrainingExample {
 export class HybridClassifier {
     private bayesClassifier: natural.BayesClassifier;
     private trainingData: TrainingExample[] = [];
+    private regexCache = new Map<string, RegExp>();
 
     // Static constants to avoid array recreation on every method call
     private static readonly QUESTION_WORDS = [
@@ -150,6 +151,11 @@ export class HybridClassifier {
         'my step-dad has', 'my father has', 'my family has', 'my friend has',
         'i collect', 'i\'m collecting', 'my hobby', 'my hobbies',
         'why own something', 'why have something', 'why keep something',
+        // Personal gaming activity patterns
+        'can\'t wait to play', 'can\'t wait to kill', 'gonna play', 'going to play',
+        'i\'m playing', 'i play', 'i love playing', 'i hate playing',
+        'kill in', 'playing in', 'main in', 'ranked in', 'casual in',
+        'my main is', 'my character', 'my build', 'my loadout',
     ];
 
     private static readonly BUSINESS_CONTEXT = [
@@ -181,7 +187,11 @@ export class HybridClassifier {
 
     // Helper method to check if a word exists with word boundaries (prevents partial matches)
     private hasWordBoundary(content: string, word: string): boolean {
-        const regex = new RegExp(`\\b${word}\\b`, 'i');
+        let regex = this.regexCache.get(word);
+        if (!regex) {
+            regex = new RegExp(`\\b${word}\\b`, 'i');
+            this.regexCache.set(word, regex);
+        }
         return regex.test(content);
     }
 
