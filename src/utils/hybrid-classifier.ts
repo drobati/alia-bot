@@ -32,6 +32,11 @@ export class HybridClassifier {
         'chemical', 'element', 'symbol', 'formula', 'science', 'physics', 'biology', 'chemistry',
         'book', 'novel', 'movie', 'film', 'actor', 'actress', 'director', 'song', 'band', 'artist',
         'sport', 'team', 'player', 'championship', 'olympic', 'record',
+        // Gaming and video games
+        'game', 'games', 'video game', 'gaming', 'gamer', 'console', 'pc gaming',
+        'moba', 'fps', 'rpg', 'mmo', 'rts', 'indie game', 'arcade',
+        'dota', 'dota2', 'league of legends', 'minecraft', 'fortnite', 'valorant', 'overwatch',
+        'nintendo', 'playstation', 'xbox', 'steam', 'esports', 'tournament',
         'food', 'dish', 'cuisine', 'ingredient', 'recipe',
         'animal', 'species', 'mammal', 'bird', 'insect', 'habitat',
         'tallest', 'largest', 'smallest', 'fastest', 'longest', 'highest', 'biggest',
