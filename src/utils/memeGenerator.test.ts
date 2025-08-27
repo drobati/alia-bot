@@ -26,7 +26,7 @@ describe('MemeGenerator', () => {
 
         test('should handle invalid URLs gracefully', async () => {
             await expect(MemeGenerator.generateCustomMeme('invalid-url', 'test'))
-                .rejects.toThrow('Failed to generate meme');
+                .rejects.toThrow('Failed to download image');
         });
     });
 
