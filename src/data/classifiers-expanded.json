@@ -544,123 +544,123 @@
     "text": "What are some good resources for learning about cybersecurity?"
   },
   {
-    "category": "command",
+    "category": "code examples",
     "text": "Can you please show me how to write a basic for loop in JavaScript?"
   },
   {
-    "category": "command",
+    "category": "tutorials",
     "text": "I need a step-by-step tutorial to build a chatbot in Python. Can you provide?"
   },
   {
-    "category": "command",
+    "category": "concepts",
     "text": "Can someone explain to me the concept of polymorphism in Java?"
   },
   {
-    "category": "command",
+    "category": "code reviews",
     "text": "Can anyone review my Ruby code for the implementation of a linked list? I am getting errors."
   },
   {
-    "category": "command",
+    "category": "project setup",
     "text": "Help me to set up a React project with webpack and babel."
   },
   {
-    "category": "command",
+    "category": "API usage",
     "text": "Show me how to use the Twitter API to fetch tweets using Python."
   },
   {
-    "category": "command",
+    "category": "algorithms",
     "text": "Write an example of the implementation of the Dijkstra's algorithm in C++."
   },
   {
-    "category": "command",
+    "category": "code translations",
     "text": "I have a piece of Python code. Can anyone help to translate it into Go?"
   },
   {
-    "category": "command",
+    "category": "optimizations",
     "text": "Any suggestions on how to optimize my SQL query for better performance?"
   },
   {
-    "category": "command",
+    "category": "code examples",
     "text": "Create a simple RESTful API using Node.js and Express."
   },
   {
-    "category": "command",
+    "category": "tutorials",
     "text": "Generate a beginner's guide for using Docker."
   },
   {
-    "category": "command",
+    "category": "concepts",
     "text": "Explain the concept of closures in JavaScript."
   },
   {
-    "category": "command",
+    "category": "code reviews",
     "text": "Can you help me debug this Java code for a binary search tree?"
   },
   {
-    "category": "command",
+    "category": "project setup",
     "text": "Show me how to configure an Angular project with TypeScript."
   },
   {
-    "category": "command",
+    "category": "API usage",
     "text": "Can you provide an example of using the GitHub API to get a user's repos?"
   },
   {
-    "category": "command",
+    "category": "algorithms",
     "text": "Build an example of a quick sort algorithm in Python."
   },
   {
-    "category": "command",
+    "category": "code translations",
     "text": "I have this R script. Can you help to translate it into Python?"
   },
   {
-    "category": "command",
+    "category": "optimizations",
     "text": "Can anyone suggest how to optimize this recursive function in my C# code?"
   },
   {
-    "category": "command",
+    "category": "code examples",
     "text": "Write a Python function to find the factorial of a number."
   },
   {
-    "category": "command",
+    "category": "tutorials",
     "text": "Can you create a step-by-step guide for setting up a MongoDB database?"
   },
   {
-    "category": "command",
+    "category": "concepts",
     "text": "Can someone explain the difference between classical inheritance and prototypal inheritance in JavaScript?"
   },
   {
-    "category": "command",
+    "category": "code reviews",
     "text": "Can anyone review my REST API code in Node.js? I am not getting the expected response."
   },
   {
-    "category": "command",
+    "category": "project setup",
     "text": "Help me to set up a Laravel project with Homestead."
   },
   {
-    "category": "command",
+    "category": "API usage",
     "text": "Show me how to use the Google Maps API to get the current location in an Android app."
   },
   {
-    "category": "command",
+    "category": "algorithms",
     "text": "Create an example of a heap sort implementation in Java."
   },
   {
-    "category": "command",
+    "category": "code translations",
     "text": "Can anyone translate this Perl script into Ruby?"
   },
   {
-    "category": "command",
+    "category": "optimizations",
     "text": "I have a long running SQL query. Any suggestions to optimize it for better performance?"
   },
   {
-    "category": "command",
+    "category": "code examples",
     "text": "Show me how to create a class in Python."
   },
   {
-    "category": "command",
+    "category": "tutorials",
     "text": "I need a step-by-step guide to deploy a Django app on Heroku."
   },
   {
-    "category": "command",
+    "category": "concepts",
     "text": "Please explain the concept of 'promises' in JavaScript."
   },
   {
@@ -764,63 +764,63 @@
     "text": "Aaand it's Friday again! 🎉 Who's doing something fun this weekend?"
   },
   {
-    "category": "feedback",
+    "category": "App feedback",
     "text": "Really love the new update, the interface is a lot more user-friendly."
   },
   {
-    "category": "feedback",
+    "category": "Service complaint",
     "text": "The notification system is kind of frustrating. I've missed a few important messages because I didn't get an alert."
   },
   {
-    "category": "feedback",
+    "category": "Improvement suggestion",
     "text": "It would be great if you could add a feature to customize the notification sound."
   },
   {
-    "category": "feedback",
+    "category": "Bug report",
     "text": "Ever since the last update, I've had issues with voice channels. It randomly disconnects me."
   },
   {
-    "category": "feedback",
+    "category": "User experience comment",
     "text": "Your app is really awesome! The video quality is spot on."
   },
   {
-    "category": "feedback",
+    "category": "Feature request",
     "text": "Can we get an option to send files larger than 8MB?"
   },
   {
-    "category": "feedback",
+    "category": "Performance complaint",
     "text": "The app has been pretty laggy lately. It takes ages to load messages."
   },
   {
-    "category": "feedback",
+    "category": "Design feedback",
     "text": "Love your minimalist design. It's clean and easy to navigate."
   },
   {
-    "category": "feedback",
+    "category": "App feedback",
     "text": "I'm finding it a bit hard to navigate the app. A help guide would be useful."
   },
   {
-    "category": "feedback",
+    "category": "Service praise",
     "text": "I must commend your prompt customer service. They resolved my issue in no time."
   },
   {
-    "category": "feedback",
+    "category": "Improvement suggestion",
     "text": "Would love to see a dark mode option in the next update."
   },
   {
-    "category": "feedback",
+    "category": "Bug report",
     "text": "The app crashes every time I try to change my profile picture."
   },
   {
-    "category": "feedback",
+    "category": "User experience comment",
     "text": "This is the best platform for gaming communities by far."
   },
   {
-    "category": "feedback",
+    "category": "Feature request",
     "text": "A feature to bookmark important messages would be really handy."
   },
   {
-    "category": "feedback",
+    "category": "Performance praise",
     "text": "The app runs super smooth on my old device. Kudos to the team."
   },
   {

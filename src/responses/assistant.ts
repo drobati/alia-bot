@@ -1,36 +1,12 @@
-import fs from 'fs';
-import path from 'path';
-import natural from 'natural';
 import { Message } from 'discord.js';
 import generateResponse from '../utils/assistant';
 import { Context } from '../utils/types';
+import { HybridClassifier } from '../utils/hybrid-classifier';
 
-const classifier = new natural.BayesClassifier();
+// Initialize hybrid classifier (combines keyword patterns + Bayesian ML)
+const hybridClassifier = new HybridClassifier();
 
-const classifiersFilePath = path.join(process.cwd(), 'src/data/classifiers.json');
-const classifiersData = fs.readFileSync(classifiersFilePath, 'utf-8');
-const classifiers = JSON.parse(classifiersData);
-
-// Track categories for logging
-const categoryStats = new Map<string, number>();
-
-classifiers.forEach((classifierData: { text: string, category: string }) => {
-    classifier.addDocument(classifierData.text, classifierData.category);
-    
-    // Count categories for stats
-    const current = categoryStats.get(classifierData.category) || 0;
-    categoryStats.set(classifierData.category, current + 1);
-});
-
-classifier.train();
-
-// Log classifier initialization (this will show in startup logs)
-console.log('🤖 Assistant classifier trained with', {
-    totalDocuments: classifiers.length,
-    categories: Array.from(categoryStats.entries()).map(([category, count]) => `${category}(${count})`),
-    hasGeneralKnowledge: categoryStats.has('general-knowledge'),
-    generalKnowledgeExamples: categoryStats.get('general-knowledge') || 0
-});
+console.log('🤖 Hybrid Assistant classifier initialized with keyword patterns + Bayesian ML');
 
 export default async (message: Message, context: Context) => {
     if (message.author.bot) {
@@ -41,11 +17,12 @@ export default async (message: Message, context: Context) => {
     const isDebugMode = process.env.ASSISTANT_DEBUG === 'true';
     
     try {
-        // Get all classification results for detailed analysis
-        const classifications = classifier.getClassifications(message.content);
-        const intent = classifications[0]?.label;
-        const confidence = classifications[0]?.value || 0;
-        const CONFIDENCE_THRESHOLD = 0.7;
+        // Use hybrid classifier for better accuracy
+        const classificationResult = hybridClassifier.classify(message.content);
+        const intent = classificationResult.intent;
+        const confidence = classificationResult.confidence;
+        const method = classificationResult.method;
+        const CONFIDENCE_THRESHOLD = 0.5; // Raised back up since hybrid classifier should have better confidence
 
         // Log classification results
         const classificationData = {
@@ -55,6 +32,7 @@ export default async (message: Message, context: Context) => {
             messageLength: message.content.length,
             intent: intent,
             confidence: Math.round(confidence * 1000) / 1000, // Round to 3 decimals
+            method: method, // 'keyword', 'bayesian', or 'fallback'
             confidenceThreshold: CONFIDENCE_THRESHOLD,
             meetsThreshold: confidence > CONFIDENCE_THRESHOLD,
             timestamp: new Date().toISOString()
@@ -62,18 +40,10 @@ export default async (message: Message, context: Context) => {
 
         context.log.info('Assistant message classification', classificationData);
 
-        // Debug mode: log all classification scores
+        // Debug mode: log detailed classification analysis
         if (isDebugMode) {
-            const topClassifications = classifications.slice(0, 5).map(c => ({
-                intent: c.label,
-                confidence: Math.round(c.value * 1000) / 1000
-            }));
-            
-            context.log.debug('Assistant detailed classification', {
-                messageSnippet: message.content.slice(0, 100) + (message.content.length > 100 ? '...' : ''),
-                topClassifications,
-                totalCategories: classifications.length
-            });
+            const detailedClassification = hybridClassifier.getDetailedClassification(message.content);
+            context.log.debug('Assistant detailed classification', detailedClassification);
         }
 
         // Process if confidence threshold is met
