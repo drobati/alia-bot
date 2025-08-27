@@ -48,7 +48,7 @@ Object.keys(models).forEach(key => {
         log.info(`Loading model: ${key}`);
         const modelsForTable = models[key as keyof typeof models](sequelize);
         log.info(`Model ${key} returned object with keys: ${Object.keys(modelsForTable).join(', ')}`);
-        
+
         Object.keys(modelsForTable).forEach(tableKey => {
             log.info(`Adding table to context: ${tableKey}`);
             context.tables[tableKey] = modelsForTable[tableKey as keyof typeof modelsForTable];
