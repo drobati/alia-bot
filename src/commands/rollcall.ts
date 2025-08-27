@@ -142,14 +142,30 @@ async function generateSparkline(scores: any) {
 
     const data = {
         labels: scores.map((score: any) => score.timestamp.toLocaleString()),
-        datasets: [{
-            label: 'Roll Call Score',
-            data: scores.map((score: any) => score.value),
-            borderColor: 'rgba(255, 255, 255, 1)',
-            fill: false,
-            tension: 0.2,
-            borderWidth: 1,
-        }],
+        datasets: [
+            // Shadow/outline dataset (black line underneath)
+            {
+                label: 'Roll Call Score Shadow',
+                data: scores.map((score: any) => score.value),
+                borderColor: 'rgba(0, 0, 0, 1)',
+                fill: false,
+                tension: 0.2,
+                borderWidth: 3,
+                pointRadius: 0,
+                pointHoverRadius: 0,
+            },
+            // Main line dataset (white line on top)
+            {
+                label: 'Roll Call Score',
+                data: scores.map((score: any) => score.value),
+                borderColor: 'rgba(255, 255, 255, 1)',
+                fill: false,
+                tension: 0.2,
+                borderWidth: 1,
+                pointRadius: 0,
+                pointHoverRadius: 0,
+            },
+        ],
     };
 
     const options = {
@@ -161,9 +177,6 @@ async function generateSparkline(scores: any) {
             legend: { display: false },
         },
         devicePixelRatio: 1,
-        elements: {
-            point: { radius: 0 },
-        },
     };
 
     return chartJSNodeCanvas.renderToBuffer({ type: 'line', data, options });
