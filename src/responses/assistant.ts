@@ -6,7 +6,7 @@ import { HybridClassifier } from '../utils/hybrid-classifier';
 // Initialize hybrid classifier (combines keyword patterns + Bayesian ML)
 const hybridClassifier = new HybridClassifier();
 
-console.log('🤖 Hybrid Assistant classifier initialized with keyword patterns + Bayesian ML');
+// Hybrid Assistant classifier initialized with keyword patterns + Bayesian ML
 
 export default async (message: Message, context: Context) => {
     if (message.author.bot) {
@@ -15,7 +15,7 @@ export default async (message: Message, context: Context) => {
 
     const startTime = Date.now();
     const isDebugMode = process.env.ASSISTANT_DEBUG === 'true';
-    
+
     try {
         // Use hybrid classifier for better accuracy
         const classificationResult = hybridClassifier.classify(message.content);
@@ -35,7 +35,7 @@ export default async (message: Message, context: Context) => {
             method: method, // 'keyword', 'bayesian', or 'fallback'
             confidenceThreshold: CONFIDENCE_THRESHOLD,
             meetsThreshold: confidence > CONFIDENCE_THRESHOLD,
-            timestamp: new Date().toISOString()
+            timestamp: new Date().toISOString(),
         };
 
         context.log.info('Assistant message classification', classificationData);
@@ -51,39 +51,39 @@ export default async (message: Message, context: Context) => {
             context.log.info('Assistant threshold met, processing intent', {
                 intent,
                 confidence,
-                willProcess: intent === 'general-knowledge'
+                willProcess: intent === 'general-knowledge',
             });
 
             if (intent === 'general-knowledge') {
                 context.log.info('Assistant generating response for general knowledge question', {
                     userId: message.author.id,
-                    messageLength: message.content.length
+                    messageLength: message.content.length,
                 });
 
                 const response = await generateResponse(message.content, context, {
                     userId: message.author.id,
                     username: message.author.username,
-                    channelId: message.channelId
+                    channelId: message.channelId,
                 });
 
                 if (response && message.channel && 'send' in message.channel) {
                     try {
                         await message.channel.send(response);
-                        
+
                         const processingTime = Date.now() - startTime;
                         context.log.info('Assistant response sent successfully', {
                             userId: message.author.id,
                             responseLength: response.length,
                             processingTimeMs: processingTime,
                             stage: 'response_sent',
-                            success: true
+                            success: true,
                         });
                     } catch (sendError) {
                         context.log.error('Assistant failed to send response to Discord', {
                             userId: message.author.id,
                             error: sendError,
                             stage: 'discord_send',
-                            success: false
+                            success: false,
                         });
                     }
                 } else {
@@ -92,14 +92,14 @@ export default async (message: Message, context: Context) => {
                         hasResponse: !!response,
                         hasChannel: !!(message.channel && 'send' in message.channel),
                         stage: 'response_validation',
-                        success: false
+                        success: false,
                     });
                 }
             } else {
                 context.log.info('Assistant classified message but not as general-knowledge', {
                     intent,
                     confidence,
-                    stage: 'intent_filtered'
+                    stage: 'intent_filtered',
                 });
             }
         } else {
@@ -107,7 +107,7 @@ export default async (message: Message, context: Context) => {
                 intent,
                 confidence,
                 confidenceThreshold: CONFIDENCE_THRESHOLD,
-                stage: 'confidence_filtered'
+                stage: 'confidence_filtered',
             });
         }
 
@@ -118,7 +118,7 @@ export default async (message: Message, context: Context) => {
             error: error,
             processingTimeMs: processingTime,
             stage: 'classification_error',
-            success: false
+            success: false,
         });
     }
 }

@@ -22,7 +22,7 @@ interface UserContext {
 async function generateResponse(message: string, context: Context, userContext?: UserContext): Promise<string | null> {
     const startTime = Date.now();
     const isDebugMode = process.env.ASSISTANT_DEBUG === 'true';
-    
+
     try {
         const requestData = {
             model: 'gpt-4-turbo-preview' as const,
@@ -49,7 +49,7 @@ async function generateResponse(message: string, context: Context, userContext?:
             messageLength: message.length,
             maxTokens: requestData.max_tokens,
             temperature: requestData.temperature,
-            stage: 'api_request_start'
+            stage: 'api_request_start',
         });
 
         // Debug mode: log request details
@@ -60,13 +60,13 @@ async function generateResponse(message: string, context: Context, userContext?:
                 requestConfig: {
                     model: requestData.model,
                     maxTokens: requestData.max_tokens,
-                    temperature: requestData.temperature
-                }
+                    temperature: requestData.temperature,
+                },
             });
         }
 
         const completion = await openai.chat.completions.create(requestData);
-        
+
         const processingTime = Date.now() - startTime;
         const responseContent = completion.choices[0].message.content;
 
@@ -80,7 +80,7 @@ async function generateResponse(message: string, context: Context, userContext?:
             processingTimeMs: processingTime,
             finishReason: completion.choices[0].finish_reason,
             stage: 'api_response_success',
-            success: true
+            success: true,
         });
 
         // Debug mode: log response details
@@ -89,7 +89,7 @@ async function generateResponse(message: string, context: Context, userContext?:
                 responseSnippet: responseContent.slice(0, 200) + (responseContent.length > 200 ? '...' : ''),
                 model: completion.model,
                 created: completion.created,
-                responseId: completion.id
+                responseId: completion.id,
             });
         }
 
@@ -97,7 +97,7 @@ async function generateResponse(message: string, context: Context, userContext?:
 
     } catch (error: any) {
         const processingTime = Date.now() - startTime;
-        
+
         // Enhanced error logging with more context
         const errorData = {
             userId: userContext?.userId,
@@ -108,7 +108,7 @@ async function generateResponse(message: string, context: Context, userContext?:
             errorCode: error.code,
             errorStatus: error.status,
             stage: 'api_error',
-            success: false
+            success: false,
         };
 
         // Check for specific OpenAI error types
@@ -123,7 +123,7 @@ async function generateResponse(message: string, context: Context, userContext?:
         } else {
             context.log.error('OpenAI API unknown error', {
                 ...errorData,
-                fullError: isDebugMode ? error : undefined
+                fullError: isDebugMode ? error : undefined,
             });
         }
 

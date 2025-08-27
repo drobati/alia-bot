@@ -29,21 +29,22 @@ const clientReadyEvent: BotEvent = {
             log.info('=== TABLE SYNC DEBUG START ===');
             log.info(`Tables object exists: ${tables ? 'YES' : 'NO'}`);
             log.info(`Tables object type: ${typeof tables}`);
-            
+
             if (tables) {
                 const tableKeys = Object.keys(tables);
                 log.info(`Number of tables found: ${tableKeys.length}`);
                 log.info(`Table names: ${tableKeys.join(', ')}`);
-                
+
                 if (tableKeys.length > 0) {
                     log.info('Starting table sync process...');
-                    
+
                     for (const key of tableKeys) {
                         try {
                             log.info(`[SYNC] Starting sync for table: ${key}`);
                             log.info(`[SYNC] Table ${key} object type: ${typeof tables[key]}`);
-                            log.info(`[SYNC] Table ${key} has sync method: ${typeof tables[key]?.sync === 'function' ? 'YES' : 'NO'}`);
-                            
+                            const hasSyncMethod = typeof tables[key]?.sync === 'function' ? 'YES' : 'NO';
+                            log.info(`[SYNC] Table ${key} has sync method: ${hasSyncMethod}`);
+
                             if (tables[key]?.sync && typeof tables[key].sync === 'function') {
                                 await tables[key].sync();
                                 log.info(`[SYNC] ✅ Successfully synced table: ${key}`);
@@ -54,10 +55,11 @@ const clientReadyEvent: BotEvent = {
                             }
                         } catch (syncError) {
                             log.error(`[SYNC] ❌ Error syncing table '${key}':`, syncError);
-                            devChannel?.send(`❌ Error syncing table '${key}': ${syncError instanceof Error ? syncError.message : String(syncError)}`);
+                            const errorMsg = syncError instanceof Error ? syncError.message : String(syncError);
+                            devChannel?.send(`❌ Error syncing table '${key}': ${errorMsg}`);
                         }
                     }
-                    
+
                     log.info('=== TABLE SYNC COMPLETED ===');
                 } else {
                     log.error('❌ No tables found in tables object!');
@@ -69,7 +71,8 @@ const clientReadyEvent: BotEvent = {
             }
         } catch (tableDebugError) {
             log.error('❌ Critical error in table sync debug:', tableDebugError);
-            devChannel?.send(`❌ CRITICAL TABLE SYNC ERROR: ${tableDebugError instanceof Error ? tableDebugError.message : String(tableDebugError)}`);
+            const errorMsg = tableDebugError instanceof Error ? tableDebugError.message : String(tableDebugError);
+            devChannel?.send(`❌ CRITICAL TABLE SYNC ERROR: ${errorMsg}`);
         }
 
         // Start server for webhooks
