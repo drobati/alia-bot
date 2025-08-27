@@ -25,9 +25,12 @@ const clientReadyEvent: BotEvent = {
         }
 
         // Sync tables with error handling
+        log.info(`Starting table sync for ${Object.keys(tables).length} tables: ${Object.keys(tables).join(', ')}`);
         Object.keys(tables).forEach(key => {
             try {
+                log.info(`Syncing table: ${key}`);
                 tables[key].sync();
+                log.info(`Successfully synced table: ${key}`);
             } catch (error) {
                 if (error instanceof Error) {
                     log.error(`Error syncing table '${key}': ${error.message}`);
@@ -35,6 +38,7 @@ const clientReadyEvent: BotEvent = {
                 }
             }
         });
+        log.info('Table sync completed');
 
         // Start server for webhooks
         const genChannel = client.channels.cache.find((chan): chan is TextChannel =>
