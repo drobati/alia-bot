@@ -124,7 +124,7 @@ export class HybridClassifier {
             return false;
         }
 
-        const questionWords = ['what', 'who', 'when', 'where', 'which', 'how many', 'how much'];
+        const questionWords = ['what', 'who', 'when', 'where', 'which', 'how many', 'how much', 'how do', 'how does'];
         const knowledgeTopics = [
             'capital', 'country', 'countries', 'author', 'wrote', 'painted', 'invented',
             'discovered', 'mountain', 'river', 'ocean', 'continent', 'planet', 'solar system',
@@ -135,6 +135,14 @@ export class HybridClassifier {
             'food', 'dish', 'cuisine', 'ingredient', 'recipe',
             'animal', 'species', 'mammal', 'bird', 'insect', 'habitat',
             'tallest', 'largest', 'smallest', 'fastest', 'longest', 'highest', 'biggest',
+            // Time and measurement concepts
+            'seconds', 'minutes', 'hours', 'days', 'weeks', 'months', 'years',
+            'noon', 'midnight', 'time', 'clock', 'calendar',
+            // Economics and government concepts
+            'tariffs', 'taxes', 'economics', 'government', 'policy', 'trade', 'economy',
+            'politics', 'law', 'constitution', 'democracy', 'republic',
+            // Basic math and measurement
+            'math', 'mathematics', 'calculation', 'measurement', 'unit', 'metric',
         ];
 
         const hasQuestionWord = questionWords.some(word => content.includes(word));
