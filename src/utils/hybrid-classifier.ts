@@ -139,6 +139,12 @@ export class HybridClassifier {
         'this platform does', 'this system does', 'this app does', 'this website does',
         'i\'m using', 'principles i\'m', 'what i\'m', 'how i\'m', 'where i\'m',
         'features i\'m', 'technology i\'m', 'tools i\'m', 'methods i\'m',
+        // Personal hobby, collection, and reflection patterns
+        'i have cards', 'i have stuff', 'i own cards', 'i own art', 'my collection', 'my stuff', 'my cards', 'my art',
+        'i\'m thinking to myself', 'i\'m thinking about', 'i was thinking',
+        'my step-dad has', 'my father has', 'my family has', 'my friend has',
+        'i collect', 'i\'m collecting', 'my hobby', 'my hobbies',
+        'why own something', 'why have something', 'why keep something',
     ];
 
     private static readonly BUSINESS_CONTEXT = [
