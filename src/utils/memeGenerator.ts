@@ -144,7 +144,7 @@ export class MemeGenerator {
                 const aspectRatio = image.height / image.width;
                 const targetHeight = Math.round(TARGET_WIDTH * aspectRatio);
                 // Use any type to avoid Jimp type issues
-                image = (image as any).resize(TARGET_WIDTH, targetHeight);
+                image = (image as any).resize({ w: TARGET_WIDTH, h: targetHeight });
             }
 
             // Analyze image brightness to determine optimal text color
@@ -155,21 +155,29 @@ export class MemeGenerator {
             const mainFontColor = useWhiteText ? 'white' : 'black';
             const outlineFontColor = useWhiteText ? 'black' : 'white';
 
-            // Load fonts for text overlay using provided font size
-
-            const basePath = 'node_modules/@jimp/plugin-print/dist/fonts/open-sans';
-            const mainFontName = `open-sans-${fontSize}-${mainFontColor}`;
-            const outlineFontName = `open-sans-${fontSize}-${outlineFontColor}`;
-            const fontPath = path.join(process.cwd(), basePath, mainFontName, `${mainFontName}.fnt`);
-            const outlineFontPath = path.join(process.cwd(), basePath, outlineFontName, `${outlineFontName}.fnt`);
+            // Available font sizes in Jimp
+            const availableFontSizes = [8, 10, 12, 14, 16, 32, 64, 128];
+            
+            // Find the closest available font size
+            const closestFontSize = availableFontSizes.reduce((prev, curr) => 
+                Math.abs(curr - fontSize) < Math.abs(prev - fontSize) ? curr : prev
+            );
+            
+            // Load fonts with the closest available size and appropriate colors
+            const mainColor = useWhiteText ? 'white' : 'black';
+            const outlineColor = useWhiteText ? 'black' : 'white';
+            
+            const fontPath = `node_modules/@jimp/plugin-print/dist/fonts/open-sans/open-sans-${closestFontSize}-${mainColor}/open-sans-${closestFontSize}-${mainColor}.fnt`;
+            const outlineFontPath = `node_modules/@jimp/plugin-print/dist/fonts/open-sans/open-sans-${closestFontSize}-${outlineColor}/open-sans-${closestFontSize}-${outlineColor}.fnt`;
+            
             const font = await loadFont(fontPath);
             const outlineFont = await loadFont(outlineFontPath);
 
             // PROPORTIONAL POSITIONING - Scales with image size for consistency
             const margin = Math.max(20, Math.floor(image.width * 0.08)); // 8% of width, min 20px
             const maxWidth = image.width - (2 * margin);
-            const baseCharWidth = Math.max(12, Math.floor(fontSize * 0.6)); // Scale with font size
-            const lineHeight = Math.max(30, Math.floor(fontSize * 1.2)); // 120% of font size
+            const baseCharWidth = Math.max(8, Math.floor(closestFontSize * 0.6)); // Scale with actual font size
+            const lineHeight = Math.max(20, Math.floor(closestFontSize * 1.2)); // 120% of actual font size
 
             // Add top text if provided
             if (topText) {
@@ -203,7 +211,8 @@ export class MemeGenerator {
             // Return the processed image as a buffer
             return await image.getBuffer('image/png');
         } catch (error) {
-            throw new Error(`Failed to generate meme: ${error}`);
+            console.error('MemeGenerator error details:', error);
+            throw error;
         }
     }
 
@@ -221,7 +230,8 @@ export class MemeGenerator {
         imageUrl: string,
         topText?: string,
         bottomText?: string,
+        fontSize: number = 32,
     ): Promise<Buffer> {
-        return await this.generateStandardizedMeme(imageUrl, topText, bottomText);
+        return await this.generateStandardizedMeme(imageUrl, topText, bottomText, fontSize);
     }
 }

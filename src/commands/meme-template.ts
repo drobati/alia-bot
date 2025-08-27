@@ -22,10 +22,6 @@ const memeTemplateCommand = {
                     .setName('description')
                     .setDescription('Description of the template')
                     .setRequired(false))
-                .addStringOption((option: SlashCommandStringOption) => option
-                    .setName('positions')
-                    .setDescription('Text positions as JSON (e.g., [{"x":300,"y":50,"align":"center"}])')
-                    .setRequired(false))
                 .addIntegerOption(option => option
                     .setName('fontsize')
                     .setDescription('Default font size (default: 40)')
@@ -59,10 +55,6 @@ const memeTemplateCommand = {
                 .addStringOption((option: SlashCommandStringOption) => option
                     .setName('description')
                     .setDescription('New description for the template')
-                    .setRequired(false))
-                .addStringOption((option: SlashCommandStringOption) => option
-                    .setName('positions')
-                    .setDescription('New text positions as JSON')
                     .setRequired(false))
                 .addIntegerOption(option => option
                     .setName('fontsize')
@@ -175,7 +167,6 @@ async function handleAddTemplate(interaction: ChatInputCommandInteraction, conte
     const name = interaction.options.getString('name', true).trim();
     const url = interaction.options.getString('url', true).trim();
     const description = interaction.options.getString('description')?.trim() || null;
-    const positionsJson = interaction.options.getString('positions');
     const fontSize = interaction.options.getInteger('fontsize') || 40;
 
     try {
@@ -185,25 +176,6 @@ async function handleAddTemplate(interaction: ChatInputCommandInteraction, conte
         return;
     }
 
-    let textPositions = [
-        { x: 300, y: 50, align: 'center' as const, baseline: 'top' as const },
-        { x: 300, y: 550, align: 'center' as const, baseline: 'bottom' as const },
-    ];
-
-    if (positionsJson) {
-        try {
-            const parsed = JSON.parse(positionsJson);
-            if (Array.isArray(parsed) && parsed.length > 0) {
-                textPositions = parsed;
-            }
-        } catch {
-            await interaction.reply({
-                content: 'Invalid JSON format for positions. Using default positions.',
-                ephemeral: true,
-            });
-            return;
-        }
-    }
 
     try {
         const existingTemplate = await context.tables.MemeTemplate.findOne({
@@ -236,7 +208,6 @@ async function handleAddTemplate(interaction: ChatInputCommandInteraction, conte
                 { name: 'URL', value: url, inline: false },
                 { name: 'Description', value: description || 'No description', inline: true },
                 { name: 'Font Size', value: fontSize.toString(), inline: true },
-                { name: 'Text Positions', value: textPositions.length.toString(), inline: true },
             ],
             color: 0x00FF00,
             footer: {
@@ -287,7 +258,6 @@ async function handleEditTemplate(interaction: ChatInputCommandInteraction, cont
     const name = interaction.options.getString('name', true);
     const newUrl = interaction.options.getString('url');
     const newDescription = interaction.options.getString('description');
-    const newPositionsJson = interaction.options.getString('positions');
     const newFontSize = interaction.options.getInteger('fontsize');
 
     try {
@@ -320,19 +290,6 @@ async function handleEditTemplate(interaction: ChatInputCommandInteraction, cont
             updates.default_font_size = newFontSize;
         }
 
-        if (newPositionsJson) {
-            try {
-                // Parse to validate JSON, but text_positions removed
-                // All templates now use standardized positioning
-                JSON.parse(newPositionsJson);
-            } catch {
-                await interaction.reply({
-                    content: 'Invalid JSON format for positions.',
-                    ephemeral: true,
-                });
-                return;
-            }
-        }
 
         if (Object.keys(updates).length === 0) {
             await interaction.reply({
