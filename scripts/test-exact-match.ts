@@ -1,7 +1,11 @@
 #!/usr/bin/env node
 // Test with exact training data matches
 
-const path = require('path');
+import path from 'path';
+import { fileURLToPath } from 'url';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 // Mock context object
 const mockContext = {
@@ -37,7 +41,7 @@ async function testExactMatches() {
     console.log('🧪 Testing with exact training data matches');
     
     // Load the assistant
-    const assistantModule = require('../dist/src/responses/assistant.js');
+    const assistantModule = await import('../dist/src/responses/assistant.js');
     const assistant = assistantModule.default;
 
     // Test with exact matches from training data

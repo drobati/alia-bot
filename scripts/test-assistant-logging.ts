@@ -1,34 +1,50 @@
-#!/usr/bin/env node
+#!/usr/bin/env tsx
 // Simple script to test assistant logging improvements locally
 
-const path = require('path');
-const fs = require('fs');
+import path from 'path';
+import fs from 'fs';
+import assistant from '../src/responses/assistant';
+import { Message } from 'discord.js';
+import { Context } from '../src/utils/types';
 
 // Mock Discord message object
-const createMockMessage = (content, userId = 'test-user-123', username = 'TestUser') => ({
+const createMockMessage = (content: string, userId = 'test-user-123', username = 'TestUser'): Partial<Message> => ({
     content,
     author: {
         bot: false,
         id: userId,
-        username
-    },
+        username,
+        discriminator: '0000',
+        avatar: null,
+        system: false,
+        createdTimestamp: Date.now(),
+        defaultAvatarURL: 'https://discord.com/assets/default.png',
+        tag: `${username}#0000`,
+        createdAt: new Date(),
+        avatarURL: () => null,
+        displayAvatarURL: () => 'https://discord.com/assets/default.png',
+        toString: () => `<@${userId}>`
+    } as any,
     channelId: 'test-channel-123',
     channel: {
-        send: async (response) => {
+        send: async (response: any) => {
             console.log('📤 Discord Response:', response);
-            return { id: 'mock-message-id' };
+            return { id: 'mock-message-id' } as any;
         }
-    }
+    } as any
 });
 
 // Mock context object
-const mockContext = {
+const mockContext: Context = {
     log: {
-        info: (msg, data) => console.log('ℹ️  INFO:', msg, JSON.stringify(data, null, 2)),
-        error: (msg, data) => console.log('❌ ERROR:', msg, JSON.stringify(data, null, 2)),
-        warn: (msg, data) => console.log('⚠️  WARN:', msg, JSON.stringify(data, null, 2)),
-        debug: (msg, data) => console.log('🐛 DEBUG:', msg, JSON.stringify(data, null, 2))
-    }
+        info: (msg: string, data?: any) => console.log('ℹ️  INFO:', msg, JSON.stringify(data, null, 2)),
+        error: (msg: string, data?: any) => console.log('❌ ERROR:', msg, JSON.stringify(data, null, 2)),
+        warn: (msg: string, data?: any) => console.log('⚠️  WARN:', msg, JSON.stringify(data, null, 2)),
+        debug: (msg: string, data?: any) => console.log('🐛 DEBUG:', msg, JSON.stringify(data, null, 2))
+    },
+    tables: {} as any,
+    sequelize: {} as any,
+    VERSION: 'test-version'
 };
 
 // Set environment variables for testing
@@ -44,12 +60,7 @@ console.log();
 
 async function testAssistant() {
     try {
-        // Import the assistant (this will trigger classifier training logs)
-        console.log('📥 Loading assistant module...');
-        const assistantModule = require('../dist/src/responses/assistant.js');
-        const assistant = assistantModule.default;
-
-        console.log('✅ Assistant module loaded\n');
+        console.log('📥 Assistant module loaded (imported directly)\n');
 
         // Test cases
         const testCases = [
@@ -87,8 +98,8 @@ async function testAssistant() {
             const mockMessage = createMockMessage(testCase.message);
             
             try {
-                await assistant(mockMessage, mockContext);
-            } catch (error) {
+                await assistant(mockMessage as Message, mockContext);
+            } catch (error: any) {
                 console.log('❌ Test failed:', error.message);
             }
             
@@ -96,16 +107,8 @@ async function testAssistant() {
         }
 
     } catch (error) {
-        console.error('Failed to load assistant:', error);
-        console.log('\n💡 Make sure to run "npm run build" first to compile TypeScript files.');
+        console.error('Failed to test assistant:', error);
     }
-}
-
-// Check if compiled files exist
-const distPath = path.join(__dirname, '../dist/src/responses/assistant.js');
-if (!fs.existsSync(distPath)) {
-    console.log('❌ Compiled files not found. Please run "npm run build" first.');
-    process.exit(1);
 }
 
 testAssistant().catch(console.error);
