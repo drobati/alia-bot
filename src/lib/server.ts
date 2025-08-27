@@ -1,6 +1,7 @@
 /* eslint-disable no-console */
 import hapi from '@hapi/hapi';
 import config from "config";
+import { Op } from 'sequelize';
 import { MemeGenerator } from '../utils/memeGenerator';
 import { ChartJSNodeCanvas } from "chartjs-node-canvas";
 
@@ -210,7 +211,7 @@ export default async (client: any, channel: any, embed: any, model: any) => {
                 const allScores = await model.RollCall.findAll({
                     where: {
                         username,
-                        timestamp: { [require('sequelize').Op.gte]: new Date(0) }
+                        timestamp: { [Op.gte]: new Date(0) },
                     },
                     order: [['timestamp', 'ASC']],
                 });
