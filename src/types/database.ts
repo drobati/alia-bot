@@ -89,6 +89,20 @@ export interface TwitchAttributes {
     updatedAt?: Date;
 }
 
+export interface MemeTemplateAttributes {
+    id?: number;
+    name: string;
+    url: string;
+    description?: string;
+    // text_positions removed - now uses standardized positioning
+    default_font_size: number;
+    creator?: string;
+    usage_count: number;
+    is_active: boolean;
+    createdAt?: Date;
+    updatedAt?: Date;
+}
+
 // Simplified model interfaces for now - avoiding complex Sequelize inheritance issues
 export interface AdlibsModel extends AdlibsAttributes {
     update(_values: Partial<AdlibsAttributes>): Promise<AdlibsModel>;
@@ -122,6 +136,11 @@ export interface RollCallModel extends RollCallAttributes {
 
 export interface TwitchModel extends TwitchAttributes {
     update(_values: Partial<TwitchAttributes>): Promise<TwitchModel>;
+    destroy(): Promise<void>;
+}
+
+export interface MemeTemplateModel extends MemeTemplateAttributes {
+    update(_values: Partial<MemeTemplateAttributes>): Promise<MemeTemplateModel>;
     destroy(): Promise<void>;
 }
 
@@ -196,6 +215,18 @@ export interface TwitchModelStatic {
     count(options?: FindOptions<TwitchAttributes>): Promise<number>;
 }
 
+export interface MemeTemplateModelStatic {
+    findAll(options?: FindOptions<MemeTemplateAttributes>): Promise<MemeTemplateModel[]>;
+    findOne(options?: FindOptions<MemeTemplateAttributes>): Promise<MemeTemplateModel | null>;
+    create(values: MemeTemplateAttributes): Promise<MemeTemplateModel>;
+    findOrCreate(options: FindOrCreateOptions<MemeTemplateAttributes>): Promise<[MemeTemplateModel, boolean]>;
+    upsert(values: MemeTemplateAttributes, options?: UpsertOptions): Promise<[MemeTemplateModel, boolean]>;
+    destroy(options: DestroyOptions<MemeTemplateAttributes>): Promise<number>;
+    count(options?: FindOptions<MemeTemplateAttributes>): Promise<number>;
+    findAndCountAll(options?: FindOptions<MemeTemplateAttributes> & { limit?: number; offset?: number; })
+        : Promise<{ count: number; rows: MemeTemplateModel[] }>;
+}
+
 // Combined database tables interface
 export interface DatabaseTables {
     Adlibs: AdlibsModelStatic;
@@ -205,5 +236,6 @@ export interface DatabaseTables {
     Memories: MemoriesModelStatic;
     RollCall: RollCallModelStatic;
     Twitch: TwitchModelStatic;
+    MemeTemplate: MemeTemplateModelStatic;
     [key: string]: any; // Allow dynamic table access
 }

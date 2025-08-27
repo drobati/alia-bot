@@ -1,3 +1,4 @@
+import 'dotenv/config';
 import { Client, Collection, GatewayIntentBits, Partials } from 'discord.js';
 import db from 'sequelize';
 import models from './src/models';
@@ -50,15 +51,15 @@ client.commands = new Collection<string, BotCommand>();
 
 // Couldn't figure out how to get eslint not to complain about (module: T, path: string) => void.
 /* eslint-disable no-unused-vars */
-function loadFiles<T>(directory: string, extension: string, handleFile: (module: T, path: string) => void,
+async function loadFiles<T>(directory: string, extension: string, handleFile: (module: T, path: string) => void,
     filterFile = '') {
     const filePath = join(__dirname, directory);
     const files = readdirSync(filePath).filter(file => file.endsWith(extension) && !file.includes(filterFile));
 
     for (const file of files) {
         const fullPath = join(filePath, file);
-        // eslint-disable-next-line @typescript-eslint/no-var-requires
-        const { default: module } = require(fullPath);
+        const moduleImport = await import(fullPath);
+        const module = moduleImport.default;
         handleFile(module, fullPath);
     }
 }
@@ -79,9 +80,15 @@ function handleEventFile(event: BotEvent) {
     }
 }
 
-loadFiles<BotCommand>('src/commands', '.js', handleCommandFile, 'test.js');
-loadFiles<BotEvent>('events', '.js', handleEventFile, 'test.js');
+async function startBot() {
+    await loadFiles<BotCommand>('src/commands', '.js', handleCommandFile, 'test.js');
+    await loadFiles<BotEvent>('events', '.js', handleEventFile, 'test.js');
 
-client.login(process.env.BOT_TOKEN).then(() => {
+    await client.login(process.env.BOT_TOKEN);
     log.info(`Logged in. Version ${VERSION}`);
+}
+
+startBot().catch(error => {
+    log.error({ error: error.message, stack: error.stack }, 'Failed to start bot');
+    process.exit(1);
 });

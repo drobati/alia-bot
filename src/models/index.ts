@@ -4,6 +4,7 @@ import Louds from "./louds";
 import Memories from "./memories";
 import RollCall from "./rollcall";
 import Twitch from "./twitch";
+import MemeTemplate from "./memeTemplate";
 
 export default {
     Adlibs,
@@ -12,4 +13,5 @@ export default {
     Memories,
     RollCall,
     Twitch,
+    MemeTemplate,
 };

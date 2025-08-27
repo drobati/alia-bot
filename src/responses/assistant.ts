@@ -7,7 +7,7 @@ import { Context } from '../utils/types';
 
 const classifier = new natural.BayesClassifier();
 
-const classifiersFilePath = path.join(__dirname, '../data/classifiers.json');
+const classifiersFilePath = path.join(process.cwd(), 'src/data/classifiers.json');
 const classifiersData = fs.readFileSync(classifiersFilePath, 'utf-8');
 const classifiers = JSON.parse(classifiersData);
 

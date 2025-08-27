@@ -1,6 +1,7 @@
 /* eslint-disable no-console */
 import hapi from '@hapi/hapi';
 import config from "config";
+import { MemeGenerator } from '../utils/memeGenerator';
 
 export default async (client: any, channel: any, embed: any, model: any) => {
     const { Twitch_Users, Twitch_Notifications } = model;
@@ -56,6 +57,85 @@ export default async (client: any, channel: any, embed: any, model: any) => {
             }
             h.response('success').code(200);
             return '';
+        },
+    });
+
+    // Add meme testing API endpoint
+    server.route({
+        method: 'POST',
+        path: '/api/test-meme',
+        handler: async (request: any, h: any) => {
+            try {
+                const { templateName, topText, bottomText } = request.payload;
+
+                console.log(`Testing meme generation: ${templateName} with texts: "${topText}", "${bottomText}"`);
+
+                // Find the template in database
+                const template = await model.MemeTemplate.findOne({
+                    where: { name: templateName, is_active: true },
+                });
+
+                if (!template) {
+                    return h.response({ error: 'Template not found' }).code(404);
+                }
+
+                // Generate the meme
+                const imageBuffer = await MemeGenerator.generateMeme(
+                    template,
+                    topText || undefined,
+                    bottomText || undefined,
+                );
+
+                // Return the image
+                return h.response(imageBuffer).type('image/png');
+
+            } catch (error) {
+                console.error('Meme generation error:', error);
+                return h.response({
+                    error: 'Failed to generate meme',
+                    details: error instanceof Error ? error.message : error,
+                }).code(500);
+            }
+        },
+    });
+
+    // Add custom meme testing API endpoint
+    server.route({
+        method: 'POST',
+        path: '/api/test-custom-meme',
+        handler: async (request: any, h: any) => {
+            try {
+                const { imageUrl, texts } = request.payload;
+
+                console.log(`Testing custom meme generation: ${imageUrl} with texts:`, texts);
+
+                // Generate the custom meme
+                // Assume texts is an array [topText, bottomText] or object with topText/bottomText properties
+                let topText: string | undefined;
+                let bottomText: string | undefined;
+                if (Array.isArray(texts)) {
+                    topText = texts[0];
+                    bottomText = texts[1];
+                } else if (typeof texts === 'object' && texts !== null) {
+                    topText = texts.topText;
+                    bottomText = texts.bottomText;
+                } else if (typeof texts === 'string') {
+                    // If single string, use as topText
+                    topText = texts;
+                }
+
+                const imageBuffer = await MemeGenerator.generateCustomMeme(imageUrl, topText, bottomText);
+
+                // Return the image
+                return h.response(imageBuffer).type('image/png');
+
+            } catch (error) {
+                console.error('Custom meme generation error:', error);
+                return h.response({
+                    error: 'Failed to generate custom meme',
+                    details: error instanceof Error ? error.message : error,
+                }).code(500);
+            }
         },
     });
 
