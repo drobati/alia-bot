@@ -23,6 +23,7 @@ export class HybridClassifier {
     // Static constants to avoid array recreation on every method call
     private static readonly QUESTION_WORDS = [
         'what', 'who', 'when', 'where', 'which', 'how many', 'how much', 'how do', 'how does',
+        'does', 'is', 'are', 'was', 'were', 'will', 'can', 'could', 'should', 'would',
     ];
     private static readonly KNOWLEDGE_TOPICS = [
         'capital', 'country', 'countries', 'author', 'wrote', 'painted', 'invented',
@@ -42,6 +43,23 @@ export class HybridClassifier {
         'politics', 'law', 'constitution', 'democracy', 'republic',
         // Basic math and measurement
         'math', 'mathematics', 'calculation', 'measurement', 'unit', 'metric',
+        // Arithmetic operators and terms
+        '+', '-', '×', '÷', 'plus', 'minus', 'times', 'divided', 'add', 'subtract', 'multiply',
+        'equals', 'sum', 'difference', 'product', 'quotient', 'arithmetic',
+        // Colors and visual concepts
+        'color', 'colour', 'white', 'black', 'red', 'blue', 'green', 'yellow', 'orange', 'purple',
+        'pink', 'brown', 'gray', 'grey', 'silver', 'gold',
+        // Religious and cultural concepts
+        'bible', 'quran', 'torah', 'religion', 'god', 'jesus', 'prophet', 'church', 'mosque', 'temple',
+        // Geography and places
+        'palestine', 'israel', 'america', 'usa', 'europe', 'asia', 'africa', 'antarctica',
+        'city', 'state', 'nation', 'population', 'border',
+        // Demographics and statistics
+        'common', 'popular', 'frequent', 'name', 'names', 'statistics', 'census', 'demographic',
+        'most', 'least', 'average', 'typical', 'standard',
+        // Technology and computing (basic terms)
+        'nlp', 'ai', 'computer', 'internet', 'website', 'email', 'software', 'hardware',
+        'algorithm', 'data', 'digital', 'technology',
     ];
 
     private static readonly TECH_TERMS = [

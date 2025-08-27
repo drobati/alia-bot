@@ -48,14 +48,17 @@ export default async (message: Message, context: Context) => {
 
         // Process if confidence threshold is met
         if (confidence > CONFIDENCE_THRESHOLD) {
+            // Define which intents should trigger assistant responses
+            const responseIntents = ['general-knowledge', 'real-time-knowledge', 'technical-question'];
+            const willProcess = responseIntents.includes(intent);
             context.log.info('Assistant threshold met, processing intent', {
                 intent,
                 confidence,
-                willProcess: intent === 'general-knowledge',
+                willProcess,
             });
 
-            if (intent === 'general-knowledge') {
-                context.log.info('Assistant generating response for general knowledge question', {
+            if (willProcess) {
+                context.log.info('Assistant generating response for knowledge question', {
                     userId: message.author.id,
                     messageLength: message.content.length,
                 });
