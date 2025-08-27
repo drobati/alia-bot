@@ -156,6 +156,10 @@ export class HybridClassifier {
         'i\'m playing', 'i play', 'i love playing', 'i hate playing',
         'kill in', 'playing in', 'main in', 'ranked in', 'casual in',
         'my main is', 'my character', 'my build', 'my loadout',
+        // Personal activity/experience sharing patterns
+        'one thing i\'ve been', 'i\'ve been doing', 'i have been doing', 'what i\'ve been doing',
+        'i\'ve been using', 'i\'ve been working', 'i\'ve been trying',
+        'i\'ve been asking', 'i\'ve been getting', 'i\'ve been making',
     ];
 
     private static readonly BUSINESS_CONTEXT = [
