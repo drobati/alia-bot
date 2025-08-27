@@ -59,6 +59,11 @@ export class HybridClassifier {
     private keywordClassifier(message: string): ClassificationResult {
         const content = message.toLowerCase().trim();
 
+        // Filter out business/project discussions first (highest priority)
+        if (this.isBusinessDiscussion(content)) {
+            return { intent: 'business-discussion', confidence: 0.95, method: 'keyword' };
+        }
+
         // High-confidence general knowledge patterns
         if (this.isGeneralKnowledgeQuestion(content)) {
             return { intent: 'general-knowledge', confidence: 0.9, method: 'keyword' };
@@ -281,6 +286,71 @@ export class HybridClassifier {
         ];
 
         return feedbackIndicators.some(indicator => content.includes(indicator));
+    }
+
+    // Business/project discussion patterns
+    private isBusinessDiscussion(content: string): boolean {
+        // Personal pronouns and possessive indicators
+        const personalIndicators = [
+            'my business', 'my startup', 'my company', 'my project', 'my platform', 'my app',
+            'my system', 'my website', 'my idea', 'my plan', 'my game', 'my product',
+            'i want to build', 'i\'m building', 'i\'m working on', 'i\'m developing',
+            'i want to create', 'i\'m creating', 'i plan to', 'i will build',
+            'i\'m planning', 'i\'m thinking of', 'i want to launch', 'i will launch',
+            'here\'s what i want to build', 'what i want to build', 'what i\'m building',
+            'what i\'m working on', 'what i\'m planning', 'what i want to create',
+            'how i plan to', 'how i will', 'how i\'m building', 'how my business',
+            'how my system', 'how my platform', 'how my app',
+            'for my business', 'for my startup', 'for my company', 'for my project',
+            'in my business', 'in my company', 'in my app', 'in my game',
+            // Additional patterns for personal projects/discussions
+            'this platform does', 'this system does', 'this app does', 'this website does',
+            'i\'m using', 'principles i\'m', 'what i\'m', 'how i\'m', 'where i\'m',
+            'features i\'m', 'technology i\'m', 'tools i\'m', 'methods i\'m',
+        ];
+
+        // Business/project context words that when combined with personal indicators suggest discussion
+        const businessContext = [
+            'business', 'startup', 'company', 'platform', 'application', 'system',
+            'project', 'product', 'service', 'website', 'mobile app', 'web app',
+            'marketplace', 'e-commerce', 'software', 'tool', 'solution',
+        ];
+
+        // Check for direct personal business patterns first
+        if (personalIndicators.some(indicator => content.includes(indicator))) {
+            return true;
+        }
+
+        // Check for question patterns about personal projects
+        const personalQuestionPatterns = [
+            'what should i do for my',
+            'how should i build my',
+            'when will i launch',
+            'where will i host',
+            'how much will it cost',
+            'what do you think about my',
+            'how would you implement',
+        ];
+
+        if (personalQuestionPatterns.some(pattern => content.includes(pattern))) {
+            return true;
+        }
+
+        // Check for business context combined with question words about personal projects
+        const hasPersonalPronoun = ['my ', 'i ', 'i\'m ', 'i\'ll ', 'i\'d '].some(pronoun =>
+            content.includes(pronoun),
+        );
+        const hasBusinessContext = businessContext.some(context => content.includes(context));
+        const hasQuestionStructure = ['what ', 'how ', 'when ', 'where ', 'which '].some(word =>
+            content.includes(word),
+        );
+
+        // If it's a question about a personal business/project, filter it out
+        if (hasPersonalPronoun && hasBusinessContext && hasQuestionStructure) {
+            return true;
+        }
+
+        return false;
     }
 
     // Get detailed classification info for debugging
