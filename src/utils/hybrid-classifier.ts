@@ -20,6 +20,124 @@ export class HybridClassifier {
     private bayesClassifier: natural.BayesClassifier;
     private trainingData: TrainingExample[] = [];
 
+    // Static constants to avoid array recreation on every method call
+    private static readonly QUESTION_WORDS = [
+        'what', 'who', 'when', 'where', 'which', 'how many', 'how much', 'how do', 'how does',
+    ];
+    private static readonly KNOWLEDGE_TOPICS = [
+        'capital', 'country', 'countries', 'author', 'wrote', 'painted', 'invented',
+        'discovered', 'mountain', 'river', 'ocean', 'continent', 'planet', 'solar system',
+        'war', 'battle', 'history', 'historical', 'century', 'year', 'date',
+        'chemical', 'element', 'symbol', 'formula', 'science', 'physics', 'biology', 'chemistry',
+        'book', 'novel', 'movie', 'film', 'actor', 'actress', 'director', 'song', 'band', 'artist',
+        'sport', 'team', 'player', 'championship', 'olympic', 'record',
+        'food', 'dish', 'cuisine', 'ingredient', 'recipe',
+        'animal', 'species', 'mammal', 'bird', 'insect', 'habitat',
+        'tallest', 'largest', 'smallest', 'fastest', 'longest', 'highest', 'biggest',
+        // Time and measurement concepts
+        'seconds', 'minutes', 'hours', 'days', 'weeks', 'months', 'years',
+        'noon', 'midnight', 'time', 'clock', 'calendar',
+        // Economics and government concepts
+        'tariffs', 'taxes', 'economics', 'government', 'policy', 'trade', 'economy',
+        'politics', 'law', 'constitution', 'democracy', 'republic',
+        // Basic math and measurement
+        'math', 'mathematics', 'calculation', 'measurement', 'unit', 'metric',
+    ];
+
+    private static readonly TECH_TERMS = [
+        'javascript', 'typescript', 'python', 'java', 'c++', 'c#', 'html', 'css', 'react',
+        'node', 'nodejs', 'npm', 'git', 'github', 'database', 'sql', 'mongodb', 'api',
+        'function', 'variable', 'class', 'object', 'array', 'loop', 'algorithm', 'code',
+        'programming', 'development', 'debug', 'error', 'exception', 'syntax', 'compile',
+        'framework', 'library', 'package', 'module', 'import', 'export', 'async', 'await',
+    ];
+
+    private static readonly TECH_QUESTION_WORDS = [
+        'how do i', 'how to', 'how can i', 'what is', 'what\'s', 'why does', 'why is',
+    ];
+
+    private static readonly COMMAND_WORDS = [
+        'write', 'create', 'build', 'make', 'generate', 'give me', 'help me',
+        'can you', 'could you', 'would you',
+        'example', 'tutorial', 'guide', 'step by step', 'implement', 'code',
+    ];
+
+    private static readonly CONCEPT_WORDS = ['concept', 'difference', 'how', 'what', 'why'];
+
+    private static readonly GREETINGS = [
+        'hello', 'hi', 'hey', 'good morning', 'good evening', 'good afternoon',
+        'how are you', 'how\'s it going', 'what\'s up', 'sup', 'yo',
+        'good day', 'greetings', 'howdy',
+    ];
+
+    private static readonly CASUAL_PHRASES = [
+        'nice weather', 'beautiful day', 'hot outside', 'cold today', 'raining',
+        'weekend', 'friday', 'monday', 'coffee', 'tired', 'hungry',
+        'how was your', 'having a good', 'hope you\'re',
+    ];
+
+    private static readonly AUTHORITY_FIGURES = ['president', 'prime minister', 'leader', 'ceo', 'mayor'];
+
+    private static readonly CURRENT_LEADER_PATTERNS = [
+        'current president', 'who is the president', 'president of the united states',
+        'the current president', 'the president of', 'current us president',
+    ];
+
+    private static readonly CURRENT_INDICATORS = [
+        'now', 'today', 'this year', '2024', '2025', 'latest',
+        'who is the prime minister', 'current leader', 'what\'s happening now',
+    ];
+
+    private static readonly FEEDBACK_INDICATORS = [
+        'i think', 'i believe', 'in my opinion', 'suggestion', 'recommend',
+        'could be better', 'improvement', 'bug', 'issue', 'problem',
+        'love this', 'hate this', 'really good', 'really bad', 'awesome', 'terrible',
+        'slow', 'fast', 'laggy', 'crashes', 'broken', 'needs improvement',
+        'this app', 'the app', 'the interface', 'the system', 'the website',
+        'really slow', 'too slow', 'very slow', 'super slow',
+        'i love', 'i hate', 'love the', 'hate the',
+        'is really slow', 'is slow', 'is fast', 'is laggy',
+    ];
+
+    private static readonly PERSONAL_INDICATORS = [
+        'my business', 'my startup', 'my company', 'my project', 'my platform', 'my app',
+        'my system', 'my website', 'my idea', 'my plan', 'my game', 'my product',
+        'i want to build', 'i\'m building', 'i\'m working on', 'i\'m developing',
+        'i want to create', 'i\'m creating', 'i plan to', 'i will build',
+        'i\'m planning', 'i\'m thinking of', 'i want to launch', 'i will launch',
+        'here\'s what i want to build', 'what i want to build', 'what i\'m building',
+        'what i\'m working on', 'what i\'m planning', 'what i want to create',
+        'how i plan to', 'how i will', 'how i\'m building', 'how my business',
+        'how my system', 'how my platform', 'how my app',
+        'for my business', 'for my startup', 'for my company', 'for my project',
+        'in my business', 'in my company', 'in my app', 'in my game',
+        // Additional patterns for personal projects/discussions
+        'this platform does', 'this system does', 'this app does', 'this website does',
+        'i\'m using', 'principles i\'m', 'what i\'m', 'how i\'m', 'where i\'m',
+        'features i\'m', 'technology i\'m', 'tools i\'m', 'methods i\'m',
+    ];
+
+    private static readonly BUSINESS_CONTEXT = [
+        'business', 'startup', 'company', 'platform', 'application', 'system',
+        'project', 'product', 'service', 'website', 'mobile app', 'web app',
+        'marketplace', 'e-commerce', 'software', 'tool', 'solution',
+    ];
+
+    private static readonly PERSONAL_QUESTION_PATTERNS = [
+        'what should i do for my',
+        'how should i build my',
+        'when will i launch',
+        'where will i host',
+        'how much will it cost',
+        'what do you think about my',
+        'how would you implement',
+    ];
+
+    private static readonly PERSONAL_PRONOUNS = ['my ', 'i ', 'i\'m ', 'i\'ll ', 'i\'d '];
+    private static readonly QUESTION_STRUCTURE_WORDS = [
+        'what ', 'how ', 'when ', 'where ', 'which ',
+    ];
+
     constructor() {
         this.bayesClassifier = new natural.BayesClassifier();
         this.loadTrainingData();
@@ -58,6 +176,11 @@ export class HybridClassifier {
 
     private keywordClassifier(message: string): ClassificationResult {
         const content = message.toLowerCase().trim();
+
+        // Filter out business/project discussions first (highest priority)
+        if (this.isBusinessDiscussion(content)) {
+            return { intent: 'business-discussion', confidence: 0.95, method: 'keyword' };
+        }
 
         // High-confidence general knowledge patterns
         if (this.isGeneralKnowledgeQuestion(content)) {
@@ -124,21 +247,8 @@ export class HybridClassifier {
             return false;
         }
 
-        const questionWords = ['what', 'who', 'when', 'where', 'which', 'how many', 'how much'];
-        const knowledgeTopics = [
-            'capital', 'country', 'countries', 'author', 'wrote', 'painted', 'invented',
-            'discovered', 'mountain', 'river', 'ocean', 'continent', 'planet', 'solar system',
-            'war', 'battle', 'history', 'historical', 'century', 'year', 'date',
-            'chemical', 'element', 'symbol', 'formula', 'science', 'physics', 'biology', 'chemistry',
-            'book', 'novel', 'movie', 'film', 'actor', 'actress', 'director', 'song', 'band', 'artist',
-            'sport', 'team', 'player', 'championship', 'olympic', 'record',
-            'food', 'dish', 'cuisine', 'ingredient', 'recipe',
-            'animal', 'species', 'mammal', 'bird', 'insect', 'habitat',
-            'tallest', 'largest', 'smallest', 'fastest', 'longest', 'highest', 'biggest',
-        ];
-
-        const hasQuestionWord = questionWords.some(word => content.includes(word));
-        const hasKnowledgeTopic = knowledgeTopics.some(topic => content.includes(topic));
+        const hasQuestionWord = HybridClassifier.QUESTION_WORDS.some(word => content.includes(word));
+        const hasKnowledgeTopic = HybridClassifier.KNOWLEDGE_TOPICS.some(topic => content.includes(topic));
         const endsWithQuestionMark = content.endsWith('?');
 
         // High confidence if it has question word + knowledge topic + question mark
@@ -156,29 +266,14 @@ export class HybridClassifier {
 
     // Technical question patterns
     private isTechnicalQuestion(content: string): boolean {
-        const techTerms = [
-            'javascript', 'typescript', 'python', 'java', 'c++', 'c#', 'html', 'css', 'react',
-            'node', 'nodejs', 'npm', 'git', 'github', 'database', 'sql', 'mongodb', 'api',
-            'function', 'variable', 'class', 'object', 'array', 'loop', 'algorithm', 'code',
-            'programming', 'development', 'debug', 'error', 'exception', 'syntax', 'compile',
-            'framework', 'library', 'package', 'module', 'import', 'export', 'async', 'await',
-        ];
-
-        const questionWords = ['how do i', 'how to', 'how can i', 'what is', 'what\'s', 'why does', 'why is'];
-
-        const hasTechTerm = techTerms.some(term => content.includes(term));
-        const hasQuestionPattern = questionWords.some(pattern => content.includes(pattern));
+        const hasTechTerm = HybridClassifier.TECH_TERMS.some(term => content.includes(term));
+        const hasQuestionPattern = HybridClassifier.TECH_QUESTION_WORDS.some(pattern => content.includes(pattern));
 
         return hasTechTerm && (hasQuestionPattern || content.endsWith('?'));
     }
 
     // Command patterns
     private isCommand(content: string): boolean {
-        const commandWords = [
-            'write', 'create', 'build', 'make', 'generate', 'give me', 'help me',
-            'can you', 'could you', 'would you',
-            'example', 'tutorial', 'guide', 'step by step', 'implement', 'code',
-        ];
 
         // Prioritize "show me" as command over technical question
         if (content.includes('show me')) {
@@ -193,29 +288,16 @@ export class HybridClassifier {
         // "explain" and "describe" could be commands or technical questions
         // Use context to decide: if it's about a concept/topic, it's a command
         if (content.includes('explain') || content.includes('describe') || content.includes('tell me')) {
-            const conceptWords = ['concept', 'difference', 'how', 'what', 'why'];
-            return conceptWords.some(concept => content.includes(concept));
+            return HybridClassifier.CONCEPT_WORDS.some(concept => content.includes(concept));
         }
 
-        return commandWords.some(cmd => content.includes(cmd));
+        return HybridClassifier.COMMAND_WORDS.some(cmd => content.includes(cmd));
     }
 
     // Small talk patterns
     private isSmallTalk(content: string): boolean {
-        const greetings = [
-            'hello', 'hi', 'hey', 'good morning', 'good evening', 'good afternoon',
-            'how are you', 'how\'s it going', 'what\'s up', 'sup', 'yo',
-            'good day', 'greetings', 'howdy',
-        ];
-
-        const casualPhrases = [
-            'nice weather', 'beautiful day', 'hot outside', 'cold today', 'raining',
-            'weekend', 'friday', 'monday', 'coffee', 'tired', 'hungry',
-            'how was your', 'having a good', 'hope you\'re',
-        ];
-
-        const hasGreeting = greetings.some(greeting => content.includes(greeting));
-        const hasCasualPhrase = casualPhrases.some(phrase => content.includes(phrase));
+        const hasGreeting = HybridClassifier.GREETINGS.some(greeting => content.includes(greeting));
+        const hasCasualPhrase = HybridClassifier.CASUAL_PHRASES.some(phrase => content.includes(phrase));
 
         // Check for emoji presence (casual indicator)
         const emojiPatterns = [
@@ -235,44 +317,51 @@ export class HybridClassifier {
     // Real-time knowledge patterns (current events, current people)
     private isRealTimeKnowledge(content: string): boolean {
         // Check for current authority figures first (higher priority)
-        const authorityFigures = ['president', 'prime minister', 'leader', 'ceo', 'mayor'];
         const hasCurrentAndAuthority = content.includes('current') &&
-            authorityFigures.some(figure => content.includes(figure));
+            HybridClassifier.AUTHORITY_FIGURES.some(figure => content.includes(figure));
 
         if (hasCurrentAndAuthority) {return true;}
 
         // Check specific current president/leader patterns (case insensitive)
-        const currentLeaderPatterns = [
-            'current president', 'who is the president', 'president of the united states',
-            'the current president', 'the president of', 'current us president',
-        ];
-
-        if (currentLeaderPatterns.some(pattern => content.includes(pattern))) {
+        if (HybridClassifier.CURRENT_LEADER_PATTERNS.some(pattern => content.includes(pattern))) {
             return true;
         }
 
-        const currentIndicators = [
-            'now', 'today', 'this year', '2024', '2025', 'latest',
-            'who is the prime minister', 'current leader', 'what\'s happening now',
-        ];
-
-        return currentIndicators.some(indicator => content.includes(indicator));
+        return HybridClassifier.CURRENT_INDICATORS.some(indicator => content.includes(indicator));
     }
 
     // Feedback patterns
     private isFeedback(content: string): boolean {
-        const feedbackIndicators = [
-            'i think', 'i believe', 'in my opinion', 'suggestion', 'recommend',
-            'could be better', 'improvement', 'bug', 'issue', 'problem',
-            'love this', 'hate this', 'really good', 'really bad', 'awesome', 'terrible',
-            'slow', 'fast', 'laggy', 'crashes', 'broken', 'needs improvement',
-            'this app', 'the app', 'the interface', 'the system', 'the website',
-            'really slow', 'too slow', 'very slow', 'super slow',
-            'i love', 'i hate', 'love the', 'hate the',
-            'is really slow', 'is slow', 'is fast', 'is laggy',
-        ];
+        return HybridClassifier.FEEDBACK_INDICATORS.some(indicator => content.includes(indicator));
+    }
 
-        return feedbackIndicators.some(indicator => content.includes(indicator));
+    // Business/project discussion patterns
+    private isBusinessDiscussion(content: string): boolean {
+        // Check for direct personal business patterns first
+        if (HybridClassifier.PERSONAL_INDICATORS.some(indicator => content.includes(indicator))) {
+            return true;
+        }
+
+        // Check for question patterns about personal projects
+        if (HybridClassifier.PERSONAL_QUESTION_PATTERNS.some(pattern => content.includes(pattern))) {
+            return true;
+        }
+
+        // Check for business context combined with question words about personal projects
+        const hasPersonalPronoun = HybridClassifier.PERSONAL_PRONOUNS.some(pronoun =>
+            content.includes(pronoun),
+        );
+        const hasBusinessContext = HybridClassifier.BUSINESS_CONTEXT.some(context => content.includes(context));
+        const hasQuestionStructure = HybridClassifier.QUESTION_STRUCTURE_WORDS.some(word =>
+            content.includes(word),
+        );
+
+        // If it's a question about a personal business/project, filter it out
+        if (hasPersonalPronoun && hasBusinessContext && hasQuestionStructure) {
+            return true;
+        }
+
+        return false;
     }
 
     // Get detailed classification info for debugging
