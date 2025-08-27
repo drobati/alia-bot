@@ -1,6 +1,5 @@
 import axios from 'axios';
 import { Jimp, loadFont, measureText } from 'jimp';
-import path from 'path';
 import { MemeTemplateAttributes } from '../types/database';
 
 export class MemeGenerator {
@@ -130,90 +129,84 @@ export class MemeGenerator {
         bottomText?: string,
         fontSize: number = 32,
     ): Promise<Buffer> {
-        try {
-            // Download the image
-            const imageBuffer = await this.downloadImage(imageUrl);
+        // Download the image
+        const imageBuffer = await this.downloadImage(imageUrl);
 
-            // Load image with Jimp
-            let image = await Jimp.read(imageBuffer);
+        // Load image with Jimp
+        let image = await Jimp.read(imageBuffer);
 
-            // Scale image down to Discord display width (500px) while maintaining aspect ratio
-            const TARGET_WIDTH = 500;
-            if (image.width > TARGET_WIDTH) {
-                // Calculate proportional height to maintain aspect ratio
-                const aspectRatio = image.height / image.width;
-                const targetHeight = Math.round(TARGET_WIDTH * aspectRatio);
-                // Use any type to avoid Jimp type issues
-                image = (image as any).resize({ w: TARGET_WIDTH, h: targetHeight });
-            }
-
-            // Analyze image brightness to determine optimal text color
-            const brightness = this.calculateImageBrightness(image);
-
-            // Choose text colors based on brightness
-            const useWhiteText = brightness < 0.5;
-            const mainFontColor = useWhiteText ? 'white' : 'black';
-            const outlineFontColor = useWhiteText ? 'black' : 'white';
-
-            // Available font sizes in Jimp
-            const availableFontSizes = [8, 10, 12, 14, 16, 32, 64, 128];
-            
-            // Find the closest available font size
-            const closestFontSize = availableFontSizes.reduce((prev, curr) => 
-                Math.abs(curr - fontSize) < Math.abs(prev - fontSize) ? curr : prev
-            );
-            
-            // Load fonts with the closest available size and appropriate colors
-            const mainColor = useWhiteText ? 'white' : 'black';
-            const outlineColor = useWhiteText ? 'black' : 'white';
-            
-            const fontPath = `node_modules/@jimp/plugin-print/dist/fonts/open-sans/open-sans-${closestFontSize}-${mainColor}/open-sans-${closestFontSize}-${mainColor}.fnt`;
-            const outlineFontPath = `node_modules/@jimp/plugin-print/dist/fonts/open-sans/open-sans-${closestFontSize}-${outlineColor}/open-sans-${closestFontSize}-${outlineColor}.fnt`;
-            
-            const font = await loadFont(fontPath);
-            const outlineFont = await loadFont(outlineFontPath);
-
-            // PROPORTIONAL POSITIONING - Scales with image size for consistency
-            const margin = Math.max(20, Math.floor(image.width * 0.08)); // 8% of width, min 20px
-            const maxWidth = image.width - (2 * margin);
-            const baseCharWidth = Math.max(8, Math.floor(closestFontSize * 0.6)); // Scale with actual font size
-            const lineHeight = Math.max(20, Math.floor(closestFontSize * 1.2)); // 120% of actual font size
-
-            // Add top text if provided
-            if (topText) {
-                const upperText = topText.toUpperCase();
-                const lines = this.wrapText(upperText, maxWidth, baseCharWidth);
-
-                // Position top text with margin from top - ALWAYS THE SAME
-                const startY = margin;
-
-                lines.forEach((line, lineIndex) => {
-                    const currentY = startY + (lineIndex * lineHeight);
-                    this.renderTextLine(image, font, outlineFont, line, currentY, margin, maxWidth);
-                });
-            }
-
-            // Add bottom text if provided
-            if (bottomText) {
-                const upperText = bottomText.toUpperCase();
-                const lines = this.wrapText(upperText, maxWidth, baseCharWidth);
-                const totalTextHeight = lines.length * lineHeight;
-
-                // Position bottom text with margin from bottom - ALWAYS THE SAME
-                const startY = image.height - totalTextHeight - margin;
-
-                lines.forEach((line, lineIndex) => {
-                    const currentY = startY + (lineIndex * lineHeight);
-                    this.renderTextLine(image, font, outlineFont, line, currentY, margin, maxWidth);
-                });
-            }
-
-            // Return the processed image as a buffer
-            return await image.getBuffer('image/png');
-        } catch (error) {
-            console.error('MemeGenerator error details:', error);
-            throw error;
+        // Scale image down to Discord display width (500px) while maintaining aspect ratio
+        const TARGET_WIDTH = 500;
+        if (image.width > TARGET_WIDTH) {
+            // Calculate proportional height to maintain aspect ratio
+            const aspectRatio = image.height / image.width;
+            const targetHeight = Math.round(TARGET_WIDTH * aspectRatio);
+            // Use any type to avoid Jimp type issues
+            image = (image as any).resize({ w: TARGET_WIDTH, h: targetHeight });
         }
+
+        // Analyze image brightness to determine optimal text color
+        const brightness = this.calculateImageBrightness(image);
+
+        // Choose text colors based on brightness
+        const useWhiteText = brightness < 0.5;
+
+        // Available font sizes in Jimp
+        const availableFontSizes = [8, 10, 12, 14, 16, 32, 64, 128];
+
+        // Find the closest available font size
+        const closestFontSize = availableFontSizes.reduce((prev, curr) =>
+            Math.abs(curr - fontSize) < Math.abs(prev - fontSize) ? curr : prev,
+        );
+
+        // Load fonts with the closest available size and appropriate colors
+        const mainColor = useWhiteText ? 'white' : 'black';
+        const outlineColor = useWhiteText ? 'black' : 'white';
+
+        const fontPath = `node_modules/@jimp/plugin-print/dist/fonts/open-sans/` +
+                `open-sans-${closestFontSize}-${mainColor}/open-sans-${closestFontSize}-${mainColor}.fnt`;
+        const outlineFontPath = `node_modules/@jimp/plugin-print/dist/fonts/open-sans/` +
+                `open-sans-${closestFontSize}-${outlineColor}/open-sans-${closestFontSize}-${outlineColor}.fnt`;
+        const font = await loadFont(fontPath);
+        const outlineFont = await loadFont(outlineFontPath);
+
+        // PROPORTIONAL POSITIONING - Scales with image size for consistency
+        const margin = Math.max(20, Math.floor(image.width * 0.08)); // 8% of width, min 20px
+        const maxWidth = image.width - (2 * margin);
+        const baseCharWidth = Math.max(8, Math.floor(closestFontSize * 0.6)); // Scale with actual font size
+        const lineHeight = Math.max(20, Math.floor(closestFontSize * 1.2)); // 120% of actual font size
+
+        // Add top text if provided
+        if (topText) {
+            const upperText = topText.toUpperCase();
+            const lines = this.wrapText(upperText, maxWidth, baseCharWidth);
+
+            // Position top text with margin from top - ALWAYS THE SAME
+            const startY = margin;
+
+            lines.forEach((line, lineIndex) => {
+                const currentY = startY + (lineIndex * lineHeight);
+                this.renderTextLine(image, font, outlineFont, line, currentY, margin, maxWidth);
+            });
+        }
+
+        // Add bottom text if provided
+        if (bottomText) {
+            const upperText = bottomText.toUpperCase();
+            const lines = this.wrapText(upperText, maxWidth, baseCharWidth);
+            const totalTextHeight = lines.length * lineHeight;
+
+            // Position bottom text with margin from bottom - ALWAYS THE SAME
+            const startY = image.height - totalTextHeight - margin;
+
+            lines.forEach((line, lineIndex) => {
+                const currentY = startY + (lineIndex * lineHeight);
+                this.renderTextLine(image, font, outlineFont, line, currentY, margin, maxWidth);
+            });
+        }
+
+        // Return the processed image as a buffer
+        return await image.getBuffer('image/png');
     }
 
     // PUBLIC API - Template meme generation (uses standardized approach)

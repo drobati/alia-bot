@@ -176,7 +176,6 @@ async function handleAddTemplate(interaction: ChatInputCommandInteraction, conte
         return;
     }
 
-
     try {
         const existingTemplate = await context.tables.MemeTemplate.findOne({
             where: { name },
@@ -289,7 +288,6 @@ async function handleEditTemplate(interaction: ChatInputCommandInteraction, cont
         if (newFontSize) {
             updates.default_font_size = newFontSize;
         }
-
 
         if (Object.keys(updates).length === 0) {
             await interaction.reply({
