@@ -11,10 +11,15 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - uses: reviewdog/action-eslint@v1
+      - name: Use Node.js
+        uses: actions/setup-node@v4
         with:
-          reporter: github-pr-review # Change reporter.
-          eslint_flags: 'index.ts src/**/*.ts'
+          node-version: '20'
+          cache: 'npm'
+      - name: Install dependencies
+        run: npm ci
+      - name: Run ESLint
+        run: npm run lint
   Test:
     runs-on: ubuntu-latest
     strategy:
