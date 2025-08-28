@@ -106,9 +106,9 @@ async function handleForCommand(interaction: any, context: any) {
 
 async function handleGraphCommand(interaction: any, context: any) {
     const username = interaction.options.getString('username');
-    // trim the excess scores down to the first 10
+    // get the most recent 10 scores
     const allScores = await fetchScores(username, null, context);
-    const scores = allScores.slice(0, 10);
+    const scores = allScores.slice(-10);
     if (scores.length === 0) {
         await interaction.reply({ content: `No scores found for ${username}`, ephemeral: true });
         return;
@@ -142,17 +142,41 @@ async function generateSparkline(scores: any) {
 
     const data = {
         labels: scores.map((score: any) => score.timestamp.toLocaleString()),
-        datasets: [{
-            label: 'Roll Call Score',
-            data: scores.map((score: any) => score.value),
-            borderColor: 'rgba(255, 255, 255, 1)',
-            fill: false,
-            tension: 0.2,
-            borderWidth: 1,
-        }],
+        datasets: [
+            // Shadow/outline dataset (semi-transparent black outline)
+            {
+                label: 'Roll Call Score Shadow',
+                data: scores.map((score: any) => score.value),
+                borderColor: 'rgba(0, 0, 0, 0.7)',
+                fill: false,
+                tension: 0.2,
+                borderWidth: 4,
+                pointRadius: 0,
+                pointHoverRadius: 0,
+            },
+            // Main line dataset (bright blue line)
+            {
+                label: 'Roll Call Score',
+                data: scores.map((score: any) => score.value),
+                borderColor: 'rgba(120, 200, 255, 1)', // Brighter blue for better visibility
+                fill: false,
+                tension: 0.2,
+                borderWidth: 3,
+                pointRadius: 0,
+                pointHoverRadius: 0,
+            },
+        ],
     };
 
     const options = {
+        layout: {
+            padding: {
+                top: 5,
+                bottom: 5,
+                left: 5,
+                right: 5,
+            },
+        },
         scales: {
             x: { display: false },
             y: { display: false },
@@ -161,9 +185,6 @@ async function generateSparkline(scores: any) {
             legend: { display: false },
         },
         devicePixelRatio: 1,
-        elements: {
-            point: { radius: 0 },
-        },
     };
 
     return chartJSNodeCanvas.renderToBuffer({ type: 'line', data, options });
