@@ -1,7 +1,7 @@
 import { DataTypes } from 'sequelize';
 
-export default (sequelize: any) => {
-    const PollVote = sequelize.define('PollVote', {
+export default (sequelize: any) => ({
+    PollVote: sequelize.define('PollVote', {
         id: {
             type: DataTypes.INTEGER,
             primaryKey: true,
@@ -32,7 +32,5 @@ export default (sequelize: any) => {
                 fields: ['poll_id', 'user_id'],
             },
         ],
-    });
-
-    return PollVote;
-};
+    }),
+});

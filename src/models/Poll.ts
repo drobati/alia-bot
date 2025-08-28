@@ -1,7 +1,7 @@
 import { DataTypes } from 'sequelize';
 
-export default (sequelize: any) => {
-    const Poll = sequelize.define('Poll', {
+export default (sequelize: any) => ({
+    Poll: sequelize.define('Poll', {
         id: {
             type: DataTypes.INTEGER,
             primaryKey: true,
@@ -53,7 +53,5 @@ export default (sequelize: any) => {
         timestamps: true,
         createdAt: 'created_at',
         updatedAt: 'updated_at',
-    });
-
-    return Poll;
-};
+    }),
+});
