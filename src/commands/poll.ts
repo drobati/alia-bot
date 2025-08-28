@@ -28,6 +28,18 @@ export default {
                 .addStringOption(option =>
                     option.setName('message_id')
                         .setDescription('The poll message ID')
+                        .setRequired(true)))
+        .addSubcommand(subcommand =>
+            subcommand
+                .setName('list')
+                .setDescription('List your active polls in this channel'))
+        .addSubcommand(subcommand =>
+            subcommand
+                .setName('close')
+                .setDescription('Manually close one of your polls')
+                .addStringOption(option =>
+                    option.setName('message_id')
+                        .setDescription('The poll message ID')
                         .setRequired(true))),
 
     async execute(interaction: any, context: any) {
@@ -40,6 +52,12 @@ export default {
                     break;
                 case 'results':
                     await handleResultsCommand(interaction, context);
+                    break;
+                case 'list':
+                    await handleListCommand(interaction, context);
+                    break;
+                case 'close':
+                    await handleCloseCommand(interaction, context);
                     break;
                 default:
                     await interaction.reply({ content: 'Unknown subcommand.', ephemeral: true });
@@ -188,6 +206,112 @@ function createProgressBar(percentage: number): string {
     const emptyBars = totalBars - filledBars;
 
     return '▓'.repeat(filledBars) + '░'.repeat(emptyBars);
+}
+
+async function handleListCommand(interaction: any, context: any) {
+    // List active polls created by the user in this channel
+    const polls = await context.tables.Poll.findAll({
+        where: {
+            creator_id: interaction.user.id,
+            channel_id: interaction.channelId,
+            is_active: true,
+        },
+        order: [['created_at', 'DESC']],
+        limit: 10,
+    });
+
+    if (polls.length === 0) {
+        await interaction.reply({
+            content: 'You have no active polls in this channel.',
+            ephemeral: true,
+        });
+        return;
+    }
+
+    const listEmbed = new EmbedBuilder()
+        .setColor('#0099ff')
+        .setTitle('📋 Your Active Polls')
+        .setDescription(polls.map((poll: any, index: number) => {
+            const timeLeft = Math.round((new Date(poll.expires_at).getTime() - Date.now()) / (1000 * 60));
+            const status = timeLeft > 0 ? `${timeLeft}m left` : 'Expired';
+            return `**${index + 1}.** ${poll.question}\n` +
+                   `📝 Message ID: \`${poll.message_id}\`\n` +
+                   `⏰ ${status}`;
+        }).join('\n\n'))
+        .setFooter({ text: 'Use /poll results or /poll close with the Message ID' });
+
+    await interaction.reply({ embeds: [listEmbed], ephemeral: true });
+}
+
+async function handleCloseCommand(interaction: any, context: any) {
+    const messageId = interaction.options.getString('message_id');
+
+    // Find the poll and verify ownership
+    const poll = await context.tables.Poll.findOne({
+        where: {
+            message_id: messageId,
+            creator_id: interaction.user.id,
+            is_active: true,
+        },
+    });
+
+    if (!poll) {
+        await interaction.reply({
+            content: 'Poll not found or you do not have permission to close it.',
+            ephemeral: true,
+        });
+        return;
+    }
+
+    // Close the poll
+    await context.tables.Poll.update(
+        { is_active: false },
+        { where: { id: poll.id } }
+    );
+
+    // Get final results for the closing message
+    const votes = await context.tables.PollVote.findAll({
+        where: { poll_id: poll.id },
+        attributes: ['option_index', [context.sequelize.fn('COUNT', context.sequelize.col('user_id')), 'count']],
+        group: ['option_index'],
+        raw: true,
+    });
+
+    const options = JSON.parse(poll.options);
+    const totalVotes = await context.tables.PollVote.count({ where: { poll_id: poll.id } });
+
+    // Create vote count map
+    const voteCounts = new Map<number, number>();
+    votes.forEach((vote: any) => {
+        voteCounts.set(vote.option_index, parseInt(vote.count));
+    });
+
+    // Find the winning option(s)
+    const maxVotes = Math.max(...Array.from(voteCounts.values()), 0);
+    const winners = options.filter((_: string, index: number) => 
+        (voteCounts.get(index) || 0) === maxVotes && maxVotes > 0
+    );
+
+    const closedEmbed = new EmbedBuilder()
+        .setColor('#ff6b6b')
+        .setTitle(`🔒 Poll Closed: ${poll.question}`)
+        .setDescription(options.map((option: string, index: number) => {
+            const emoji = getEmojiForIndex(index);
+            const count = voteCounts.get(index) || 0;
+            const percentage = totalVotes > 0 ? Math.round((count / totalVotes) * 100) : 0;
+            const bar = createProgressBar(percentage);
+            const isWinner = winners.includes(option) && maxVotes > 0;
+            const prefix = isWinner ? '🏆 ' : '';
+            return `${prefix}${emoji} **${option}**\n${bar} ${count} votes (${percentage}%)`;
+        }).join('\n\n'))
+        .addFields(
+            { name: 'Total Votes', value: totalVotes.toString(), inline: true },
+            { name: 'Winner(s)', value: winners.length > 0 ? winners.join(', ') : 'No votes', inline: true },
+        )
+        .setTimestamp()
+        .setFooter({ text: `Poll closed by ${interaction.user.username}` });
+
+    await interaction.reply({ embeds: [closedEmbed] });
 }
 
 function getEmojiForIndex(index: number): string {
