@@ -178,7 +178,7 @@ async function handleStatusCommand(interaction: any, context: Context) {
             guildId: interaction.guildId,
         });
 
-        const resultMessage = configs.length === 0 
+        const resultMessage = configs.length === 0
             ? '📊 No motivational message configurations found for this server.'
             : `📊 Found ${configs.length} configuration(s) for this server.`;
 
@@ -195,7 +195,7 @@ async function handleStatusCommand(interaction: any, context: Context) {
         });
 
         const errorMsg = `❌ Error: ${error?.message || 'Unknown error occurred'}`;
-        
+
         try {
             if (!interaction.replied) {
                 await interaction.reply({
@@ -304,7 +304,7 @@ export default {
         } catch (error) {
             log.error('Error executing motivational-config command:', error);
             const errorMessage = error instanceof Error ? error.message : 'An unknown error occurred.';
-            
+
             try {
                 if (!interaction.replied && !interaction.deferred) {
                     await interaction.reply({ content: `❌ Error: ${errorMessage}`, ephemeral: true });
