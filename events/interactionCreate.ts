@@ -5,7 +5,7 @@ const interactionCreateEventHandler: BotEvent = {
     name: Events.InteractionCreate,
     async execute(interaction: Interaction, context: Context) {
         const { log } = context;
-        
+
         // Log ALL incoming interactions for debugging
         log.info('Interaction received', {
             type: interaction.type,
