@@ -24,6 +24,11 @@ export default (sequelize: any) => ({
             type: DataTypes.STRING,
             allowNull: false,
         },
+        poll_id: {
+            type: DataTypes.STRING(8),
+            allowNull: false,
+            unique: true,
+        },
         question: {
             type: DataTypes.TEXT,
             allowNull: false,

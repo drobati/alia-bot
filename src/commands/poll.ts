@@ -1,4 +1,13 @@
-import { EmbedBuilder, SlashCommandBuilder } from "discord.js";
+import { EmbedBuilder, SlashCommandBuilder, ActionRowBuilder, ButtonBuilder, ButtonStyle } from "discord.js";
+
+function generateShortId(): string {
+    const chars = '0123456789abcdefghijklmnopqrstuvwxyz';
+    let result = '';
+    for (let i = 0; i < 8; i++) {
+        result += chars[Math.floor(Math.random() * chars.length)];
+    }
+    return result;
+}
 
 export default {
     data: new SlashCommandBuilder()
@@ -26,8 +35,8 @@ export default {
                 .setName('results')
                 .setDescription('View poll results')
                 .addStringOption(option =>
-                    option.setName('message_id')
-                        .setDescription('The poll message ID')
+                    option.setName('poll_id')
+                        .setDescription('The poll ID (shown in the poll embed)')
                         .setRequired(true)))
         .addSubcommand(subcommand =>
             subcommand
@@ -38,8 +47,8 @@ export default {
                 .setName('close')
                 .setDescription('Manually close one of your polls')
                 .addStringOption(option =>
-                    option.setName('message_id')
-                        .setDescription('The poll message ID')
+                    option.setName('poll_id')
+                        .setDescription('The poll ID (shown in the poll embed)')
                         .setRequired(true))),
 
     async execute(interaction: any, context: any) {
@@ -97,34 +106,63 @@ async function handleCreateCommand(interaction: any, context: any) {
         return;
     }
 
-    // Create poll embed
+    // Generate unique short poll ID
+    let pollId: string;
+    let attempts = 0;
+    do {
+        pollId = generateShortId();
+        attempts++;
+        if (attempts > 10) {
+            throw new Error('Failed to generate unique poll ID');
+        }
+    } while (await context.tables.Poll.findOne({ where: { poll_id: pollId } }));
+
+    // Create poll embed with choices
+    const choicesText = options.map((option: string, index: number) => {
+        const emoji = getEmojiForIndex(index);
+        return `${emoji} **${option}**`;
+    }).join('\n\n');
+
     const pollEmbed = new EmbedBuilder()
         .setColor('#0099ff')
         .setTitle(`📊 ${question}`)
-        .setDescription(options.map((option: string, index: number) => {
-            const emoji = getEmojiForIndex(index);
-            return `${emoji} ${option}`;
-        }).join('\n'))
+        .setDescription(choicesText)
         .addFields(
-            { name: 'Duration', value: `${duration} minutes`, inline: true },
-            { name: 'Created by', value: `<@${interaction.user.id}>`, inline: true },
+            { name: 'Settings', value: `⏱️ ${duration} minutes\n🔢 1 allowed choice`, inline: true },
+            { name: 'Poll ID', value: `\`${pollId}\``, inline: true },
         )
         .setTimestamp()
-        .setFooter({ text: 'React with emojis to vote!' });
+        .setFooter({ text: 'Click buttons to vote!' });
 
-    const pollMessage = await interaction.reply({ embeds: [pollEmbed], fetchReply: true });
+    // Create vote buttons
+    const voteButtons = options.map((option: string, index: number) => {
+        const emoji = getEmojiForIndex(index);
+        return new ButtonBuilder()
+            .setCustomId(`poll_vote_${pollId}_${index}`)
+            .setLabel(`${emoji} 0`)
+            .setStyle(ButtonStyle.Secondary);
+    });
 
-    // Add emoji reactions
-    for (let i = 0; i < options.length; i++) {
-        const emoji = getEmojiForIndex(i);
-        await pollMessage.react(emoji);
+    // Create action rows (Discord allows max 5 buttons per row)
+    const actionRows = [];
+    for (let i = 0; i < voteButtons.length; i += 5) {
+        const row = new ActionRowBuilder<ButtonBuilder>()
+            .addComponents(voteButtons.slice(i, i + 5));
+        actionRows.push(row);
     }
+
+    const pollMessage = await interaction.reply({ 
+        embeds: [pollEmbed], 
+        components: actionRows,
+        fetchReply: true 
+    });
 
     // Store poll in database
     const expiresAt = new Date();
     expiresAt.setMinutes(expiresAt.getMinutes() + duration);
 
     await context.tables.Poll.create({
+        poll_id: pollId,
         message_id: pollMessage.id,
         channel_id: interaction.channelId,
         guild_id: interaction.guildId,
@@ -145,12 +183,19 @@ async function handleCreateCommand(interaction: any, context: any) {
 }
 
 async function handleResultsCommand(interaction: any, context: any) {
-    const messageId = interaction.options.getString('message_id');
+    const pollId = interaction.options.getString('poll_id');
 
-    // Find the poll
-    const poll = await context.tables.Poll.findOne({
-        where: { message_id: messageId },
+    // Find the poll - try poll_id first, then message_id for backward compatibility
+    let poll = await context.tables.Poll.findOne({
+        where: { poll_id: pollId },
     });
+    
+    if (!poll) {
+        // Try as message_id for legacy polls
+        poll = await context.tables.Poll.findOne({
+            where: { message_id: pollId },
+        });
+    }
 
     if (!poll) {
         await interaction.reply({ content: 'Poll not found.', ephemeral: true });
@@ -191,6 +236,11 @@ async function handleResultsCommand(interaction: any, context: any) {
                 name: 'Status',
                 value: poll.is_active && new Date() < new Date(poll.expires_at)
                     ? '🟢 Active' : '🔴 Ended',
+                inline: true,
+            },
+            {
+                name: 'Poll ID',
+                value: poll.poll_id ? `\`${poll.poll_id}\`` : `\`${poll.message_id}\` (legacy)`,
                 inline: true,
             },
         )
@@ -234,26 +284,38 @@ async function handleListCommand(interaction: any, context: any) {
         .setDescription(polls.map((poll: any, index: number) => {
             const timeLeft = Math.round((new Date(poll.expires_at).getTime() - Date.now()) / (1000 * 60));
             const status = timeLeft > 0 ? `${timeLeft}m left` : 'Expired';
+            const pollIdDisplay = poll.poll_id ? `📝 Poll ID: \`${poll.poll_id}\`` : `📝 Message ID: \`${poll.message_id}\` (legacy)`;
             return `**${index + 1}.** ${poll.question}\n` +
-                   `📝 Message ID: \`${poll.message_id}\`\n` +
+                   `${pollIdDisplay}\n` +
                    `⏰ ${status}`;
         }).join('\n\n'))
-        .setFooter({ text: 'Use /poll results or /poll close with the Message ID' });
+        .setFooter({ text: 'Use /poll results or /poll close with the Poll ID' });
 
     await interaction.reply({ embeds: [listEmbed], ephemeral: true });
 }
 
 async function handleCloseCommand(interaction: any, context: any) {
-    const messageId = interaction.options.getString('message_id');
+    const pollId = interaction.options.getString('poll_id');
 
-    // Find the poll and verify ownership
-    const poll = await context.tables.Poll.findOne({
+    // Find the poll and verify ownership - try poll_id first, then message_id for backward compatibility
+    let poll = await context.tables.Poll.findOne({
         where: {
-            message_id: messageId,
+            poll_id: pollId,
             creator_id: interaction.user.id,
             is_active: true,
         },
     });
+    
+    if (!poll) {
+        // Try as message_id for legacy polls
+        poll = await context.tables.Poll.findOne({
+            where: {
+                message_id: pollId,
+                creator_id: interaction.user.id,
+                is_active: true,
+            },
+        });
+    }
 
     if (!poll) {
         await interaction.reply({
