@@ -128,3 +128,19 @@ The bot uses a dynamic file loading system (`loadFiles` function) that:
 
 **Docker Development:**
 The project includes Docker Compose setup for MySQL development database. Use provided scripts in `scripts/` directory for database management.
+
+## Git Workflow
+
+**IMPORTANT:** Master branch is protected and requires pull requests for ALL changes.
+
+**Pull Request Workflow:**
+1. Create feature branch: `git checkout -b feature/description-issue-number`
+2. Make changes and commit with descriptive messages
+3. Push feature branch: `git push -u origin feature/description-issue-number`  
+4. Create pull request via GitHub CLI: `gh pr create --title "feat: description" --body "detailed description"`
+5. NEVER commit directly to master - always use PRs for proper review and CI checks
+
+**Branch Naming Convention:**
+- Features: `feature/description-issue-number`
+- Bug fixes: `fix/description-issue-number`
+- Documentation: `docs/description`
