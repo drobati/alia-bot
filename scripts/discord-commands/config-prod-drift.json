@@ -1,0 +1,5 @@
+{
+    "note": "Configuration for drift server - use same production bot credentials as config-prod.json",
+    "clientId": "555566299086979072",
+    "guildId": "1352767815958007879"
+}

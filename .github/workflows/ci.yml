@@ -35,3 +35,57 @@ jobs:
       - run: npm ci
       - run: npm test
 
+  Coverage:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Use Node.js 20
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+      - name: Install dependencies
+        run: npm ci
+      - name: Run tests with coverage
+        run: npm run coverage
+      - name: Upload coverage reports
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage-report
+          path: coverage/
+      - name: Check coverage threshold
+        run: |
+          # Extract coverage percentage from lcov report
+          COVERAGE=$(node -e "
+            const fs = require('fs');
+            const coverage = JSON.parse(fs.readFileSync('coverage/coverage-final.json', 'utf8'));
+            const totals = Object.values(coverage).reduce((acc, file) => {
+              Object.keys(acc).forEach(key => {
+                if (file[key]) {
+                  acc[key].covered += file[key].covered || 0;
+                  acc[key].total += file[key].total || 0;
+                }
+              });
+              return acc;
+            }, {
+              statements: { covered: 0, total: 0 },
+              branches: { covered: 0, total: 0 },
+              functions: { covered: 0, total: 0 },
+              lines: { covered: 0, total: 0 }
+            });
+            
+            const pct = totals.statements.total > 0 ? 
+              (totals.statements.covered / totals.statements.total) * 100 : 0;
+            console.log(pct.toFixed(2));
+          ")
+          
+          echo "Current coverage: $COVERAGE%"
+          
+          # Check if coverage meets minimum threshold
+          if (( $(echo "$COVERAGE < 75" | bc -l) )); then
+            echo "❌ Coverage $COVERAGE% is below minimum threshold of 75%"
+            exit 1
+          else
+            echo "✅ Coverage $COVERAGE% meets minimum threshold of 75%"
+          fi
+
