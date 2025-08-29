@@ -98,9 +98,9 @@ describe('Poll Command', () => {
             // Check buttons have the right structure
             const buttons = callArgs.components[0].components;
             expect(buttons).toHaveLength(3);
-            expect(buttons[0].label).toMatch(/1️⃣ 0/);
-            expect(buttons[1].label).toMatch(/2️⃣ 0/);
-            expect(buttons[2].label).toMatch(/3️⃣ 0/);
+            expect(buttons[0].label || buttons[0].data?.label).toMatch(/1️⃣ 0/);
+            expect(buttons[1].label || buttons[1].data?.label).toMatch(/2️⃣ 0/);
+            expect(buttons[2].label || buttons[2].data?.label).toMatch(/3️⃣ 0/);
 
             // Check database creation
             expect(mockPoll.create).toHaveBeenCalledWith(expect.objectContaining({
