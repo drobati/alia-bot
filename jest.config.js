@@ -8,7 +8,7 @@ module.exports = {
         "!src/**/*.d.ts",
         "!src/types/**",
     ],
-    coverageReporters: ["text", "lcov", "html"],
+    coverageReporters: ["text", "lcov", "html", "json"],
     coverageThreshold: {
         global: {
             statements: 40,
