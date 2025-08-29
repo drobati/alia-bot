@@ -35,3 +35,54 @@ jobs:
       - run: npm ci
       - run: npm test
 
+  Coverage:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Use Node.js 20
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+      - name: Install dependencies
+        run: npm ci
+      - name: Run tests with coverage
+        run: npm run coverage
+      - name: Upload coverage reports
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage-report
+          path: coverage/
+      - name: Check coverage threshold
+        run: |
+          # Extract coverage percentage from Jest coverage report
+          COVERAGE=$(node -e "
+            const fs = require('fs');
+            const coverage = JSON.parse(fs.readFileSync('coverage/coverage-final.json', 'utf8'));
+            
+            let totalStatements = 0;
+            let coveredStatements = 0;
+            
+            Object.values(coverage).forEach(file => {
+              if (file.s && file.statementMap) {
+                const statements = Object.keys(file.s);
+                totalStatements += statements.length;
+                coveredStatements += statements.filter(key => file.s[key] > 0).length;
+              }
+            });
+            
+            const pct = totalStatements > 0 ? 
+              (coveredStatements / totalStatements) * 100 : 0;
+            console.log(pct.toFixed(2));
+          ")
+          
+          echo "Current coverage: $COVERAGE%"
+          
+          # Check if coverage meets minimum threshold
+          if (( $(echo "$COVERAGE < 40" | bc -l) )); then
+            echo "❌ Coverage $COVERAGE% is below minimum threshold of 40%"
+            exit 1
+          else
+            echo "✅ Coverage $COVERAGE% meets minimum threshold of 40%"
+          fi
+
