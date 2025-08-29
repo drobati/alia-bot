@@ -151,10 +151,10 @@ async function handleCreateCommand(interaction: any, context: any) {
         actionRows.push(row);
     }
 
-    const pollMessage = await interaction.reply({ 
-        embeds: [pollEmbed], 
+    const pollMessage = await interaction.reply({
+        embeds: [pollEmbed],
         components: actionRows,
-        fetchReply: true 
+        fetchReply: true,
     });
 
     // Store poll in database
@@ -189,7 +189,7 @@ async function handleResultsCommand(interaction: any, context: any) {
     let poll = await context.tables.Poll.findOne({
         where: { poll_id: pollId },
     });
-    
+
     if (!poll) {
         // Try as message_id for legacy polls
         poll = await context.tables.Poll.findOne({
@@ -284,7 +284,9 @@ async function handleListCommand(interaction: any, context: any) {
         .setDescription(polls.map((poll: any, index: number) => {
             const timeLeft = Math.round((new Date(poll.expires_at).getTime() - Date.now()) / (1000 * 60));
             const status = timeLeft > 0 ? `${timeLeft}m left` : 'Expired';
-            const pollIdDisplay = poll.poll_id ? `📝 Poll ID: \`${poll.poll_id}\`` : `📝 Message ID: \`${poll.message_id}\` (legacy)`;
+            const pollIdDisplay = poll.poll_id
+                ? `📝 Poll ID: \`${poll.poll_id}\``
+                : `📝 Message ID: \`${poll.message_id}\` (legacy)`;
             return `**${index + 1}.** ${poll.question}\n` +
                    `${pollIdDisplay}\n` +
                    `⏰ ${status}`;
@@ -305,7 +307,7 @@ async function handleCloseCommand(interaction: any, context: any) {
             is_active: true,
         },
     });
-    
+
     if (!poll) {
         // Try as message_id for legacy polls
         poll = await context.tables.Poll.findOne({
@@ -328,7 +330,7 @@ async function handleCloseCommand(interaction: any, context: any) {
     // Close the poll
     await context.tables.Poll.update(
         { is_active: false },
-        { where: { id: poll.id } }
+        { where: { id: poll.id } },
     );
 
     // Get final results for the closing message
@@ -350,8 +352,8 @@ async function handleCloseCommand(interaction: any, context: any) {
 
     // Find the winning option(s)
     const maxVotes = Math.max(...Array.from(voteCounts.values()), 0);
-    const winners = options.filter((_: string, index: number) => 
-        (voteCounts.get(index) || 0) === maxVotes && maxVotes > 0
+    const winners = options.filter((_: string, index: number) =>
+        (voteCounts.get(index) || 0) === maxVotes && maxVotes > 0,
     );
 
     const closedEmbed = new EmbedBuilder()

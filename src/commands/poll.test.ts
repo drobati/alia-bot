@@ -78,23 +78,33 @@ describe('Poll Command', () => {
         it('should create a poll successfully', async () => {
             await pollCommand.execute(mockInteraction, mockContext);
 
-            expect(mockInteraction.reply).toHaveBeenCalledWith({
-                embeds: expect.arrayContaining([
-                    expect.objectContaining({
-                        data: expect.objectContaining({
-                            title: '📊 Test poll question?',
-                        }),
-                    }),
-                ]),
+            const callArgs = mockInteraction.reply.mock.calls[0][0] as any;
+
+            // Check that reply was called with proper structure
+            expect(callArgs).toEqual(expect.objectContaining({
+                embeds: expect.any(Array),
+                components: expect.any(Array),
                 fetchReply: true,
+            }));
+
+            // Check embed properties
+            expect(callArgs.embeds[0].title || callArgs.embeds[0].data?.title).toBe('📊 Test poll question?');
+
+            // Check button components exist
+            expect(callArgs.components[0]).toMatchObject({
+                components: expect.any(Array),
             });
 
-            expect(mockPollMessage.react).toHaveBeenCalledTimes(3);
-            expect(mockPollMessage.react).toHaveBeenCalledWith('1️⃣');
-            expect(mockPollMessage.react).toHaveBeenCalledWith('2️⃣');
-            expect(mockPollMessage.react).toHaveBeenCalledWith('3️⃣');
+            // Check buttons have the right structure
+            const buttons = callArgs.components[0].components;
+            expect(buttons).toHaveLength(3);
+            expect(buttons[0].label).toMatch(/1️⃣ 0/);
+            expect(buttons[1].label).toMatch(/2️⃣ 0/);
+            expect(buttons[2].label).toMatch(/3️⃣ 0/);
 
-            expect(mockPoll.create).toHaveBeenCalledWith({
+            // Check database creation
+            expect(mockPoll.create).toHaveBeenCalledWith(expect.objectContaining({
+                poll_id: expect.any(String),
                 message_id: 'test-message-id',
                 channel_id: 'test-channel-id',
                 guild_id: 'test-guild-id',
@@ -103,7 +113,7 @@ describe('Poll Command', () => {
                 options: JSON.stringify(['Option 1', 'Option 2', 'Option 3']),
                 expires_at: expect.any(Date),
                 is_active: true,
-            });
+            }));
         });
 
         it('should reject polls with less than 2 options', async () => {
@@ -155,8 +165,8 @@ describe('Poll Command', () => {
             mockInteraction.options.getSubcommand.mockReturnValue('results');
             mockInteraction.options.getString.mockImplementation((param: string) => {
                 switch (param) {
-                    case 'message_id':
-                        return 'test-message-id';
+                    case 'poll_id':
+                        return 'test-poll-id';
                     default:
                         return null;
                 }
@@ -166,6 +176,7 @@ describe('Poll Command', () => {
         it('should show poll results', async () => {
             const mockPollData = {
                 id: 1,
+                poll_id: 'test-poll-id',
                 question: 'Test poll question?',
                 options: JSON.stringify(['Option 1', 'Option 2', 'Option 3']),
                 is_active: true,
@@ -186,7 +197,7 @@ describe('Poll Command', () => {
             await pollCommand.execute(mockInteraction, mockContext);
 
             expect(mockPoll.findOne).toHaveBeenCalledWith({
-                where: { message_id: 'test-message-id' },
+                where: { poll_id: 'test-poll-id' },
             });
 
             expect(mockInteraction.reply).toHaveBeenCalledWith({

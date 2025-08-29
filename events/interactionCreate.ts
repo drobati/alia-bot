@@ -63,8 +63,8 @@ async function handlePollVote(interaction: any, context: Context) {
     try {
         // Parse button custom ID: poll_vote_{pollId}_{optionIndex}
         const parts = interaction.customId.split('_');
-        if (parts.length !== 4) return;
-        
+        if (parts.length !== 4) {return;}
+
         const pollId = parts[2];
         const optionIndex = parseInt(parts[3]);
 
@@ -85,7 +85,7 @@ async function handlePollVote(interaction: any, context: Context) {
         if (new Date() > new Date(poll.expires_at)) {
             await context.tables.Poll.update(
                 { is_active: false },
-                { where: { id: poll.id } }
+                { where: { id: poll.id } },
             );
             await interaction.reply({ content: 'This poll has expired.', ephemeral: true });
             return;
@@ -133,7 +133,7 @@ async function handlePollVote(interaction: any, context: Context) {
 
         // Update the original message with new vote counts
         await interaction.update({
-            components: actionRows
+            components: actionRows,
         });
 
         context.log.info('Poll vote recorded and buttons updated', {
