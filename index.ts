@@ -7,6 +7,7 @@ import bunyan from "bunyan";
 import { join } from "path";
 import { readdirSync } from "fs";
 import { BotCommand, Context, BotEvent, ExtendedClient } from "./src/utils/types";
+import { MotivationalScheduler } from './src/services/motivationalScheduler';
 
 const VERSION = '2.0.0';
 
@@ -37,7 +38,10 @@ const context: Context = {
     sequelize,
     log,
     VERSION,
+    motivationalScheduler: undefined, // Will be set after initialization
 };
+
+let motivationalScheduler: MotivationalScheduler;
 
 // Debug model loading
 log.info('=== MODEL LOADING DEBUG START ===');
@@ -100,7 +104,32 @@ async function startBot() {
 
     await client.login(process.env.BOT_TOKEN);
     log.info(`Logged in. Version ${VERSION}`);
+
+    // Initialize motivational scheduler after successful login
+    motivationalScheduler = new MotivationalScheduler(client, context);
+    context.motivationalScheduler = motivationalScheduler;
+    await motivationalScheduler.initialize();
+    log.info('Motivational scheduler initialized');
 }
+
+// Graceful shutdown handler
+process.on('SIGINT', () => {
+    log.info('Received SIGINT, shutting down gracefully...');
+    if (motivationalScheduler) {
+        motivationalScheduler.shutdown();
+    }
+    client.destroy();
+    process.exit(0);
+});
+
+process.on('SIGTERM', () => {
+    log.info('Received SIGTERM, shutting down gracefully...');
+    if (motivationalScheduler) {
+        motivationalScheduler.shutdown();
+    }
+    client.destroy();
+    process.exit(0);
+});
 
 startBot().catch(error => {
     log.error({ error: error.message, stack: error.stack }, 'Failed to start bot');

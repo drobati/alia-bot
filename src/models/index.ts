@@ -2,6 +2,7 @@ import Adlibs from "./adlibs";
 import Config from "./config";
 import Louds from "./louds";
 import Memories from "./memories";
+import MotivationalConfig from "./motivationalConfig";
 import Poll from "./Poll";
 import PollVote from "./PollVote";
 import RollCall from "./rollcall";
@@ -13,6 +14,7 @@ export default {
     Config,
     Louds,
     Memories,
+    MotivationalConfig,
     Poll,
     PollVote,
     RollCall,

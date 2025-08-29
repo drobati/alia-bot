@@ -28,6 +28,7 @@
     "dependencies": {
         "@hapi/hapi": "^21.3.2",
         "@types/jimp": "^0.2.1",
+        "@types/node-cron": "^3.0.11",
         "axios": "^1.11.0",
         "bunyan": "^1.8.15",
         "canvas": "^3.2.0",
@@ -42,6 +43,7 @@
         "lodash": "^4.17.21",
         "mysql2": "^3.14.3",
         "natural": "^6.10.4",
+        "node-cron": "^4.2.1",
         "openai": "^4.20.1",
         "prettier": "^2.4.1",
         "qrcode": "^1.4.4",

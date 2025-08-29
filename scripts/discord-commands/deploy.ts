@@ -8,6 +8,11 @@ const clientId = process.env.CLIENT_ID;
 const guildId = process.env.GUILD_ID;
 const token = process.env.BOT_TOKEN;
 
+if (!clientId || !token) {
+    console.error('Missing required environment variables: CLIENT_ID and BOT_TOKEN are required');
+    process.exit(1);
+}
+
 const commands = [];
 // Grab all the command files from the commands directory you created earlier
 const commandsPath = path.join(__dirname, '../../dist/src/commands');
@@ -58,7 +63,7 @@ const rest = new REST().setToken(token);
         console.log(`Deploying ${deployType} via:`, route);
 
         // The put method is used to fully refresh all commands in the guild with the current set
-        const data = await rest.put(route, { body: commands });
+        const data = await rest.put(route, { body: commands }) as any[];
 
         console.log(`Successfully reloaded ${data.length} application (/) commands.`);
         console.log('Commands deployed globally - will appear on ALL servers within 1 hour');

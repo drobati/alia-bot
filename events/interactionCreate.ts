@@ -5,6 +5,15 @@ const interactionCreateEventHandler: BotEvent = {
     name: Events.InteractionCreate,
     async execute(interaction: Interaction, context: Context) {
         const { log } = context;
+        
+        // Log ALL incoming interactions for debugging
+        log.info('Interaction received', {
+            type: interaction.type,
+            commandName: interaction.isChatInputCommand() ? interaction.commandName : 'N/A',
+            userId: interaction.user?.id,
+            guildId: interaction.guildId,
+            channelId: interaction.channelId,
+        });
 
         // Handle button interactions for polls
         if (interaction.isButton() && interaction.customId.startsWith('poll_vote_')) {
