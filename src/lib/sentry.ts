@@ -53,7 +53,15 @@ export function initializeSentry() {
         environment: process.env.NODE_ENV || "development",
         integrations: [
             nodeProfilingIntegration(),
+            // Enable console logging integration for testing
+            Sentry.consoleLoggingIntegration({ 
+                levels: ["log", "warn", "error"] 
+            }),
         ],
+        // Enable Sentry Logs feature
+        enableLogs: true,
+        // Enable debug mode only in development
+        debug: process.env.NODE_ENV === 'development',
         // Performance Monitoring
         tracesSampleRate: 0.1, // 10% of transactions for performance monitoring
         // Release Tracking - prioritize VERSION from deployment, fallback to COMMIT_SHA, then 'unknown'

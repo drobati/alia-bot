@@ -3,7 +3,36 @@ import config from 'config';
 import { Sentry } from '../lib/sentry';
 
 /**
- * Custom Bunyan stream that forwards logs to Sentry based on severity levels
+ * Send logs directly to Sentry Logs using the native v10 logger API
+ */
+function sendToSentryLogs(level: string, message: string, data: Record<string, any>) {
+    try {
+        // Use Sentry's native logger API (available in v10+)
+        const logger = Sentry.logger;
+        
+        switch (level) {
+            case 'debug':
+                logger.debug(message, data);
+                break;
+            case 'info':
+                logger.info(message, data);
+                break;
+            case 'warning':
+                logger.warn(message, data);
+                break;
+            case 'error':
+                logger.error(message, data);
+                break;
+            default:
+                logger.info(message, data);
+        }
+    } catch (error) {
+        console.error('[SentryLogs] Error sending log to Sentry:', error);
+    }
+}
+
+/**
+ * Custom Bunyan stream that forwards logs to both Sentry Issues and Sentry Logs
  */
 class SentryBunyanStream {
     write(record: any) {
@@ -74,7 +103,39 @@ class SentryBunyanStream {
         }
 
         try {
-            // Handle errors specially
+            // Send ALL logs to Sentry Logs via direct API
+            let sentryLogLevel = 'info';
+            switch (level) {
+                case 10: // TRACE
+                case 20: // DEBUG
+                    sentryLogLevel = 'debug';
+                    break;
+                case 30: // INFO
+                    sentryLogLevel = 'info';
+                    break;
+                case 40: // WARN
+                    sentryLogLevel = 'warning';
+                    break;
+                case 50: // ERROR
+                case 60: // FATAL
+                    sentryLogLevel = 'error';
+                    break;
+            }
+
+            // Send to Sentry Logs with full context
+            sendToSentryLogs(sentryLogLevel, msg || 'Log message', {
+                bunyan_level: bunyan.nameFromLevel[level] || 'unknown',
+                userId,
+                username,
+                channelId,
+                guildId,
+                command,
+                error: err || error,
+                timestamp: new Date().toISOString(),
+                ...extra,
+            });
+
+            // ALSO send errors and important events to Sentry Issues (existing behavior)
             const errorObject = err || error;
             if (errorObject && sentryLevel === 'error') {
                 // For error levels, capture as exception
