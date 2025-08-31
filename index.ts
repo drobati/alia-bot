@@ -1,4 +1,8 @@
 import 'dotenv/config';
+// Initialize Sentry first, before any other imports
+import { initializeSentry } from './src/lib/sentry';
+initializeSentry();
+
 import { Client, Collection, GatewayIntentBits, Partials } from 'discord.js';
 import db from 'sequelize';
 import models from './src/models';
@@ -9,6 +13,7 @@ import { readdirSync } from "fs";
 import { BotCommand, Context, BotEvent, ExtendedClient } from "./src/utils/types";
 import { MotivationalScheduler } from './src/services/motivationalScheduler';
 import { VoiceService } from './src/services/voice';
+import { captureOwnerIdDebug, Sentry } from './src/lib/sentry';
 
 const VERSION = '2.0.0';
 
@@ -115,6 +120,14 @@ async function startBot() {
     log.info(`Owner ID type: ${typeof ownerId}`);
     log.info(`===================================`);
 
+    // Capture owner ID configuration in Sentry for debugging
+    captureOwnerIdDebug({
+        userId: 'SYSTEM',
+        configuredOwnerId: ownerId,
+        isOwner: true,
+        event: 'login',
+    });
+
     // Send owner config to #deploy channel
     try {
         const deployChannelId = '847239885146333215'; // #deploy channel
@@ -129,6 +142,7 @@ async function startBot() {
         }
     } catch (error) {
         log.error('Failed to send deploy message:', error);
+        Sentry.captureException(error);
     }
 
     // Initialize motivational scheduler after successful login
@@ -183,5 +197,6 @@ process.on('SIGTERM', () => {
 
 startBot().catch(error => {
     log.error({ error: error.message, stack: error.stack }, 'Failed to start bot');
+    Sentry.captureException(error);
     process.exit(1);
 });

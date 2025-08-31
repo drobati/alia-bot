@@ -1,4 +1,5 @@
 import config from 'config';
+import { captureOwnerIdDebug, setSentryUserContext } from '../lib/sentry';
 
 /**
  * Check if a user ID matches the configured bot owner
@@ -35,6 +36,17 @@ export async function checkOwnerPermission(interaction: any, context?: any): Pro
     if (context?.log) {
         context.log.info('=== OWNER PERMISSION CHECK ===', logData);
     }
+
+    // Set Sentry user context and capture owner ID debug info
+    setSentryUserContext(userId, interaction.user.username, isUserOwner);
+    captureOwnerIdDebug({
+        command: interaction.commandName,
+        userId: userId,
+        username: interaction.user.username,
+        configuredOwnerId: ownerId,
+        isOwner: isUserOwner,
+        event: 'permission_check',
+    });
 
     if (!isUserOwner) {
         await interaction.reply({
