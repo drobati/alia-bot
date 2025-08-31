@@ -6,6 +6,20 @@ import { Context } from '../utils/types';
 jest.mock('../utils/assistant');
 jest.mock('../utils/hybrid-classifier');
 
+// Mock OpenAI at the module level to prevent instantiation errors
+jest.mock('openai', () => {
+    return {
+        __esModule: true,
+        default: jest.fn().mockImplementation(() => ({
+            chat: {
+                completions: {
+                    create: jest.fn(),
+                },
+            },
+        })),
+    };
+});
+
 describe('Assistant Response Layer Filtering', () => {
     let mockMessage: Partial<Message>;
     let mockContext: Context;
