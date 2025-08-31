@@ -39,6 +39,7 @@ const mockInteraction = {
         },
     },
     reply: jest.fn(),
+    editReply: jest.fn(),
 };
 
 describe('motivational-config command', () => {
