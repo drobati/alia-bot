@@ -2,6 +2,7 @@ import { Message } from 'discord.js';
 import generateResponse from '../utils/assistant';
 import { Context } from '../utils/types';
 import { HybridClassifier } from '../utils/hybrid-classifier';
+import { safelySendToChannel } from '../utils/discordHelpers';
 
 // Initialize hybrid classifier (combines keyword patterns + Bayesian ML)
 const hybridClassifier = new HybridClassifier();
@@ -176,10 +177,15 @@ export default async (message: Message, context: Context) => {
                 });
 
                 if (response && message.channel && 'send' in message.channel) {
-                    try {
-                        await message.channel.send(response);
+                    const success = await safelySendToChannel(
+                        message.channel as any,
+                        response,
+                        context,
+                        'assistant response',
+                    );
 
-                        const processingTime = Date.now() - startTime;
+                    const processingTime = Date.now() - startTime;
+                    if (success) {
                         context.log.info('Assistant response sent successfully', {
                             userId: message.author.id,
                             responseLength: response.length,
@@ -187,10 +193,11 @@ export default async (message: Message, context: Context) => {
                             stage: 'response_sent',
                             success: true,
                         });
-                    } catch (sendError) {
+                    } else {
                         context.log.error('Assistant failed to send response to Discord', {
                             userId: message.author.id,
-                            error: sendError,
+                            responseLength: response.length,
+                            processingTimeMs: processingTime,
                             stage: 'discord_send',
                             success: false,
                         });
