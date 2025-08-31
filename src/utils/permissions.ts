@@ -18,7 +18,7 @@ export async function checkOwnerPermission(interaction: any, context?: any): Pro
     const ownerId = config.get<string>('owner');
     const userId = interaction.user.id;
     const isUserOwner = userId === ownerId;
-    
+
     // Enhanced logging for debugging
     const logData = {
         command: interaction.commandName,
@@ -31,13 +31,11 @@ export async function checkOwnerPermission(interaction: any, context?: any): Pro
         exactMatch: userId === ownerId,
         comparison: `"${userId}" === "${ownerId}"`,
     };
-    
+
     if (context?.log) {
         context.log.info('=== OWNER PERMISSION CHECK ===', logData);
-    } else {
-        console.log('=== OWNER PERMISSION CHECK ===', logData);
     }
-    
+
     if (!isUserOwner) {
         await interaction.reply({
             content: `❌ This command is restricted to the bot owner only.\n` +
