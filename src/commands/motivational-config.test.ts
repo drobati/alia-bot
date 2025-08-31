@@ -40,6 +40,8 @@ const mockInteraction = {
     },
     reply: jest.fn(),
     editReply: jest.fn(),
+    replied: false,
+    deferred: false,
 };
 
 describe('motivational-config command', () => {
@@ -219,8 +221,11 @@ describe('motivational-config command', () => {
             await motivationalConfigCommand.execute(mockInteraction, mockContext);
 
             expect(mockInteraction.reply).toHaveBeenCalledWith({
-                content: expect.stringMatching(/📊.*Motivational Message Status/),
-                ephemeral: true,
+                content: '📊 Status command received and processing...',
+                flags: 64,
+            });
+            expect(mockInteraction.editReply).toHaveBeenCalledWith({
+                content: `📊 Found ${mockConfigs.length} configuration(s) for this server.`,
             });
         });
 
@@ -230,8 +235,11 @@ describe('motivational-config command', () => {
             await motivationalConfigCommand.execute(mockInteraction, mockContext);
 
             expect(mockInteraction.reply).toHaveBeenCalledWith({
-                content: expect.stringContaining('No motivational message configurations found'),
-                ephemeral: true,
+                content: '📊 Status command received and processing...',
+                flags: 64,
+            });
+            expect(mockInteraction.editReply).toHaveBeenCalledWith({
+                content: '📊 No motivational message configurations found for this server.',
             });
         });
     });
