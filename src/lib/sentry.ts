@@ -53,7 +53,15 @@ export function initializeSentry() {
         environment: process.env.NODE_ENV || "development",
         integrations: [
             nodeProfilingIntegration(),
+            // Enable console logging integration for testing
+            Sentry.consoleLoggingIntegration({ 
+                levels: ["log", "warn", "error"] 
+            }),
         ],
+        // Enable Sentry Logs feature
+        enableLogs: true,
+        // Enable debug mode only in development
+        debug: process.env.NODE_ENV === 'development',
         // Performance Monitoring
         tracesSampleRate: 0.1, // 10% of transactions for performance monitoring
         // Release Tracking - prioritize VERSION from deployment, fallback to COMMIT_SHA, then 'unknown'
@@ -64,7 +72,7 @@ export function initializeSentry() {
         beforeSend(event) {
             // Add bot-specific context to all events
             if (event.extra) {
-                event.extra.botVersion = config.get('version') || '2.0.0';
+                event.extra.botVersion = process.env.VERSION || '2.0.0';
                 event.extra.nodeEnv = process.env.NODE_ENV;
                 event.extra.botOwnerId = config.get('owner');
             }

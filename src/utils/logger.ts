@@ -3,7 +3,36 @@ import config from 'config';
 import { Sentry } from '../lib/sentry';
 
 /**
- * Custom Bunyan stream that forwards logs to Sentry based on severity levels
+ * Send logs directly to Sentry Logs using the native v10 logger API
+ */
+function sendToSentryLogs(level: string, message: string, data: Record<string, any>) {
+    try {
+        // Use Sentry's native logger API (available in v10+)
+        const logger = Sentry.logger;
+        
+        switch (level) {
+            case 'debug':
+                logger.debug(message, data);
+                break;
+            case 'info':
+                logger.info(message, data);
+                break;
+            case 'warning':
+                logger.warn(message, data);
+                break;
+            case 'error':
+                logger.error(message, data);
+                break;
+            default:
+                logger.info(message, data);
+        }
+    } catch (error) {
+        console.error('[SentryLogs] Error sending log to Sentry:', error);
+    }
+}
+
+/**
+ * Custom Bunyan stream that forwards logs to both Sentry Issues and Sentry Logs
  */
 class SentryBunyanStream {
     write(record: any) {
@@ -73,41 +102,78 @@ class SentryBunyanStream {
             Sentry.setExtra('log_context', extra);
         }
 
-        // Handle errors specially
-        const errorObject = err || error;
-        if (errorObject && sentryLevel === 'error') {
-            // For error levels, capture as exception
-            if (errorObject instanceof Error) {
-                Sentry.captureException(errorObject);
+        try {
+            // Send ALL logs to Sentry Logs via direct API
+            let sentryLogLevel = 'info';
+            switch (level) {
+                case 10: // TRACE
+                case 20: // DEBUG
+                    sentryLogLevel = 'debug';
+                    break;
+                case 30: // INFO
+                    sentryLogLevel = 'info';
+                    break;
+                case 40: // WARN
+                    sentryLogLevel = 'warning';
+                    break;
+                case 50: // ERROR
+                case 60: // FATAL
+                    sentryLogLevel = 'error';
+                    break;
+            }
+
+            // Send to Sentry Logs with full context
+            sendToSentryLogs(sentryLogLevel, msg || 'Log message', {
+                bunyan_level: bunyan.nameFromLevel[level] || 'unknown',
+                userId,
+                username,
+                channelId,
+                guildId,
+                command,
+                error: err || error,
+                timestamp: new Date().toISOString(),
+                ...extra,
+            });
+
+            // ALSO send errors and important events to Sentry Issues (existing behavior)
+            const errorObject = err || error;
+            if (errorObject && sentryLevel === 'error') {
+                // For error levels, capture as exception
+                if (errorObject instanceof Error) {
+                    Sentry.captureException(errorObject);
+                } else {
+                    Sentry.captureException(new Error(msg || 'Unknown error'), {
+                        extra: { original_error: errorObject },
+                    });
+                }
+            } else if (sentryLevel === 'warning' || sentryLevel === 'error') {
+                // For warnings and non-exception errors, capture as message
+                Sentry.captureMessage(msg || 'Log message', sentryLevel);
+            } else if (sentryLevel === 'info' && (
+                msg?.includes('deployed') ||
+                msg?.includes('initialized') ||
+                msg?.includes('started') ||
+                msg?.includes('shutdown')
+            )) {
+                // Capture important operational messages
+                Sentry.addBreadcrumb({
+                    message: msg,
+                    level: sentryLevel,
+                    category: 'system',
+                    data: extra,
+                });
             } else {
-                Sentry.captureException(new Error(msg || 'Unknown error'), {
-                    extra: { original_error: errorObject },
+                // For debug/trace, just add as breadcrumb for context
+                Sentry.addBreadcrumb({
+                    message: msg,
+                    level: sentryLevel,
+                    category: 'log',
+                    data: extra,
                 });
             }
-        } else if (sentryLevel === 'warning' || sentryLevel === 'error') {
-            // For warnings and non-exception errors, capture as message
-            Sentry.captureMessage(msg || 'Log message', sentryLevel);
-        } else if (sentryLevel === 'info' && (
-            msg?.includes('deployed') ||
-            msg?.includes('initialized') ||
-            msg?.includes('started') ||
-            msg?.includes('shutdown')
-        )) {
-            // Capture important operational messages
-            Sentry.addBreadcrumb({
-                message: msg,
-                level: sentryLevel,
-                category: 'system',
-                data: extra,
-            });
-        } else {
-            // For debug/trace, just add as breadcrumb for context
-            Sentry.addBreadcrumb({
-                message: msg,
-                level: sentryLevel,
-                category: 'log',
-                data: extra,
-            });
+        } catch (sentryError) {
+            // eslint-disable-next-line no-console
+            console.error('[SentryStream] Error sending to Sentry:', sentryError);
         }
     }
 }
@@ -123,19 +189,14 @@ export function createLogger(name: string, additionalStreams: bunyan.Stream[] = 
         },
     ];
 
-    // Add Sentry stream in production or when Sentry is configured
-    if (process.env.SENTRY_DSN && process.env.NODE_ENV === 'production') {
+    // Add Sentry stream when DSN is configured
+    if (process.env.SENTRY_DSN) {
+        const sentryLevel = process.env.NODE_ENV === 'production' ? 'warn' : 'info';
+
         streams.push({
-            level: 'warn', // Only send warnings and above to Sentry
+            level: sentryLevel as bunyan.LogLevel,
             stream: new SentryBunyanStream(),
             type: 'raw', // Use raw mode to get the full record object
-        });
-    } else if (process.env.SENTRY_DSN) {
-        // In development, send all error levels to Sentry for testing
-        streams.push({
-            level: 'error',
-            stream: new SentryBunyanStream(),
-            type: 'raw',
         });
     }
 
