@@ -9,6 +9,20 @@ export interface MotivationalScheduler {
     removeSchedule: (channelId: string) => Promise<void>;
 }
 
+export interface VoiceService {
+    joinVoiceChannel: (channel: any) => Promise<any>;
+    leaveVoiceChannel: (guildId: string) => Promise<void>;
+    speakText: (
+        text: string,
+        guildId: string,
+        voice?: 'alloy' | 'echo' | 'fable' | 'onyx' | 'nova' | 'shimmer'
+    ) => Promise<void>;
+    getUserVoiceChannel: (member: any) => any;
+    isConnectedToVoice: (guildId: string) => boolean;
+    getConnectionInfo: (guildId: string) => any;
+    destroy: () => void;
+}
+
 // Re-export types from dedicated type files
 export { BotCommand, ExtendedClient, BotEvent, MessageResponse } from '../types/discord';
 export { DatabaseTables } from '../types/database';
@@ -20,6 +34,7 @@ export interface Context {
     sequelize: Sequelize;
     VERSION: string;
     motivationalScheduler?: MotivationalScheduler;
+    voiceService?: VoiceService;
 }
 
 // Legacy exports for backward compatibility (will be removed gradually)

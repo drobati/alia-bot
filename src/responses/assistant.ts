@@ -9,6 +9,53 @@ const hybridClassifier = new HybridClassifier();
 // Static constants to avoid array recreation on every function call
 const RESPONSE_INTENTS = ['general-knowledge', 'real-time-knowledge', 'technical-question'];
 
+// Content appropriateness check - filters out inappropriate, personal, or social requests
+function checkContentAppropriateness(content: string): boolean {
+    const lowerContent = content.toLowerCase().trim();
+
+    // Skip if too short or unclear
+    if (lowerContent.length < 3) {
+        return false;
+    }
+
+    // Inappropriate content patterns
+    const inappropriatePatterns = [
+        /you.*stupid/,
+        /you.*suck/,
+        /shut.*up/,
+        /fuck/,
+        /shit/,
+        /damn.*you/,
+        /hate.*you/,
+    ];
+
+    // Personal/social request patterns (not general knowledge)
+    const personalPatterns = [
+        /tell\s+\w+\s+(he|she|they)/,  // "tell John he..."
+        /my\s+hand\s+hurts/,
+        /my\s+.*\s+(hurts|aches|pains)/,
+        /i\s+(think|feel|believe)\s+that/,
+        /you\s+(should|need\s+to|have\s+to)/,
+        /can\s+you\s+(tell|ask|remind)/,
+    ];
+
+    // Check for inappropriate content
+    for (const pattern of inappropriatePatterns) {
+        if (pattern.test(lowerContent)) {
+            return false;
+        }
+    }
+
+    // Check for personal/social requests
+    for (const pattern of personalPatterns) {
+        if (pattern.test(lowerContent)) {
+            return false;
+        }
+    }
+
+    return true;
+}
+
 // Hybrid Assistant classifier initialized with keyword patterns + Bayesian ML
 
 export default async (message: Message, context: Context) => {
@@ -16,16 +63,60 @@ export default async (message: Message, context: Context) => {
         return;
     }
 
+    // Layer 1: Direct Addressing Pre-filter
+    // Only process messages that explicitly address the bot
+    const content = message.content.toLowerCase().trim();
+    const botMentioned = message.mentions.has(message.client.user!);
+    const startsWithAlia = content.startsWith('alia,') || content.startsWith('alia ');
+
+    if (!botMentioned && !startsWithAlia) {
+        // Log that we skipped processing due to no direct addressing
+        context.log.debug('Assistant skipped - not directly addressed', {
+            userId: message.author.id,
+            messageLength: message.content.length,
+            botMentioned,
+            startsWithAlia,
+            stage: 'direct_addressing_filter',
+        });
+        return;
+    }
+
+    // Remove the "Alia," prefix for processing
+    let processableContent = message.content;
+    if (startsWithAlia) {
+        processableContent = message.content.replace(/^alia,?\s*/i, '').trim();
+    }
+
+    // If after removing prefix, there's no meaningful content, skip
+    if (!processableContent || processableContent.length < 3) {
+        context.log.debug('Assistant skipped - no meaningful content after prefix removal', {
+            userId: message.author.id,
+            originalLength: message.content.length,
+            processableLength: processableContent.length,
+            stage: 'content_validation_filter',
+        });
+        return;
+    }
+
     const startTime = Date.now();
+    context.log.info('Assistant processing directly addressed message', {
+        userId: message.author.id,
+        botMentioned,
+        startsWithAlia,
+        originalLength: message.content.length,
+        processableLength: processableContent.length,
+        stage: 'direct_addressing_passed',
+    });
     const isDebugMode = process.env.ASSISTANT_DEBUG === 'true';
 
     try {
-        // Use hybrid classifier for better accuracy
-        const classificationResult = hybridClassifier.classify(message.content);
+        // Layer 2: Use hybrid classifier on cleaned content for better accuracy
+        const classificationResult = hybridClassifier.classify(processableContent);
         const intent = classificationResult.intent;
         const confidence = classificationResult.confidence;
         const method = classificationResult.method;
-        const CONFIDENCE_THRESHOLD = 0.5; // Raised back up since hybrid classifier should have better confidence
+        // Layer 2: Improved thresholds - since we have direct addressing, we can be more selective
+        const CONFIDENCE_THRESHOLD = 0.7; // Higher threshold since direct addressing filters intent
 
         // Log classification results
         const classificationData = {
@@ -45,8 +136,21 @@ export default async (message: Message, context: Context) => {
 
         // Debug mode: log detailed classification analysis
         if (isDebugMode) {
-            const detailedClassification = hybridClassifier.getDetailedClassification(message.content);
+            const detailedClassification = hybridClassifier.getDetailedClassification(processableContent);
             context.log.debug('Assistant detailed classification', detailedClassification);
+        }
+
+        // Layer 2: Content appropriateness check
+        const isAppropriateContent = checkContentAppropriateness(processableContent);
+
+        if (!isAppropriateContent) {
+            context.log.info('Assistant skipped - inappropriate content detected', {
+                userId: message.author.id,
+                intent,
+                confidence,
+                stage: 'content_appropriateness_filter',
+            });
+            return;
         }
 
         // Process if confidence threshold is met
@@ -65,7 +169,7 @@ export default async (message: Message, context: Context) => {
                     messageLength: message.content.length,
                 });
 
-                const response = await generateResponse(message.content, context, {
+                const response = await generateResponse(processableContent, context, {
                     userId: message.author.id,
                     username: message.author.username,
                     channelId: message.channelId,

@@ -8,6 +8,7 @@ import { join } from "path";
 import { readdirSync } from "fs";
 import { BotCommand, Context, BotEvent, ExtendedClient } from "./src/utils/types";
 import { MotivationalScheduler } from './src/services/motivationalScheduler';
+import { VoiceService } from './src/services/voice';
 
 const VERSION = '2.0.0';
 
@@ -16,6 +17,7 @@ const client = new Client({
         GatewayIntentBits.Guilds,
         GatewayIntentBits.GuildMessages,
         GatewayIntentBits.MessageContent,
+        GatewayIntentBits.GuildVoiceStates,
     ],
     partials: [Partials.Channel],
 }) as ExtendedClient;
@@ -42,6 +44,7 @@ const context: Context = {
 };
 
 let motivationalScheduler: MotivationalScheduler;
+let voiceService: VoiceService;
 
 // Debug model loading
 log.info('=== MODEL LOADING DEBUG START ===');
@@ -110,6 +113,11 @@ async function startBot() {
     context.motivationalScheduler = motivationalScheduler;
     await motivationalScheduler.initialize();
     log.info('Motivational scheduler initialized');
+
+    // Initialize voice service
+    voiceService = new VoiceService(context);
+    context.voiceService = voiceService;
+    log.info('Voice service initialized');
 }
 
 // Graceful shutdown handler
@@ -117,6 +125,10 @@ process.on('SIGINT', () => {
     log.info('Received SIGINT, shutting down gracefully...');
     if (motivationalScheduler) {
         motivationalScheduler.shutdown();
+    }
+    if (voiceService) {
+        voiceService.destroy();
+        log.info('Voice service destroyed');
     }
     client.destroy();
     process.exit(0);
@@ -126,6 +138,10 @@ process.on('SIGTERM', () => {
     log.info('Received SIGTERM, shutting down gracefully...');
     if (motivationalScheduler) {
         motivationalScheduler.shutdown();
+    }
+    if (voiceService) {
+        voiceService.destroy();
+        log.info('Voice service destroyed');
     }
     client.destroy();
     process.exit(0);
