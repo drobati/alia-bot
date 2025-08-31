@@ -64,7 +64,7 @@ export function initializeSentry() {
         beforeSend(event) {
             // Add bot-specific context to all events
             if (event.extra) {
-                event.extra.botVersion = config.get('version') || '2.0.0';
+                event.extra.botVersion = process.env.VERSION || '2.0.0';
                 event.extra.nodeEnv = process.env.NODE_ENV;
                 event.extra.botOwnerId = config.get('owner');
             }

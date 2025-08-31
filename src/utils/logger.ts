@@ -73,41 +73,46 @@ class SentryBunyanStream {
             Sentry.setExtra('log_context', extra);
         }
 
-        // Handle errors specially
-        const errorObject = err || error;
-        if (errorObject && sentryLevel === 'error') {
-            // For error levels, capture as exception
-            if (errorObject instanceof Error) {
-                Sentry.captureException(errorObject);
+        try {
+            // Handle errors specially
+            const errorObject = err || error;
+            if (errorObject && sentryLevel === 'error') {
+                // For error levels, capture as exception
+                if (errorObject instanceof Error) {
+                    Sentry.captureException(errorObject);
+                } else {
+                    Sentry.captureException(new Error(msg || 'Unknown error'), {
+                        extra: { original_error: errorObject },
+                    });
+                }
+            } else if (sentryLevel === 'warning' || sentryLevel === 'error') {
+                // For warnings and non-exception errors, capture as message
+                Sentry.captureMessage(msg || 'Log message', sentryLevel);
+            } else if (sentryLevel === 'info' && (
+                msg?.includes('deployed') ||
+                msg?.includes('initialized') ||
+                msg?.includes('started') ||
+                msg?.includes('shutdown')
+            )) {
+                // Capture important operational messages
+                Sentry.addBreadcrumb({
+                    message: msg,
+                    level: sentryLevel,
+                    category: 'system',
+                    data: extra,
+                });
             } else {
-                Sentry.captureException(new Error(msg || 'Unknown error'), {
-                    extra: { original_error: errorObject },
+                // For debug/trace, just add as breadcrumb for context
+                Sentry.addBreadcrumb({
+                    message: msg,
+                    level: sentryLevel,
+                    category: 'log',
+                    data: extra,
                 });
             }
-        } else if (sentryLevel === 'warning' || sentryLevel === 'error') {
-            // For warnings and non-exception errors, capture as message
-            Sentry.captureMessage(msg || 'Log message', sentryLevel);
-        } else if (sentryLevel === 'info' && (
-            msg?.includes('deployed') ||
-            msg?.includes('initialized') ||
-            msg?.includes('started') ||
-            msg?.includes('shutdown')
-        )) {
-            // Capture important operational messages
-            Sentry.addBreadcrumb({
-                message: msg,
-                level: sentryLevel,
-                category: 'system',
-                data: extra,
-            });
-        } else {
-            // For debug/trace, just add as breadcrumb for context
-            Sentry.addBreadcrumb({
-                message: msg,
-                level: sentryLevel,
-                category: 'log',
-                data: extra,
-            });
+        } catch (sentryError) {
+            // eslint-disable-next-line no-console
+            console.error('[SentryStream] Error sending to Sentry:', sentryError);
         }
     }
 }
@@ -123,19 +128,14 @@ export function createLogger(name: string, additionalStreams: bunyan.Stream[] = 
         },
     ];
 
-    // Add Sentry stream in production or when Sentry is configured
-    if (process.env.SENTRY_DSN && process.env.NODE_ENV === 'production') {
+    // Add Sentry stream when DSN is configured
+    if (process.env.SENTRY_DSN) {
+        const sentryLevel = process.env.NODE_ENV === 'production' ? 'warn' : 'info';
+
         streams.push({
-            level: 'warn', // Only send warnings and above to Sentry
+            level: sentryLevel as bunyan.LogLevel,
             stream: new SentryBunyanStream(),
             type: 'raw', // Use raw mode to get the full record object
-        });
-    } else if (process.env.SENTRY_DSN) {
-        // In development, send all error levels to Sentry for testing
-        streams.push({
-            level: 'error',
-            stream: new SentryBunyanStream(),
-            type: 'raw',
         });
     }
 
