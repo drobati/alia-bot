@@ -1,21 +1,7 @@
 import { SlashCommandBuilder } from 'discord.js';
 import { Context } from '../utils/types';
-import config from 'config';
-
-function isOwner(userId: string): boolean {
-    const ownerId = config.get<string>('owner');
-    return userId === ownerId;
-}
-
-async function checkOwnerPermission(interaction: any): Promise<void> {
-    if (!isOwner(interaction.user.id)) {
-        await interaction.reply({
-            content: '❌ This command is restricted to the bot owner only.',
-            ephemeral: true,
-        });
-        throw new Error('Unauthorized: User is not bot owner');
-    }
-}
+import { TTS_CONFIG } from '../utils/constants';
+import { checkOwnerPermission } from '../utils/permissions';
 
 const TTS_CONFIG_KEYS = {
     DEFAULT_VOICE: 'tts_default_voice',
@@ -53,9 +39,9 @@ async function handleSetDefaultVoice(interaction: any, context: Context): Promis
 async function handleSetMaxLength(interaction: any, context: Context): Promise<void> {
     const maxLength = interaction.options.getInteger('max_length');
 
-    if (maxLength < 1 || maxLength > 4096) {
+    if (maxLength < 1 || maxLength > TTS_CONFIG.MAX_TEXT_LENGTH) {
         await interaction.reply({
-            content: '❌ Max length must be between 1 and 4096 characters.',
+            content: `❌ Max length must be between 1 and ${TTS_CONFIG.MAX_TEXT_LENGTH} characters.`,
             ephemeral: true,
         });
         return;
@@ -84,7 +70,7 @@ async function handleShowConfig(interaction: any, context: Context): Promise<voi
     const configMap = new Map(configs.map((config: any) => [config.key, config.value]));
 
     const defaultVoice = configMap.get(TTS_CONFIG_KEYS.DEFAULT_VOICE) || 'alloy';
-    const maxLength = configMap.get(TTS_CONFIG_KEYS.MAX_LENGTH) || '4096';
+    const maxLength = configMap.get(TTS_CONFIG_KEYS.MAX_LENGTH) || String(TTS_CONFIG.MAX_TEXT_LENGTH);
     const rateLimitCooldown = configMap.get(TTS_CONFIG_KEYS.RATE_LIMIT_COOLDOWN) || '5';
 
     const status = context.voiceService ?
@@ -149,10 +135,10 @@ export default {
                 .addIntegerOption(option =>
                     option
                         .setName('max_length')
-                        .setDescription('Maximum characters (1-4096)')
+                        .setDescription(`Maximum characters (1-${TTS_CONFIG.MAX_TEXT_LENGTH})`)
                         .setRequired(true)
                         .setMinValue(1)
-                        .setMaxValue(4096)))
+                        .setMaxValue(TTS_CONFIG.MAX_TEXT_LENGTH)))
         .addSubcommand(subcommand =>
             subcommand
                 .setName('reset')

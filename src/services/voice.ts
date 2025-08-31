@@ -7,8 +7,9 @@ import {
     VoiceConnectionStatus,
     entersState,
 } from '@discordjs/voice';
-import { VoiceChannel, GuildMember } from 'discord.js';
+import { VoiceChannel, GuildMember, ChannelType } from 'discord.js';
 import { Context } from '../utils/types';
+import { TTS_CONFIG } from '../utils/constants';
 import OpenAI from 'openai';
 import { createWriteStream, createReadStream, unlinkSync } from 'fs';
 import { join } from 'path';
@@ -117,7 +118,7 @@ export class VoiceService {
             const mp3Response = await this.openai.audio.speech.create({
                 model: 'tts-1',
                 voice: voice,
-                input: text.substring(0, 4096), // OpenAI TTS has a 4096 character limit
+                input: text.substring(0, TTS_CONFIG.MAX_TEXT_LENGTH), // OpenAI TTS character limit
                 response_format: 'mp3',
             });
 
@@ -154,7 +155,7 @@ export class VoiceService {
             await new Promise<void>((resolve, reject) => {
                 const timeout = setTimeout(() => {
                     reject(new Error('Audio playback timeout'));
-                }, 30_000); // 30 second timeout
+                }, TTS_CONFIG.PLAYBACK_TIMEOUT_MS); // 30 second timeout
 
                 player.on(AudioPlayerStatus.Idle, () => {
                     clearTimeout(timeout);
@@ -200,7 +201,7 @@ export class VoiceService {
 
     getUserVoiceChannel(member: GuildMember): VoiceChannel | null {
         const voiceState = member.voice;
-        if (!voiceState.channel || voiceState.channel.type !== 2) { // 2 = GUILD_VOICE
+        if (!voiceState.channel || voiceState.channel.type !== ChannelType.GuildVoice) {
             return null;
         }
         return voiceState.channel as VoiceChannel;

@@ -1,21 +1,6 @@
 import { SlashCommandBuilder } from 'discord.js';
 import { Context } from '../utils/types';
-import config from 'config';
-
-function isOwner(userId: string): boolean {
-    const ownerId = config.get<string>('owner');
-    return userId === ownerId;
-}
-
-async function checkOwnerPermission(interaction: any): Promise<void> {
-    if (!isOwner(interaction.user.id)) {
-        await interaction.reply({
-            content: '❌ This command is restricted to the bot owner only.',
-            ephemeral: true,
-        });
-        throw new Error('Unauthorized: User is not bot owner');
-    }
-}
+import { checkOwnerPermission } from '../utils/permissions';
 
 export default {
     data: new SlashCommandBuilder()

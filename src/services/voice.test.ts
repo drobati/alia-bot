@@ -264,13 +264,13 @@ describe('VoiceService', () => {
             );
         });
 
-        it('should truncate long text to 4096 characters', async () => {
+        it('should truncate long text to max character limit', async () => {
             const longText = 'x'.repeat(5000);
             await voiceService.speakText(longText, 'test-guild-id', 'alloy');
 
             expect(mockOpenAI.audio.speech.create).toHaveBeenCalledWith(
                 expect.objectContaining({
-                    input: 'x'.repeat(4096),
+                    input: 'x'.repeat(4096), // TTS_CONFIG.MAX_TEXT_LENGTH value
                 }),
             );
         });
