@@ -22,12 +22,41 @@ const clientReadyEvent: BotEvent = {
         // Get owner configuration for deployment message
         const ownerId = config.get<string>('owner');
 
-        // Log owner configuration to application logs
-        log.info('=== BOT OWNER CONFIGURATION (READY EVENT) ===');
+        // Comprehensive config debugging
+        log.info('=== COMPREHENSIVE CONFIG DEBUG (READY EVENT) ===');
+        log.info(`NODE_ENV: ${process.env.NODE_ENV}`);
+        log.info(`Config util version: ${config.util ? 'available' : 'not available'}`);
+
+        // Try to get config source information
+        try {
+            const configSources = config.util?.getConfigSources?.();
+            log.info(`Config sources: ${JSON.stringify(configSources, null, 2)}`);
+        } catch (error) {
+            log.info(`Could not get config sources: ${error}`);
+        }
+
+        // Show all config keys to see what's loaded
+        try {
+            const allKeys = Object.keys(config);
+            log.info(`All config keys available: ${allKeys.join(', ')}`);
+        } catch (error) {
+            log.info(`Could not get config keys: ${error}`);
+        }
+
+        // Check if owner exists and where it comes from
+        log.info(`Owner exists in config: ${config.has('owner')}`);
         log.info(`Configured Owner ID: ${ownerId}`);
         log.info(`Owner ID Type: ${typeof ownerId}`);
-        log.info(`Environment: ${process.env.NODE_ENV}`);
-        log.info('=============================================');
+
+        // Try to get the raw config object to see structure
+        try {
+            const rawConfig = JSON.stringify(config, null, 2);
+            log.info(`Raw config object: ${rawConfig}`);
+        } catch (error) {
+            log.info(`Could not stringify config: ${error}`);
+        }
+
+        log.info('================================================');
 
         if (devChannel) {
             await devChannel.send(stripIndent`
