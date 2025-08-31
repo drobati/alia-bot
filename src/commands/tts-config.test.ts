@@ -68,7 +68,11 @@ describe('tts-config command', () => {
         await ttsConfigCommand.execute(mockInteraction, mockContext);
 
         expect(mockInteraction.reply).toHaveBeenCalledWith({
-            content: '❌ This command is restricted to the bot owner only.',
+            content: `❌ This command is restricted to the bot owner only.\n` +
+                    `**Debug Info:**\n` +
+                    `Your ID: \`not-owner\`\n` +
+                    `Owner ID: \`test-owner-id\`\n` +
+                    `Match: ❌`,
             ephemeral: true,
         });
     });

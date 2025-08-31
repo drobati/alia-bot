@@ -149,7 +149,7 @@ export default {
 
         try {
             // Check if user is bot owner
-            await checkOwnerPermission(interaction);
+            await checkOwnerPermission(interaction, context);
 
             const subcommand = interaction.options.getSubcommand();
 
