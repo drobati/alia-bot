@@ -2,6 +2,7 @@ import { Client, ChannelType, Events, EmbedBuilder, TextChannel } from 'discord.
 import { Context, BotEvent } from '../src/utils/types';
 import server from '../src/lib/server';
 import { stripIndent } from 'common-tags';
+import config from 'config';
 
 const clientReadyEvent: BotEvent = {
     name: Events.ClientReady,
@@ -18,8 +19,24 @@ const clientReadyEvent: BotEvent = {
             chan.type === ChannelType.GuildText && chan.name === 'deploy',
         ) as TextChannel | undefined;
 
+        // Get owner configuration for deployment message
+        const ownerId = config.get<string>('owner');
+
+        // Log owner configuration to application logs
+        log.info('=== BOT OWNER CONFIGURATION (READY EVENT) ===');
+        log.info(`Configured Owner ID: ${ownerId}`);
+        log.info(`Owner ID Type: ${typeof ownerId}`);
+        log.info(`Environment: ${process.env.NODE_ENV}`);
+        log.info('=============================================');
+
         if (devChannel) {
-            await devChannel.send(`Successfully deployed on ${process.env.NODE_ENV}. Version ${VERSION}.`);
+            await devChannel.send(stripIndent`
+                🚀 **Successfully deployed on ${process.env.NODE_ENV}**
+                **Version:** ${VERSION}
+                **Bot Owner ID:** ${ownerId}
+                **Owner ID Type:** ${typeof ownerId}
+                **Timestamp:** ${new Date().toISOString()}
+            `);
         } else {
             log.error("Failed to find 'deploy' channel.");
         }
