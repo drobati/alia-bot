@@ -46,17 +46,6 @@ jobs:
       - name: Download task definition
         run: |
           aws ecs describe-task-definition --task-definition alia-bot-task --query taskDefinition > task-definition.json
-      - name: Ensure SENTRY_DSN parameter exists
-        run: |
-          # Check if SENTRY_DSN parameter exists, if not create it with placeholder
-          if ! aws ssm get-parameter --name "/alia-bot/SENTRY_DSN" --region ${{ env.AWS_REGION }} >/dev/null 2>&1; then
-            echo "SENTRY_DSN parameter not found, creating placeholder..."
-            aws ssm put-parameter \
-              --name "/alia-bot/SENTRY_DSN" \
-              --value "placeholder-dsn-not-configured" \
-              --type "SecureString" \
-              --region ${{ env.AWS_REGION }}
-          fi
       - name: Add SENTRY_DSN to task definition
         run: |
           # Add SENTRY_DSN secret to the task definition if not already present
