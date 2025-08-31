@@ -49,6 +49,7 @@ describe('join command', () => {
                 info: jest.fn(),
                 error: jest.fn(),
                 warn: jest.fn(),
+                logCommand: jest.fn(),
             },
             voiceService: mockVoiceService,
         } as any;
@@ -149,13 +150,13 @@ describe('join command', () => {
             content: '✅ Successfully joined **Test Voice Channel**',
             ephemeral: true,
         });
-        expect(mockContext.log.info).toHaveBeenCalledWith(
-            'Bot joined voice channel via command',
+        expect(mockContext.log.logCommand).toHaveBeenCalledWith(
             expect.objectContaining({
+                command: 'join',
                 userId: 'test-owner-id',
                 guildId: 'test-guild-id',
                 channelId: 'test-voice-channel',
-                channelName: 'Test Voice Channel',
+                success: true,
             }),
         );
     });
@@ -172,10 +173,13 @@ describe('join command', () => {
             content: '❌ Failed to join voice channel: Failed to join',
             ephemeral: true,
         });
-        expect(mockContext.log.error).toHaveBeenCalledWith(
-            'Failed to join voice channel via command',
+        expect(mockContext.log.logCommand).toHaveBeenCalledWith(
             expect.objectContaining({
+                command: 'join',
                 userId: 'test-owner-id',
+                guildId: 'test-guild-id',
+                channelId: 'test-voice-channel',
+                success: false,
                 error: joinError,
             }),
         );
