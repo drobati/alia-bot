@@ -9,7 +9,7 @@ function sendToSentryLogs(level: string, message: string, data: Record<string, a
     try {
         // Use Sentry's native logger API (available in v10+)
         const logger = Sentry.logger;
-        
+
         switch (level) {
             case 'debug':
                 logger.debug(message, data);
@@ -27,6 +27,7 @@ function sendToSentryLogs(level: string, message: string, data: Record<string, a
                 logger.info(message, data);
         }
     } catch (error) {
+        // eslint-disable-next-line no-console
         console.error('[SentryLogs] Error sending log to Sentry:', error);
     }
 }

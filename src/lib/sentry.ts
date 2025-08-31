@@ -54,8 +54,8 @@ export function initializeSentry() {
         integrations: [
             nodeProfilingIntegration(),
             // Enable console logging integration for testing
-            Sentry.consoleLoggingIntegration({ 
-                levels: ["log", "warn", "error"] 
+            Sentry.consoleLoggingIntegration({
+                levels: ["log", "warn", "error"],
             }),
         ],
         // Enable Sentry Logs feature
