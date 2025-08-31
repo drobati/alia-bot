@@ -7,13 +7,13 @@ import { Client, Collection, GatewayIntentBits, Partials } from 'discord.js';
 import db from 'sequelize';
 import models from './src/models';
 import config from "config";
-import bunyan from "bunyan";
 import { join } from "path";
 import { readdirSync } from "fs";
 import { BotCommand, Context, BotEvent, ExtendedClient } from "./src/utils/types";
 import { MotivationalScheduler } from './src/services/motivationalScheduler';
 import { VoiceService } from './src/services/voice';
 import { captureOwnerIdDebug, Sentry } from './src/lib/sentry';
+import { logger } from './src/utils/logger';
 
 const VERSION = '2.0.0';
 
@@ -27,7 +27,8 @@ const client = new Client({
     partials: [Partials.Channel],
 }) as ExtendedClient;
 
-const log = bunyan.createLogger({ name: 'alia-bot', level: config.get('level') });
+// Use enhanced logger with Sentry integration
+const log = logger;
 log.info(`NODE_ENV: ${process.env.NODE_ENV}`);
 
 const sequelize = new db.Sequelize(
@@ -111,14 +112,19 @@ async function startBot() {
     await loadFiles<BotEvent>('events', '.js', handleEventFile, 'test.js');
 
     await client.login(process.env.BOT_TOKEN);
-    log.info(`Logged in. Version ${VERSION}`);
+    log.info({
+        version: VERSION,
+        nodeEnv: process.env.NODE_ENV,
+        category: 'bot_lifecycle',
+    }, `Logged in successfully. Version ${VERSION}`);
 
     // Log bot owner configuration for debugging
     const ownerId = config.get<string>('owner');
-    log.info(`=== BOT OWNER CONFIGURATION ===`);
-    log.info(`Configured owner ID: ${ownerId}`);
-    log.info(`Owner ID type: ${typeof ownerId}`);
-    log.info(`===================================`);
+    log.info({
+        ownerId,
+        ownerIdType: typeof ownerId,
+        category: 'bot_configuration',
+    }, 'Bot owner configuration loaded');
 
     // Capture owner ID configuration in Sentry for debugging
     captureOwnerIdDebug({
@@ -141,31 +147,32 @@ async function startBot() {
                 `**Timestamp:** ${new Date().toISOString()}`);
         }
     } catch (error) {
-        log.error('Failed to send deploy message:', error);
-        Sentry.captureException(error);
+        log.error({
+            error,
+            category: 'deployment_notification',
+        }, 'Failed to send deploy message to channel');
     }
 
     // Initialize motivational scheduler after successful login
     motivationalScheduler = new MotivationalScheduler(client, context);
     context.motivationalScheduler = motivationalScheduler;
     await motivationalScheduler.initialize();
-    log.info('Motivational scheduler initialized');
+    log.info({ category: 'service_initialization' }, 'Motivational scheduler initialized');
 
     // Initialize voice service
     voiceService = new VoiceService(context);
     context.voiceService = voiceService;
-    log.info('Voice service initialized');
+    log.info({ category: 'service_initialization' }, 'Voice service initialized');
 
     // Final deployment success message with owner configuration
-    log.info('=== SUCCESSFULLY DEPLOYED ON PRODUCTION ===');
-    log.info(`Bot Version: ${VERSION}`);
-    log.info(`Environment: ${process.env.NODE_ENV || 'development'}`);
-    log.info(`Configured Bot Owner ID: ${ownerId}`);
-    log.info(`Owner ID Type: ${typeof ownerId}`);
-    log.info(`Deploy Timestamp: ${new Date().toISOString()}`);
-    log.info('All services initialized successfully');
-    log.info('Bot is ready to accept commands');
-    log.info('===============================================');
+    log.info({
+        version: VERSION,
+        environment: process.env.NODE_ENV || 'development',
+        ownerId,
+        ownerIdType: typeof ownerId,
+        deployTimestamp: new Date().toISOString(),
+        category: 'bot_deployment',
+    }, '🚀 Bot deployed successfully - ready to accept commands');
 }
 
 // Graceful shutdown handler

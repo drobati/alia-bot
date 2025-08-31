@@ -58,6 +58,7 @@
     },
     "devDependencies": {
         "@babel/core": "^7.16.0",
+        "@sentry/integrations": "^7.114.0",
         "@types/bunyan": "^1.8.11",
         "@types/common-tags": "^1.8.4",
         "@types/config": "^3.3.3",
