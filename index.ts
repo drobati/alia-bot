@@ -107,14 +107,14 @@ async function startBot() {
 
     await client.login(process.env.BOT_TOKEN);
     log.info(`Logged in. Version ${VERSION}`);
-    
+
     // Log bot owner configuration for debugging
     const ownerId = config.get<string>('owner');
     log.info(`=== BOT OWNER CONFIGURATION ===`);
     log.info(`Configured owner ID: ${ownerId}`);
     log.info(`Owner ID type: ${typeof ownerId}`);
     log.info(`===================================`);
-    
+
     // Send owner config to #deploy channel
     try {
         const deployChannelId = '847239885146333215'; // #deploy channel
