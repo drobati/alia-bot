@@ -1,0 +1,18 @@
+level: info
+
+owner: 145679133257498624
+
+database:
+  name: aliadb
+  user: root
+  options:
+    dialect: mysql
+    port: 3306
+    pool:
+      max: 5
+      min: 0
+      acquire: 30000
+      idle: 10000
+
+webhook:
+  port: 8080
