@@ -21,7 +21,7 @@ const clientReadyEvent: BotEvent = {
 
         // Get owner configuration for deployment message
         const ownerId = config.get<string>('owner');
-        
+
         // Log owner configuration to application logs
         log.info('=== BOT OWNER CONFIGURATION (READY EVENT) ===');
         log.info(`Configured Owner ID: ${ownerId}`);
