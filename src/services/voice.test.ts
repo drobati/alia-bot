@@ -322,7 +322,9 @@ describe('VoiceService', () => {
 
             await expect(voiceService.speakText('Hello', 'test-guild-id', 'alloy')).rejects.toThrow();
 
-            expect(jest.spyOn(fs, 'unlinkSync')).toHaveBeenCalledWith('/tmp/tts_12345678-1234-1234-1234-123456789012.mp3');
+            expect(jest.spyOn(fs, 'unlinkSync')).toHaveBeenCalledWith(
+                '/tmp/tts_12345678-1234-1234-1234-123456789012.mp3',
+            );
         });
 
         it('should handle cleanup error gracefully', async () => {
