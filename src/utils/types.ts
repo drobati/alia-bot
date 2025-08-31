@@ -1,7 +1,7 @@
 /* eslint-disable no-unused-vars */
-import bunyan from 'bunyan';
 import { Sequelize } from 'sequelize';
 import { DatabaseTables } from '../types/database';
+import { BotLogger } from './logger';
 
 // Forward declaration to avoid circular dependency
 export interface MotivationalScheduler {
@@ -30,7 +30,7 @@ export { DatabaseTables } from '../types/database';
 // Core context interface
 export interface Context {
     tables: DatabaseTables;
-    log: bunyan;
+    log: BotLogger;
     sequelize: Sequelize;
     VERSION: string;
     motivationalScheduler?: MotivationalScheduler;

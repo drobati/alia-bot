@@ -64,12 +64,13 @@ export default {
                     ephemeral: true,
                 });
 
-                log.info('Bot joined voice channel via command', {
+                log.logCommand({
+                    command: 'join',
                     userId: interaction.user.id,
                     username: interaction.user.username,
                     guildId: guild.id,
                     channelId: userVoiceChannel.id,
-                    channelName: userVoiceChannel.name,
+                    success: true,
                 });
 
             } catch (error) {
@@ -79,11 +80,14 @@ export default {
                     ephemeral: true,
                 });
 
-                log.error('Failed to join voice channel via command', {
+                log.logCommand({
+                    command: 'join',
                     userId: interaction.user.id,
+                    username: interaction.user.username,
                     guildId: guild.id,
                     channelId: userVoiceChannel.id,
-                    error: error,
+                    success: false,
+                    error: error instanceof Error ? error : new Error(String(error)),
                 });
             }
 
