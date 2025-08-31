@@ -12,7 +12,7 @@ export default {
 
         try {
             // Check if user is bot owner
-            await checkOwnerPermission(interaction);
+            await checkOwnerPermission(interaction, context);
 
             // Get voice service from context
             if (!context.voiceService) {

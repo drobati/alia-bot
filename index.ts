@@ -107,6 +107,29 @@ async function startBot() {
 
     await client.login(process.env.BOT_TOKEN);
     log.info(`Logged in. Version ${VERSION}`);
+    
+    // Log bot owner configuration for debugging
+    const ownerId = config.get<string>('owner');
+    log.info(`=== BOT OWNER CONFIGURATION ===`);
+    log.info(`Configured owner ID: ${ownerId}`);
+    log.info(`Owner ID type: ${typeof ownerId}`);
+    log.info(`===================================`);
+    
+    // Send owner config to #deploy channel
+    try {
+        const deployChannelId = '847239885146333215'; // #deploy channel
+        const deployChannel = await client.channels.fetch(deployChannelId);
+        if (deployChannel?.isTextBased() && 'send' in deployChannel) {
+            await deployChannel.send(`🚀 **Bot Deployed**\n` +
+                `**Version:** ${VERSION}\n` +
+                `**Configured Owner ID:** ${ownerId}\n` +
+                `**Owner ID Type:** ${typeof ownerId}\n` +
+                `**Node Environment:** ${process.env.NODE_ENV}\n` +
+                `**Timestamp:** ${new Date().toISOString()}`);
+        }
+    } catch (error) {
+        log.error('Failed to send deploy message:', error);
+    }
 
     // Initialize motivational scheduler after successful login
     motivationalScheduler = new MotivationalScheduler(client, context);
