@@ -2,7 +2,7 @@ import OpenAI from 'openai';
 import { Context } from "./types";
 
 const openai = new OpenAI({
-    apiKey: process.env.OPENAI_API_KEY,
+    apiKey: process.env.OPENAI_API_KEY || 'test-key-for-ci',
 });
 
 interface UserContext {
