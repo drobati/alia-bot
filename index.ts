@@ -141,6 +141,17 @@ async function startBot() {
     voiceService = new VoiceService(context);
     context.voiceService = voiceService;
     log.info('Voice service initialized');
+
+    // Final deployment success message with owner configuration
+    log.info('=== SUCCESSFULLY DEPLOYED ON PRODUCTION ===');
+    log.info(`Bot Version: ${VERSION}`);
+    log.info(`Environment: ${process.env.NODE_ENV || 'development'}`);
+    log.info(`Configured Bot Owner ID: ${ownerId}`);
+    log.info(`Owner ID Type: ${typeof ownerId}`);
+    log.info(`Deploy Timestamp: ${new Date().toISOString()}`);
+    log.info('All services initialized successfully');
+    log.info('Bot is ready to accept commands');
+    log.info('===============================================');
 }
 
 // Graceful shutdown handler
