@@ -12,6 +12,89 @@ const VOICE_OPTIONS = [
     { name: 'Shimmer (Soft Female)', value: 'shimmer', keywords: ['soft', 'female', 'gentle', 'quiet'] },
 ];
 
+const TONE_OPTIONS = [
+    { name: 'Neutral (Default)', value: 'neutral', keywords: ['normal', 'default', 'regular'] },
+    { name: 'Happy/Excited', value: 'happy', keywords: ['excited', 'joyful', 'cheerful', 'upbeat'] },
+    { name: 'Sad/Melancholy', value: 'sad', keywords: ['melancholy', 'somber', 'depressed', 'down'] },
+    { name: 'Angry/Intense', value: 'angry', keywords: ['mad', 'furious', 'intense', 'rage'] },
+    { name: 'Calm/Soothing', value: 'calm', keywords: ['peaceful', 'relaxed', 'zen', 'tranquil'] },
+    { name: 'Mysterious/Dark', value: 'mysterious', keywords: ['dark', 'eerie', 'ominous', 'spooky'] },
+    { name: 'Dramatic/Epic', value: 'dramatic', keywords: ['epic', 'theatrical', 'grand', 'powerful'] },
+    { name: 'Sarcastic/Witty', value: 'sarcastic', keywords: ['witty', 'ironic', 'dry', 'clever'] },
+];
+
+/**
+ * Apply emotional tone to text by adding contextual modifiers
+ * Since OpenAI TTS doesn't have tone parameters, we modify the input text
+ * to naturally influence the speech patterns and delivery
+ */
+function applyEmotionalTone(text: string, tone: string): string {
+    if (tone === 'neutral') {
+        return text;
+    }
+
+    const toneModifiers: Record<string, {
+        prefix: string;
+        suffix: string;
+        textModifier?: (s: string) => string; // eslint-disable-line no-unused-vars
+    }> = {
+        happy: {
+            prefix: '[Speaking with joy and enthusiasm] ',
+            suffix: ' [End with upbeat energy]',
+            textModifier: text => {
+                // Add exclamation if no punctuation, or convert existing punctuation to exclamation
+                if (text.match(/[.!?]+$/)) {
+                    return text.replace(/[.!?]+$/g, match => match.includes('!') ? match : '!');
+                } else {
+                    return text + '!';
+                }
+            },
+        },
+        sad: {
+            prefix: '[Speaking with melancholy and somber tone] ',
+            suffix: ' [End with quiet reflection]',
+            textModifier: text => text.replace(/!/g, '.').toLowerCase(),
+        },
+        angry: {
+            prefix: '[Speaking with intensity and force] ',
+            suffix: ' [End with strong emphasis]',
+            textModifier: text => text.toUpperCase().replace(/[.?]/g, '!'),
+        },
+        calm: {
+            prefix: '[Speaking with peaceful, soothing tone] ',
+            suffix: ' [End with gentle calmness]',
+            textModifier: text => text.replace(/!/g, '.').replace(/[A-Z]/g, match => match.toLowerCase()),
+        },
+        mysterious: {
+            prefix: '[Speaking with mysterious, dark undertones] ',
+            suffix: ' [End with ominous pause]',
+            textModifier: text => text.replace(/!/g, '...'),
+        },
+        dramatic: {
+            prefix: '[Speaking with grand, theatrical presence] ',
+            suffix: ' [End with dramatic flourish]',
+            textModifier: text => text.replace(/\b(\w)/g, match => match.toUpperCase()),
+        },
+        sarcastic: {
+            prefix: '[Speaking with dry wit and subtle irony] ',
+            suffix: ' [End with knowing pause]',
+            textModifier: text => `"${text}"`, // Add quotes to emphasize sarcasm
+        },
+    };
+
+    const modifier = toneModifiers[tone];
+    if (!modifier) {
+        return text;
+    }
+
+    let processedText = text;
+    if (modifier.textModifier) {
+        processedText = modifier.textModifier(text);
+    }
+
+    return `${modifier.prefix}${processedText}${modifier.suffix}`;
+}
+
 export default {
     data: new SlashCommandBuilder()
         .setName('speak')
@@ -25,6 +108,12 @@ export default {
             option
                 .setName('voice')
                 .setDescription('Voice to use for TTS (type to search)')
+                .setRequired(false)
+                .setAutocomplete(true))
+        .addStringOption(option =>
+            option
+                .setName('tone')
+                .setDescription('Emotional tone for the speech (type to search)')
                 .setRequired(false)
                 .setAutocomplete(true))
         .addBooleanOption(option =>
@@ -53,6 +142,24 @@ export default {
                 filtered.map(voice => ({ name: voice.name, value: voice.value })),
             );
         }
+
+        if (focusedOption.name === 'tone') {
+            const query = focusedOption.value.toLowerCase();
+
+            let filtered = TONE_OPTIONS.filter(tone =>
+                // Match by name or keywords
+                tone.name.toLowerCase().includes(query) ||
+                tone.value.toLowerCase().includes(query) ||
+                tone.keywords.some(keyword => keyword.includes(query)),
+            );
+
+            // Limit to 25 options (Discord's limit)
+            filtered = filtered.slice(0, 25);
+
+            await interaction.respond(
+                filtered.map(tone => ({ name: tone.name, value: tone.value })),
+            );
+        }
     },
 
     async execute(interaction: any, context: Context) {
@@ -74,6 +181,7 @@ export default {
 
             const text = interaction.options.getString('text');
             const voice = interaction.options.getString('voice') || 'alloy';
+            const tone = interaction.options.getString('tone') || 'neutral';
             const joinUser = interaction.options.getBoolean('join_user') || false;
 
             // Validate voice option
@@ -81,6 +189,16 @@ export default {
             if (!validVoices.includes(voice)) {
                 await interaction.reply({
                     content: `❌ Invalid voice option. Valid voices are: ${validVoices.join(', ')}`,
+                    ephemeral: true,
+                });
+                return;
+            }
+
+            // Validate tone option
+            const validTones = TONE_OPTIONS.map(t => t.value);
+            if (!validTones.includes(tone)) {
+                await interaction.reply({
+                    content: `❌ Invalid tone option. Valid tones are: ${validTones.join(', ')}`,
                     ephemeral: true,
                 });
                 return;
@@ -154,20 +272,26 @@ export default {
                 return;
             }
 
+            // Process text with emotional tone
+            const processedText = applyEmotionalTone(text, tone);
+
             log.info('TTS command initiated by owner', {
                 userId: interaction.user.id,
                 username: interaction.user.username,
                 guildId: guild.id,
                 textLength: text.length,
+                processedTextLength: processedText.length,
                 voice: voice,
+                tone: tone,
             });
 
             try {
                 // Generate and play TTS
-                await voiceService.speakText(text, guild.id, voice as any);
+                await voiceService.speakText(processedText, guild.id, voice as any);
 
+                const toneDisplay = tone === 'neutral' ? '' : ` with ${tone} tone`;
                 await interaction.followUp({
-                    content: `✅ Successfully spoke text using ${voice} voice.`,
+                    content: `✅ Successfully spoke text using ${voice} voice${toneDisplay}.`,
                     ephemeral: true,
                 });
 
@@ -176,6 +300,7 @@ export default {
                     guildId: guild.id,
                     textLength: text.length,
                     voice: voice,
+                    tone: tone,
                 });
 
             } catch (error) {
@@ -189,6 +314,7 @@ export default {
                     guildId: guild.id,
                     textLength: text.length,
                     voice: voice,
+                    tone: tone,
                     error: error,
                 });
             }
@@ -199,25 +325,26 @@ export default {
                 log.warn('Unauthorized TTS command attempt', {
                     userId: interaction.user.id,
                     username: interaction.user.username,
+                    guildId: interaction.guild?.id,
                 });
-                return; // Reply already sent in checkOwnerPermission
+                // Error already sent to user by checkOwnerPermission
+                return;
             }
 
-            log.error('Error executing speak command', {
+            // Handle other errors
+            log.error('Unexpected error in TTS command', {
                 userId: interaction.user.id,
                 error: error,
             });
 
-            const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
-
-            if (interaction.deferred) {
-                await interaction.followUp({
-                    content: `❌ An error occurred: ${errorMessage}`,
+            if (!interaction.replied && !interaction.deferred) {
+                await interaction.reply({
+                    content: '❌ An unexpected error occurred while processing your request.',
                     ephemeral: true,
                 });
             } else {
-                await interaction.reply({
-                    content: `❌ An error occurred: ${errorMessage}`,
+                await interaction.followUp({
+                    content: '❌ An unexpected error occurred while processing your request.',
                     ephemeral: true,
                 });
             }
