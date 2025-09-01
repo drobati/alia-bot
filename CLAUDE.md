@@ -305,6 +305,17 @@ When working on this Discord bot project, use these specialized agents for optim
 - Ensuring secure Discord token handling
 - Validating owner-only command restrictions
 
+### **sprint-prioritizer**
+**Use for:** Feature planning, roadmap management, and development prioritization
+- Analyzing the 29+ open GitHub issues for priority ranking
+- Planning 6-day development cycles with realistic scope
+- Making trade-off decisions between new features vs bug fixes
+- Balancing user requests (commands, entertainment) vs technical debt
+- Prioritizing critical issues (like security vulnerabilities) vs enhancements
+- Managing the backlog of requested commands (/youtube, /reddit, /crypto, etc.)
+- Deciding between infrastructure improvements vs user-facing features
+- Coordinating releases with Discord API changes and OpenAI updates
+
 ### **general-purpose**
 **Use for:** Complex multi-step tasks or when unsure
 - Comprehensive code refactoring across multiple files
