@@ -252,6 +252,66 @@ Brief description of this directory's role in the project.
 - Use `sentry-cli events --org derek-robati --project alia-bot list` to check recent events
 - Use `sentry-cli projects list --org derek-robati` to see available projects
 
+## Recommended Claude Code Agents
+
+When working on this Discord bot project, use these specialized agents for optimal results:
+
+### **backend-architect**
+**Use for:** API design, database architecture, and server-side logic
+- Designing new Discord command endpoints
+- Optimizing database queries and Sequelize models
+- Implementing authentication and permission systems
+- Architecting scalable bot response systems
+
+### **devops-automator** 
+**Use for:** Deployment, infrastructure, and operational tasks
+- Setting up CI/CD pipelines for bot deployment
+- Configuring AWS infrastructure (ECS, RDS, Parameter Store)
+- Implementing monitoring and alerting systems
+- Managing Docker containerization and deployment
+
+### **test-writer-fixer**
+**Use for:** Testing strategy and test maintenance
+- Writing comprehensive tests for Discord commands
+- Testing message response handlers and event listeners
+- Creating integration tests for database operations
+- Maintaining Jest test coverage requirements (40% minimum)
+
+### **ai-engineer**
+**Use for:** OpenAI integration and NLP features
+- Implementing OpenAI TTS voice features
+- Enhancing the assistant response system
+- Working with Natural.js Bayesian classifier
+- Integrating new AI-powered bot capabilities
+
+### **troubleshooting-expert**
+**Use for:** Debugging and issue resolution
+- Resolving Discord API rate limiting issues
+- Debugging database connection problems
+- Troubleshooting voice channel connectivity
+- Analyzing Sentry error logs and performance issues
+
+### **performance-benchmarker**
+**Use for:** Bot optimization and scaling
+- Analyzing bot response times and memory usage
+- Optimizing message processing performance
+- Load testing Discord command handling
+- Identifying bottlenecks in database operations
+
+### **security-auditor**
+**Use for:** Security reviews and compliance
+- Auditing bot permissions and access controls
+- Reviewing environment variable and secret management
+- Ensuring secure Discord token handling
+- Validating owner-only command restrictions
+
+### **general-purpose**
+**Use for:** Complex multi-step tasks or when unsure
+- Comprehensive code refactoring across multiple files
+- Large feature implementations spanning commands, responses, and database
+- Complex searches across the entire codebase
+- Any task requiring analysis of multiple components
+
 ## Important Instructions
 
 Do what has been asked; nothing more, nothing less.
