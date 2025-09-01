@@ -450,14 +450,14 @@ describe('speak command', () => {
         await speakCommand.execute(mockInteraction, mockContext);
 
         expect(mockContext.log.error).toHaveBeenCalledWith(
-            'Error executing speak command',
+            'Unexpected error in TTS command',
             expect.objectContaining({
                 userId: 'test-owner-id',
                 error: generalError,
             }),
         );
         expect(mockInteraction.reply).toHaveBeenCalledWith({
-            content: '❌ An error occurred: General error',
+            content: '❌ An unexpected error occurred while processing your request.',
             ephemeral: true,
         });
     });
