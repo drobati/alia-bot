@@ -1,6 +1,6 @@
 import Sequelize from "sequelize";
 
-export default async (message: any, { tables }: any): Promise<boolean> => {
+export default async (message: any, { tables, log }: any): Promise<boolean> => {
     const { Adlibs } = tables;
     let response = message.content;
     const regex = /(-{3,})+/g;
@@ -24,10 +24,10 @@ export default async (message: any, { tables }: any): Promise<boolean> => {
             await message.channel.send(response);
             return true; // Successfully processed Adlibs message
         } catch (error) {
-            console.error('Adlibs response failed:', error);
+            log.error('Adlibs response failed:', { error });
             return false; // Failed to process Adlibs message
         }
     }
-    
+
     return false; // Not an Adlibs message
 }

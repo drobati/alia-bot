@@ -36,13 +36,13 @@ describe('Sentry Integration', () => {
 
     describe('initializeSentry', () => {
         it('should initialize Sentry with DSN', () => {
-            process.env.SENTRY_DSN = 'https://test@sentry.io/123';
+            process.env.SENTRY_DSN = 'https://1234567890abcdef1234567890abcdef@o123456.ingest.sentry.io/123';
 
             initializeSentry();
 
             expect(mockSentry.init).toHaveBeenCalledWith(
                 expect.objectContaining({
-                    dsn: 'https://test@sentry.io/123',
+                    dsn: 'https://1234567890abcdef1234567890abcdef@o123456.ingest.sentry.io/123',
                     enableLogs: true,
                 }),
             );
@@ -63,7 +63,7 @@ describe('Sentry Integration', () => {
         });
 
         it('should use production settings', () => {
-            process.env.SENTRY_DSN = 'https://test@sentry.io/123';
+            process.env.SENTRY_DSN = 'https://1234567890abcdef1234567890abcdef@o123456.ingest.sentry.io/123';
             process.env.NODE_ENV = 'production';
 
             initializeSentry();
@@ -77,7 +77,7 @@ describe('Sentry Integration', () => {
         });
 
         it('should use development settings', () => {
-            process.env.SENTRY_DSN = 'https://test@sentry.io/123';
+            process.env.SENTRY_DSN = 'https://1234567890abcdef1234567890abcdef@o123456.ingest.sentry.io/123';
             process.env.NODE_ENV = 'development';
 
             initializeSentry();
@@ -91,7 +91,7 @@ describe('Sentry Integration', () => {
         });
 
         it('should use VERSION for release', () => {
-            process.env.SENTRY_DSN = 'https://test@sentry.io/123';
+            process.env.SENTRY_DSN = 'https://1234567890abcdef1234567890abcdef@o123456.ingest.sentry.io/123';
             process.env.VERSION = '2.0.0';
 
             initializeSentry();

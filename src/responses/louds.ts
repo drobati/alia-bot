@@ -1,6 +1,6 @@
 import Sequelize from "sequelize";
 
-export default async (message: any, { tables }: any): Promise<boolean> => {
+export default async (message: any, { tables, log }: any): Promise<boolean> => {
     const { Louds, Louds_Banned } = tables;
     const regex = /^\s*([A-Z"][A-Z0-9 .,'"()?!&%$#@+-]+)$/;
     if (regex.test(message.content)) {
@@ -27,13 +27,13 @@ export default async (message: any, { tables }: any): Promise<boolean> => {
                     username: message.author.id,
                 });
             }
-            
+
             return true; // Successfully processed LOUDS message
         } catch (error) {
-            console.error('Louds response failed:', error);
+            log.error('Louds response failed:', { error });
             return false; // Failed to process LOUDS message
         }
     }
-    
+
     return false; // Not a LOUDS message
 }

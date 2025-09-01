@@ -59,7 +59,7 @@ function validateSentryDsn(dsn: string): {
         if (!match) {
             return {
                 isValid: false,
-                error: 'DSN does not match expected Sentry format'
+                error: 'DSN does not match expected Sentry format',
             };
         }
 
@@ -70,12 +70,12 @@ function validateSentryDsn(dsn: string): {
             publicKey,
             organizationId,
             projectId,
-            host: 'sentry.io'
+            host: 'sentry.io',
         };
     } catch (error) {
         return {
             isValid: false,
-            error: `DSN validation failed: ${error instanceof Error ? error.message : String(error)}`
+            error: `DSN validation failed: ${error instanceof Error ? error.message : String(error)}`,
         };
     }
 }
@@ -87,18 +87,18 @@ export async function testSentryConnectivity(): Promise<{ success: boolean; erro
     try {
         // Send a test message to verify connectivity
         const eventId = Sentry.captureMessage('Sentry connectivity test - startup validation', 'info');
-        
+
         // Wait a moment for the event to be queued
         await new Promise(resolve => setTimeout(resolve, 100));
-        
+
         return {
             success: !!eventId,
-            error: eventId ? undefined : 'No event ID returned'
+            error: eventId ? undefined : 'No event ID returned',
         };
     } catch (error) {
         return {
             success: false,
-            error: error instanceof Error ? error.message : String(error)
+            error: error instanceof Error ? error.message : String(error),
         };
     }
 }
@@ -114,12 +114,12 @@ export function initializeSentry() {
 
     // Validate DSN format
     const validation = validateSentryDsn(sentryDsn);
-    
+
     // eslint-disable-next-line no-console
     console.log('=== SENTRY DSN VALIDATION ===');
     // eslint-disable-next-line no-console
     console.log(`DSN Valid: ${validation.isValid}`);
-    
+
     if (validation.isValid) {
         // eslint-disable-next-line no-console
         console.log(`Project ID: ${validation.projectId}`);
@@ -233,7 +233,7 @@ export function initializeSentry() {
         // eslint-disable-next-line no-console
         console.log('=== SENTRY CONNECTIVITY TEST ===');
         const connectivityTest = await testSentryConnectivity();
-        
+
         if (connectivityTest.success) {
             // eslint-disable-next-line no-console
             console.log('✅ Sentry connectivity test PASSED - events can be sent');

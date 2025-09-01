@@ -13,7 +13,7 @@ const messageCreateEvent: BotEvent = {
 
             // Priority-based response system - only one response per message
             // Priority order: Assistant (NLP) > Triggers > Adlibs > Louds
-            
+
             let responseHandled = false;
 
             // 1. Highest Priority: Assistant (NLP Questions)

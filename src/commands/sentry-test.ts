@@ -18,13 +18,13 @@ export async function execute(interaction: ChatInputCommandInteraction, context:
 
         // Test various Sentry features
         log.info('=== MANUAL SENTRY TEST INITIATED ===');
-        
+
         // Test 1: Send a test message
         const messageId = Sentry.captureMessage('Manual Sentry test - captureMessage', 'info');
-        
+
         // Test 2: Send a test exception
         const exceptionId = Sentry.captureException(new Error('Manual Sentry test - captureException'));
-        
+
         // Test 3: Add a breadcrumb
         Sentry.addBreadcrumb({
             message: 'Manual Sentry test breadcrumb',

@@ -16,8 +16,9 @@ describe('response/adlibs', () => {
 
     it('responds to adlib one time', async () => {
         Adlibs.findOne.mockResolvedValue({ value: 'cat' });
-        await adlibs(message, context);
+        const result = await adlibs(message, context);
         expect(message.channel.send).toBeCalledWith('The **cat** walks in.');
+        expect(result).toBe(true);
     });
 
     it('responds should match multiple words', async () => {
@@ -27,20 +28,24 @@ describe('response/adlibs', () => {
             .mockResolvedValueOnce({ value: 'dog' })
             .mockResolvedValueOnce({ value: 'cat' })
             .mockResolvedValueOnce({ value: 'mouse' });
-        await adlibs(message, context);
+        const result = await adlibs(message, context);
         expect(message.channel.send).toBeCalledWith(
             'The **dog**, **cat**, and **mouse** ran by.',
         );
+        expect(result).toBe(true);
     });
 
     it('does not respond if not an adlib', async () => {
         message.content = 'regular text';
-        await adlibs(message, context);
+        const result = await adlibs(message, context);
         expect(message.channel.send).not.toHaveBeenCalled();
+        expect(result).toBe(false);
     });
 
-    it('responds to no adlibs in db', async () => {
+    it('returns false when no adlibs in db', async () => {
         Adlibs.findOne.mockResolvedValue(null);
-        await expect(adlibs(message, context)).rejects.toThrowError('No adlibs found in table.');
+        const result = await adlibs(message, context);
+        expect(result).toBe(false);
+        expect(message.channel.send).not.toHaveBeenCalled();
     });
 });
