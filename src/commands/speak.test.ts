@@ -69,6 +69,104 @@ describe('speak command', () => {
         expect(speakCommand.data.description).toContain('Owner only');
     });
 
+    it('should have autocomplete handler', () => {
+        expect(typeof speakCommand.autocomplete).toBe('function');
+    });
+
+    describe('autocomplete', () => {
+        let mockAutocompleteInteraction: any;
+
+        beforeEach(() => {
+            mockAutocompleteInteraction = {
+                options: {
+                    getFocused: jest.fn(),
+                },
+                respond: jest.fn(),
+            };
+        });
+
+        it('should return all voices when query is empty', async () => {
+            mockAutocompleteInteraction.options.getFocused.mockReturnValue({
+                name: 'voice',
+                value: '',
+            });
+
+            await speakCommand.autocomplete(mockAutocompleteInteraction);
+
+            expect(mockAutocompleteInteraction.respond).toHaveBeenCalledWith([
+                { name: 'Alloy (Neutral)', value: 'alloy' },
+                { name: 'Echo (Male)', value: 'echo' },
+                { name: 'Fable (British Male)', value: 'fable' },
+                { name: 'Onyx (Deep Male)', value: 'onyx' },
+                { name: 'Nova (Female)', value: 'nova' },
+                { name: 'Shimmer (Soft Female)', value: 'shimmer' },
+            ]);
+        });
+
+        it('should filter voices by name', async () => {
+            mockAutocompleteInteraction.options.getFocused.mockReturnValue({
+                name: 'voice',
+                value: 'echo',
+            });
+
+            await speakCommand.autocomplete(mockAutocompleteInteraction);
+
+            expect(mockAutocompleteInteraction.respond).toHaveBeenCalledWith([
+                { name: 'Echo (Male)', value: 'echo' },
+            ]);
+        });
+
+        it('should filter voices by keywords', async () => {
+            mockAutocompleteInteraction.options.getFocused.mockReturnValue({
+                name: 'voice',
+                value: 'british',
+            });
+
+            await speakCommand.autocomplete(mockAutocompleteInteraction);
+
+            expect(mockAutocompleteInteraction.respond).toHaveBeenCalledWith([
+                { name: 'Fable (British Male)', value: 'fable' },
+            ]);
+        });
+
+        it('should filter by gender keywords', async () => {
+            mockAutocompleteInteraction.options.getFocused.mockReturnValue({
+                name: 'voice',
+                value: 'deep',
+            });
+
+            await speakCommand.autocomplete(mockAutocompleteInteraction);
+
+            expect(mockAutocompleteInteraction.respond).toHaveBeenCalledWith([
+                { name: 'Onyx (Deep Male)', value: 'onyx' },
+            ]);
+        });
+
+        it('should filter voices by value', async () => {
+            mockAutocompleteInteraction.options.getFocused.mockReturnValue({
+                name: 'voice',
+                value: 'nov',
+            });
+
+            await speakCommand.autocomplete(mockAutocompleteInteraction);
+
+            expect(mockAutocompleteInteraction.respond).toHaveBeenCalledWith([
+                { name: 'Nova (Female)', value: 'nova' },
+            ]);
+        });
+
+        it('should handle non-voice options', async () => {
+            mockAutocompleteInteraction.options.getFocused.mockReturnValue({
+                name: 'text',
+                value: 'hello',
+            });
+
+            await speakCommand.autocomplete(mockAutocompleteInteraction);
+
+            expect(mockAutocompleteInteraction.respond).not.toHaveBeenCalled();
+        });
+    });
+
     it('should reject non-owner users', async () => {
         mockInteraction.user.id = 'not-owner';
 
@@ -107,6 +205,22 @@ describe('speak command', () => {
 
         expect(mockInteraction.reply).toHaveBeenCalledWith({
             content: '❌ Text is too long. Maximum length is 4096 characters.',
+            ephemeral: true,
+        });
+    });
+
+    it('should handle invalid voice option', async () => {
+        mockInteraction.options.getString.mockImplementation((option: string) => {
+            if (option === 'text') {return 'Hello world';}
+            if (option === 'voice') {return 'invalid-voice';}
+            return null;
+        });
+        mockInteraction.options.getBoolean.mockReturnValue(false);
+
+        await speakCommand.execute(mockInteraction, mockContext);
+
+        expect(mockInteraction.reply).toHaveBeenCalledWith({
+            content: '❌ Invalid voice option. Valid voices are: alloy, echo, fable, onyx, nova, shimmer',
             ephemeral: true,
         });
     });

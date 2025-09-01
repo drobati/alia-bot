@@ -3,6 +3,15 @@ import { Context } from '../utils/types';
 import { TTS_CONFIG } from '../utils/constants';
 import { checkOwnerPermission } from '../utils/permissions';
 
+const VOICE_OPTIONS = [
+    { name: 'Alloy (Neutral)', value: 'alloy', keywords: ['neutral', 'default', 'balanced'] },
+    { name: 'Echo (Male)', value: 'echo', keywords: ['male', 'masculine'] },
+    { name: 'Fable (British Male)', value: 'fable', keywords: ['british', 'male', 'accent', 'uk'] },
+    { name: 'Onyx (Deep Male)', value: 'onyx', keywords: ['deep', 'male', 'bass', 'low'] },
+    { name: 'Nova (Female)', value: 'nova', keywords: ['female', 'feminine'] },
+    { name: 'Shimmer (Soft Female)', value: 'shimmer', keywords: ['soft', 'female', 'gentle', 'quiet'] },
+];
+
 export default {
     data: new SlashCommandBuilder()
         .setName('speak')
@@ -15,21 +24,36 @@ export default {
         .addStringOption(option =>
             option
                 .setName('voice')
-                .setDescription('Voice to use for TTS')
+                .setDescription('Voice to use for TTS (type to search)')
                 .setRequired(false)
-                .addChoices(
-                    { name: 'Alloy (Neutral)', value: 'alloy' },
-                    { name: 'Echo (Male)', value: 'echo' },
-                    { name: 'Fable (British Male)', value: 'fable' },
-                    { name: 'Onyx (Deep Male)', value: 'onyx' },
-                    { name: 'Nova (Female)', value: 'nova' },
-                    { name: 'Shimmer (Soft Female)', value: 'shimmer' },
-                ))
+                .setAutocomplete(true))
         .addBooleanOption(option =>
             option
                 .setName('join_user')
                 .setDescription('Join your current voice channel first')
                 .setRequired(false)),
+
+    async autocomplete(interaction: any) {
+        const focusedOption = interaction.options.getFocused(true);
+
+        if (focusedOption.name === 'voice') {
+            const query = focusedOption.value.toLowerCase();
+
+            let filtered = VOICE_OPTIONS.filter(voice =>
+                // Match by name or keywords
+                voice.name.toLowerCase().includes(query) ||
+                voice.value.toLowerCase().includes(query) ||
+                voice.keywords.some(keyword => keyword.includes(query)),
+            );
+
+            // Limit to 25 options (Discord's limit)
+            filtered = filtered.slice(0, 25);
+
+            await interaction.respond(
+                filtered.map(voice => ({ name: voice.name, value: voice.value })),
+            );
+        }
+    },
 
     async execute(interaction: any, context: Context) {
         const { log } = context;
@@ -51,6 +75,16 @@ export default {
             const text = interaction.options.getString('text');
             const voice = interaction.options.getString('voice') || 'alloy';
             const joinUser = interaction.options.getBoolean('join_user') || false;
+
+            // Validate voice option
+            const validVoices = VOICE_OPTIONS.map(v => v.value);
+            if (!validVoices.includes(voice)) {
+                await interaction.reply({
+                    content: `❌ Invalid voice option. Valid voices are: ${validVoices.join(', ')}`,
+                    ephemeral: true,
+                });
+                return;
+            }
 
             // Validate text length
             if (text.length > TTS_CONFIG.MAX_TEXT_LENGTH) {
