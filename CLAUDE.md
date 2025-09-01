@@ -147,6 +147,21 @@ The project includes Docker Compose setup for MySQL development database. Use pr
 - Bug fixes: `fix/description-issue-number`
 - Documentation: `docs/description`
 
+## Available Tools & Access
+
+**AWS CLI Access:**
+- Full AWS CLI access available for checking Systems Manager parameters, CloudWatch logs, etc.
+- Use `aws ssm get-parameter --name "parameter-name"` to check parameter store values
+- Use `aws logs describe-log-groups` and `aws logs filter-log-events` for CloudWatch logs
+- Bot deployment likely uses Systems Manager for environment variables in production
+
+**Sentry CLI Access:**
+- `sentry-cli` available for checking events, issues, and logs
+- Organization: `derek-robati` 
+- Project: `alia-bot`
+- Use `sentry-cli events --org derek-robati --project alia-bot list` to check recent events
+- Use `sentry-cli projects list --org derek-robati` to see available projects
+
 ## Important Instructions
 
 Do what has been asked; nothing more, nothing less.
