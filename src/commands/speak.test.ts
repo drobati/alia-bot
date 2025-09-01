@@ -272,7 +272,8 @@ describe('speak command', () => {
         await speakCommand.execute(mockInteraction, mockContext);
 
         expect(mockInteraction.reply).toHaveBeenCalledWith({
-            content: '❌ Invalid tone option. Valid tones are: neutral, happy, sad, angry, calm, mysterious, dramatic, sarcastic',
+            content: '❌ Invalid tone option. Valid tones are: ' +
+                'neutral, happy, sad, angry, calm, mysterious, dramatic, sarcastic',
             ephemeral: true,
         });
     });

@@ -33,11 +33,11 @@ function applyEmotionalTone(text: string, tone: string): string {
         return text;
     }
 
-    const toneModifiers: Record<string, { prefix: string; suffix: string; textModifier?: (text: string) => string }> = {
+    const toneModifiers: Record<string, { prefix: string; suffix: string; textModifier?: (s: string) => string }> = {
         happy: {
             prefix: '[Speaking with joy and enthusiasm] ',
             suffix: ' [End with upbeat energy]',
-            textModifier: (text) => {
+            textModifier: text => {
                 // Add exclamation if no punctuation, or convert existing punctuation to exclamation
                 if (text.match(/[.!?]+$/)) {
                     return text.replace(/[.!?]+$/g, match => match.includes('!') ? match : '!');
@@ -49,32 +49,32 @@ function applyEmotionalTone(text: string, tone: string): string {
         sad: {
             prefix: '[Speaking with melancholy and somber tone] ',
             suffix: ' [End with quiet reflection]',
-            textModifier: (text) => text.replace(/!/g, '.').toLowerCase(),
+            textModifier: text => text.replace(/!/g, '.').toLowerCase(),
         },
         angry: {
             prefix: '[Speaking with intensity and force] ',
             suffix: ' [End with strong emphasis]',
-            textModifier: (text) => text.toUpperCase().replace(/[.?]/g, '!'),
+            textModifier: text => text.toUpperCase().replace(/[.?]/g, '!'),
         },
         calm: {
             prefix: '[Speaking with peaceful, soothing tone] ',
             suffix: ' [End with gentle calmness]',
-            textModifier: (text) => text.replace(/!/g, '.').replace(/[A-Z]/g, match => match.toLowerCase()),
+            textModifier: text => text.replace(/!/g, '.').replace(/[A-Z]/g, match => match.toLowerCase()),
         },
         mysterious: {
             prefix: '[Speaking with mysterious, dark undertones] ',
             suffix: ' [End with ominous pause]',
-            textModifier: (text) => text.replace(/!/g, '...'),
+            textModifier: text => text.replace(/!/g, '...'),
         },
         dramatic: {
             prefix: '[Speaking with grand, theatrical presence] ',
             suffix: ' [End with dramatic flourish]',
-            textModifier: (text) => text.replace(/\b(\w)/g, match => match.toUpperCase()),
+            textModifier: text => text.replace(/\b(\w)/g, match => match.toUpperCase()),
         },
         sarcastic: {
             prefix: '[Speaking with dry wit and subtle irony] ',
             suffix: ' [End with knowing pause]',
-            textModifier: (text) => `"${text}"`, // Add quotes to emphasize sarcasm
+            textModifier: text => `"${text}"`, // Add quotes to emphasize sarcasm
         },
     };
 
@@ -138,7 +138,7 @@ export default {
                 filtered.map(voice => ({ name: voice.name, value: voice.value })),
             );
         }
-        
+
         if (focusedOption.name === 'tone') {
             const query = focusedOption.value.toLowerCase();
 
