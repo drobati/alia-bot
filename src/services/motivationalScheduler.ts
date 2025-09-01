@@ -18,10 +18,22 @@ export class MotivationalScheduler {
      */
     async initialize(): Promise<void> {
         try {
-            this.context.log.info('Initializing motivational message scheduler');
+            this.context.log.info(
+                { category: 'scheduler_initialization' },
+                'Initializing motivational message scheduler',
+            );
 
+            const startTime = Date.now();
             const configs = await this.context.tables.MotivationalConfig.findAll({
                 where: { isActive: true },
+            });
+            const duration = Date.now() - startTime;
+
+            this.context.log.logDatabaseOperation({
+                operation: 'findAll',
+                table: 'MotivationalConfig',
+                duration,
+                recordsAffected: configs.length,
             });
 
             for (const config of configs) {
@@ -31,13 +43,17 @@ export class MotivationalScheduler {
             // Schedule cleanup task for rate limiter
             this.scheduleCleanupTask();
 
-            this.context.log.info('Motivational scheduler initialized', {
+            this.context.log.info({
                 activeConfigs: configs.length,
                 scheduledTasks: this.scheduledTasks.size,
-            });
+                category: 'scheduler_initialization',
+            }, 'Motivational scheduler initialized');
 
         } catch (error) {
-            this.context.log.error('Failed to initialize motivational scheduler', error);
+            this.context.log.error({
+                error,
+                category: 'scheduler_initialization',
+            }, 'Failed to initialize motivational scheduler');
         }
     }
 

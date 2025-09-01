@@ -1,8 +1,9 @@
-import { Client, ChannelType, Events, EmbedBuilder, TextChannel } from 'discord.js';
+import { Client, Events, EmbedBuilder } from 'discord.js';
 import { Context, BotEvent } from '../src/utils/types';
 import server from '../src/lib/server';
 import { stripIndent } from 'common-tags';
 import config from 'config';
+import { safelyFindChannel, safelySendToChannel, isTextChannel } from '../src/utils/discordHelpers';
 
 const clientReadyEvent: BotEvent = {
     name: Events.ClientReady,
@@ -15,9 +16,7 @@ const clientReadyEvent: BotEvent = {
             One day you will cry out for help. One day each of you will find yourselves alone.
         `);
 
-        const devChannel = client.channels.cache.find((chan): chan is TextChannel =>
-            chan.type === ChannelType.GuildText && chan.name === 'deploy',
-        ) as TextChannel | undefined;
+        const devChannel = safelyFindChannel(client, 'deploy', isTextChannel, context);
 
         // Get owner configuration for deployment message
         const ownerId = config.get<string>('owner');
@@ -58,16 +57,22 @@ const clientReadyEvent: BotEvent = {
 
         log.info('================================================');
 
-        if (devChannel) {
-            await devChannel.send(stripIndent`
-                🚀 **Successfully deployed on ${process.env.NODE_ENV}**
-                **Version:** ${VERSION}
-                **Bot Owner ID:** ${ownerId}
-                **Owner ID Type:** ${typeof ownerId}
-                **Timestamp:** ${new Date().toISOString()}
-            `);
-        } else {
-            log.error("Failed to find 'deploy' channel.");
+        const deploymentMessage = stripIndent`
+            🚀 **Successfully deployed on ${process.env.NODE_ENV}**
+            **Version:** ${VERSION}
+            **Bot Owner ID:** ${ownerId}
+            **Owner ID Type:** ${typeof ownerId}
+            **Timestamp:** ${new Date().toISOString()}
+        `;
+
+        const deploymentSent = await safelySendToChannel(
+            devChannel,
+            deploymentMessage,
+            context,
+            'deployment notification',
+        );
+        if (!deploymentSent) {
+            log.error("Failed to send deployment message to 'deploy' channel");
         }
 
         // Debug table sync with comprehensive error handling
@@ -94,37 +99,65 @@ const clientReadyEvent: BotEvent = {
                             if (tables[key]?.sync && typeof tables[key].sync === 'function') {
                                 await tables[key].sync();
                                 log.info(`[SYNC] ✅ Successfully synced table: ${key}`);
-                                devChannel?.send(`✅ Table ${key} synced successfully`);
+                                await safelySendToChannel(
+                                    devChannel,
+                                    `✅ Table ${key} synced successfully`,
+                                    context,
+                                    `table sync success: ${key}`,
+                                );
                             } else {
                                 log.error(`[SYNC] ❌ Table ${key} does not have sync method`);
-                                devChannel?.send(`❌ Table ${key} missing sync method`);
+                                await safelySendToChannel(
+                                    devChannel,
+                                    `❌ Table ${key} missing sync method`,
+                                    context,
+                                    `table sync error: ${key}`,
+                                );
                             }
                         } catch (syncError) {
                             log.error(`[SYNC] ❌ Error syncing table '${key}':`, syncError);
                             const errorMsg = syncError instanceof Error ? syncError.message : String(syncError);
-                            devChannel?.send(`❌ Error syncing table '${key}': ${errorMsg}`);
+                            await safelySendToChannel(
+                                devChannel,
+                                `❌ Error syncing table '${key}': ${errorMsg}`,
+                                context,
+                                `table sync error: ${key}`,
+                            );
                         }
                     }
 
                     log.info('=== TABLE SYNC COMPLETED ===');
                 } else {
                     log.error('❌ No tables found in tables object!');
-                    devChannel?.send('❌ CRITICAL: No tables found in tables object!');
+                    await safelySendToChannel(
+                        devChannel,
+                        '❌ CRITICAL: No tables found in tables object!',
+                        context,
+                        'table sync critical error',
+                    );
                 }
             } else {
                 log.error('❌ Tables object is null/undefined!');
-                devChannel?.send('❌ CRITICAL: Tables object is null/undefined!');
+                await safelySendToChannel(
+                    devChannel,
+                    '❌ CRITICAL: Tables object is null/undefined!',
+                    context,
+                    'table sync critical error',
+                );
             }
         } catch (tableDebugError) {
             log.error('❌ Critical error in table sync debug:', tableDebugError);
             const errorMsg = tableDebugError instanceof Error ? tableDebugError.message : String(tableDebugError);
-            devChannel?.send(`❌ CRITICAL TABLE SYNC ERROR: ${errorMsg}`);
+            await safelySendToChannel(
+                devChannel,
+                `❌ CRITICAL TABLE SYNC ERROR: ${errorMsg}`,
+                context,
+                'table sync critical error',
+            );
         }
 
         // Start server for webhooks
-        const genChannel = client.channels.cache.find((chan): chan is TextChannel =>
-            chan.type === ChannelType.GuildText && chan.name === 'general',
-        ) as TextChannel | undefined;
+        const genChannel = safelyFindChannel(client, 'general', isTextChannel, context);
 
         if (genChannel) {
             const twitchEmbed = new EmbedBuilder();
@@ -137,7 +170,7 @@ const clientReadyEvent: BotEvent = {
                 }
             }
         } else {
-            log.error("Failed to find 'general' channel.");
+            log.error("Failed to find 'general' channel - server webhooks may not work properly");
         }
     },
 };

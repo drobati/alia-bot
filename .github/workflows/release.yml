@@ -46,6 +46,11 @@ jobs:
       - name: Download task definition
         run: |
           aws ecs describe-task-definition --task-definition alia-bot-task --query taskDefinition > task-definition.json
+      - name: Add SENTRY_DSN to task definition
+        run: |
+          # Add SENTRY_DSN secret to the task definition if not already present
+          jq '.containerDefinitions[0].secrets |= if any(.name == "SENTRY_DSN") then . else . + [{"name": "SENTRY_DSN", "valueFrom": "/alia-bot/SENTRY_DSN"}] end' task-definition.json > task-definition-updated.json
+          mv task-definition-updated.json task-definition.json
       - name: Fill in the new image ID in the Amazon ECS task definition
         id: task-def
         uses: aws-actions/amazon-ecs-render-task-definition@master
