@@ -131,6 +131,96 @@ The bot uses a dynamic file loading system (`loadFiles` function) that:
 **Docker Development:**
 The project includes Docker Compose setup for MySQL development database. Use provided scripts in `scripts/` directory for database management.
 
+## Documentation Standards
+
+**CHANGELOG.md:**
+Use CHANGELOG.md to track major updates, releases, and significant changes to the project. This helps maintain a clear history of what's been added, changed, or fixed over time.
+
+**PLAN.md:**
+Use PLAN.md to plan bigger features before implementation. This should include:
+- Feature requirements and scope
+- Technical approach and architecture decisions
+- Breaking down complex features into actionable tasks
+- Dependencies and potential blockers
+
+**GITHUB.md:**
+Use GITHUB.md to track GitHub issues, pull requests, and project board status. This provides a centralized view of:
+- Open issues and their priority/status
+- Active pull requests and review status
+- Project milestones and roadmap
+- GitHub Actions workflow status
+
+**Additional Documentation Files:**
+
+**DEPLOYMENT.md** - Production deployment guide covering:
+- AWS deployment steps and infrastructure setup
+- Environment configuration and secrets management
+- Docker deployment instructions and containerization
+- CI/CD pipeline documentation and automated deployments
+
+**TROUBLESHOOTING.md** - Common issues and solutions including:
+- Database connection problems and MySQL troubleshooting
+- Discord API rate limiting and token issues
+- OpenAI API errors and integration problems
+- Bot permission issues and Discord setup problems
+
+**CONTRIBUTING.md** - Development contribution guidelines covering:
+- Code style standards and ESLint configuration
+- Testing requirements and Jest framework usage
+- PR review process and branch protection rules
+- Development environment setup and prerequisites
+
+**COMMANDS.md** - User-facing command documentation including:
+- Complete list of available slash commands
+- Command usage examples with parameters
+- Permission requirements and role restrictions
+- Command categories and feature descriptions
+
+**CLAUDE.md Files in Subfolders:**
+Each significant subfolder should contain its own CLAUDE.md file that documents:
+
+1. **Purpose of the folder** - What this directory contains and its role in the project
+2. **File inventory** - List of files with brief descriptions of their purpose
+3. **Function overview** - High-level description of what each major function/class does
+4. **Dependencies** - What external modules or internal components are used
+5. **Usage patterns** - How files in this folder are typically used or imported
+
+**Example structure:**
+```
+src/commands/CLAUDE.md       # Documents all slash commands
+src/responses/CLAUDE.md      # Documents message response handlers  
+src/utils/CLAUDE.md          # Documents utility functions
+src/models/CLAUDE.md         # Documents database models
+src/services/CLAUDE.md       # Documents service classes
+events/CLAUDE.md             # Documents Discord event handlers
+```
+
+**Documentation Template:**
+```markdown
+# [Folder Name] - CLAUDE.md
+
+## Purpose
+Brief description of this directory's role in the project.
+
+## Files Overview
+- `filename.ts` - Brief description of purpose
+- `another-file.ts` - What this file handles
+
+## Key Functions/Classes
+- `functionName()` - What it does and when it's used
+- `ClassName` - Purpose and main methods
+
+## Dependencies
+- External: List of npm packages used
+- Internal: Other project folders/files referenced
+```
+
+**Benefits:**
+- Helps Claude Code understand codebase structure quickly
+- Provides context for making changes within specific areas
+- Makes it easier to maintain consistency across similar files
+- Assists in identifying the right place to add new functionality
+
 ## Git Workflow
 
 **IMPORTANT:** Master branch is protected and requires pull requests for ALL changes.
