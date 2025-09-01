@@ -59,9 +59,9 @@ function checkContentAppropriateness(content: string): boolean {
 
 // Hybrid Assistant classifier initialized with keyword patterns + Bayesian ML
 
-export default async (message: Message, context: Context) => {
+export default async (message: Message, context: Context): Promise<boolean> => {
     if (message.author.bot) {
-        return;
+        return false;
     }
 
     // Layer 1: Direct Addressing Pre-filter
@@ -79,7 +79,7 @@ export default async (message: Message, context: Context) => {
             startsWithAlia,
             stage: 'direct_addressing_filter',
         });
-        return;
+        return false;
     }
 
     // Remove the "Alia," prefix for processing
@@ -96,7 +96,7 @@ export default async (message: Message, context: Context) => {
             processableLength: processableContent.length,
             stage: 'content_validation_filter',
         });
-        return;
+        return false;
     }
 
     const startTime = Date.now();
@@ -151,7 +151,7 @@ export default async (message: Message, context: Context) => {
                 confidence,
                 stage: 'content_appropriateness_filter',
             });
-            return;
+            return false;
         }
 
         // Process if confidence threshold is met
@@ -193,6 +193,7 @@ export default async (message: Message, context: Context) => {
                             stage: 'response_sent',
                             success: true,
                         });
+                        return true; // Response sent successfully
                     } else {
                         context.log.error('Assistant failed to send response to Discord', {
                             userId: message.author.id,
@@ -201,6 +202,7 @@ export default async (message: Message, context: Context) => {
                             stage: 'discord_send',
                             success: false,
                         });
+                        return false; // Failed to send response
                     }
                 } else {
                     context.log.warn('Assistant generated no response or channel not available', {
@@ -210,6 +212,7 @@ export default async (message: Message, context: Context) => {
                         stage: 'response_validation',
                         success: false,
                     });
+                    return false; // No response generated
                 }
             } else {
                 context.log.info('Assistant classified message but not as general-knowledge', {
@@ -217,6 +220,7 @@ export default async (message: Message, context: Context) => {
                     confidence,
                     stage: 'intent_filtered',
                 });
+                return false; // Message classified but not for response
             }
         } else {
             context.log.info('Assistant confidence below threshold, no response', {
@@ -225,6 +229,7 @@ export default async (message: Message, context: Context) => {
                 confidenceThreshold: CONFIDENCE_THRESHOLD,
                 stage: 'confidence_filtered',
             });
+            return false; // Below confidence threshold
         }
 
     } catch (error) {
@@ -236,5 +241,6 @@ export default async (message: Message, context: Context) => {
             stage: 'classification_error',
             success: false,
         });
+        return false; // Error occurred
     }
 }

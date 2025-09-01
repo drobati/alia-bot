@@ -39,6 +39,70 @@ function getDiscordErrorCategory(errorCode: number): string {
     }
 }
 
+/**
+ * Validates Sentry DSN format and extracts key information for debugging
+ */
+function validateSentryDsn(dsn: string): {
+    isValid: boolean;
+    projectId?: string;
+    organizationId?: string;
+    host?: string;
+    publicKey?: string;
+    error?: string;
+} {
+    try {
+        // Sentry DSN format: https://PUBLIC_KEY@ORGANIZATION_ID.ingest.sentry.io/PROJECT_ID
+        // PUBLIC_KEY: 32 hex chars, ORG_ID: o followed by numbers, PROJECT_ID: numbers
+        const dsnPattern = /^https:\/\/([a-f0-9]{32})@(o[0-9]+)\.ingest\.sentry\.io\/([0-9]+)$/;
+        const match = dsn.match(dsnPattern);
+
+        if (!match) {
+            return {
+                isValid: false,
+                error: 'DSN does not match expected Sentry format',
+            };
+        }
+
+        const [, publicKey, organizationId, projectId] = match;
+
+        return {
+            isValid: true,
+            publicKey,
+            organizationId,
+            projectId,
+            host: 'sentry.io',
+        };
+    } catch (error) {
+        return {
+            isValid: false,
+            error: `DSN validation failed: ${error instanceof Error ? error.message : String(error)}`,
+        };
+    }
+}
+
+/**
+ * Test Sentry connectivity by sending a test event
+ */
+export async function testSentryConnectivity(): Promise<{ success: boolean; error?: string }> {
+    try {
+        // Send a test message to verify connectivity
+        const eventId = Sentry.captureMessage('Sentry connectivity test - startup validation', 'info');
+
+        // Wait a moment for the event to be queued
+        await new Promise(resolve => setTimeout(resolve, 100));
+
+        return {
+            success: !!eventId,
+            error: eventId ? undefined : 'No event ID returned',
+        };
+    } catch (error) {
+        return {
+            success: false,
+            error: error instanceof Error ? error.message : String(error),
+        };
+    }
+}
+
 export function initializeSentry() {
     const sentryDsn = process.env.SENTRY_DSN;
 
@@ -47,6 +111,33 @@ export function initializeSentry() {
         console.warn("SENTRY_DSN environment variable not set. Sentry logging disabled.");
         return;
     }
+
+    // Validate DSN format
+    const validation = validateSentryDsn(sentryDsn);
+
+    // eslint-disable-next-line no-console
+    console.log('=== SENTRY DSN VALIDATION ===');
+    // eslint-disable-next-line no-console
+    console.log(`DSN Valid: ${validation.isValid}`);
+
+    if (validation.isValid) {
+        // eslint-disable-next-line no-console
+        console.log(`Project ID: ${validation.projectId}`);
+        // eslint-disable-next-line no-console
+        console.log(`Organization ID: ${validation.organizationId}`);
+        // eslint-disable-next-line no-console
+        console.log(`Host: ${validation.host}`);
+        // eslint-disable-next-line no-console
+        console.log(`Public Key: ${validation.publicKey?.substring(0, 8)}...`);
+    } else {
+        // eslint-disable-next-line no-console
+        console.error(`DSN Validation Error: ${validation.error}`);
+        // eslint-disable-next-line no-console
+        console.error(`DSN (masked): ${sentryDsn.substring(0, 20)}...${sentryDsn.substring(sentryDsn.length - 10)}`);
+        return;
+    }
+    // eslint-disable-next-line no-console
+    console.log('==============================');
 
     Sentry.init({
         dsn: sentryDsn,
@@ -136,6 +227,25 @@ export function initializeSentry() {
 
     // eslint-disable-next-line no-console
     console.log(`Sentry initialized for environment: ${process.env.NODE_ENV}`);
+
+    // Test connectivity after initialization
+    setTimeout(async () => {
+        // eslint-disable-next-line no-console
+        console.log('=== SENTRY CONNECTIVITY TEST ===');
+        const connectivityTest = await testSentryConnectivity();
+
+        if (connectivityTest.success) {
+            // eslint-disable-next-line no-console
+            console.log('✅ Sentry connectivity test PASSED - events can be sent');
+        } else {
+            // eslint-disable-next-line no-console
+            console.error(`❌ Sentry connectivity test FAILED: ${connectivityTest.error}`);
+            // eslint-disable-next-line no-console
+            console.error('This indicates the DSN may be incorrect or Sentry is unreachable');
+        }
+        // eslint-disable-next-line no-console
+        console.log('================================');
+    }, 1000); // Wait 1 second for Sentry to be fully initialized
 }
 
 // Helper function to capture owner ID debugging info to Sentry

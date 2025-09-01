@@ -156,13 +156,22 @@ class SentryBunyanStream {
                 msg?.includes('started') ||
                 msg?.includes('shutdown')
             )) {
-                // Capture important operational messages
+                // Capture important operational messages as breadcrumbs
                 Sentry.addBreadcrumb({
                     message: msg,
                     level: sentryLevel,
                     category: 'system',
                     data: extra,
                 });
+            } else if (sentryLevel === 'info' && (
+                msg?.includes('CONFIG DEBUG') ||
+                msg?.includes('Owner ID') ||
+                msg?.includes('NODE_ENV') ||
+                msg?.includes('Config sources') ||
+                msg?.includes('config keys')
+            )) {
+                // Send config debug logs as messages so they appear in events list
+                Sentry.captureMessage(msg || 'Config debug log', 'info');
             } else {
                 // For debug/trace, just add as breadcrumb for context
                 Sentry.addBreadcrumb({

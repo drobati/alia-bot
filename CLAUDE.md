@@ -65,11 +65,13 @@ Commands export objects with:
 - `autocomplete`: Optional autocomplete handler
 
 **Response System (`src/responses/`):**
-Message responses run in parallel via `Promise.allSettled()` in `messageCreate` event:
-- `Louds`: Responds to all-caps messages
-- `Adlibs`: Mad-libs style text replacement
+Message responses run in priority-based sequential order in `messageCreate` event:
+- `Assistant`: NLP-powered responses (highest priority)
 - `Triggers`: Pattern-based responses
-- `Assistant` (new): OpenAI-powered responses using Bayesian classification
+- `Adlibs`: Mad-libs style text replacement  
+- `Louds`: All-caps message responses (lowest priority)
+
+Only one response per message to prevent conflicts.
 
 ### Database Models
 
@@ -138,17 +140,17 @@ The project includes Docker Compose setup for MySQL development database. Use pr
 2. Make changes and commit with descriptive messages
 3. Push feature branch: `git push -u origin feature/description-issue-number`  
 4. Create pull request via GitHub CLI: `gh pr create --title "feat: description" --body "detailed description"`
-5. **STOP HERE** - Wait for human review and approval
-6. NEVER commit directly to master - always use PRs for proper review and CI checks
-
-**CRITICAL: Claude Code MUST NOT merge pull requests automatically:**
-- NEVER use `gh pr merge` command without explicit user instruction
-- NEVER use `--admin`, `--auto`, or other flags to bypass branch protection
-- NEVER merge PRs even if asked to "deploy" - deployment happens AFTER human review
-- CREATE the PR, then WAIT for human to review, approve, and merge
-- Only proceed with deployment AFTER the human has merged the PR
+5. NEVER commit directly to master - always use PRs for proper review and CI checks
 
 **Branch Naming Convention:**
 - Features: `feature/description-issue-number`
 - Bug fixes: `fix/description-issue-number`
 - Documentation: `docs/description`
+
+## Important Instructions
+
+Do what has been asked; nothing more, nothing less.
+NEVER create files unless they're absolutely necessary for achieving your goal.
+ALWAYS prefer editing an existing file to creating a new one.
+NEVER proactively create documentation files (*.md) or README files. Only create documentation files if explicitly requested by the User.
+NEVER add Claude Code attributions to commits, PRs, or other git operations.
