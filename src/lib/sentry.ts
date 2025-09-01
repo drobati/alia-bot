@@ -51,9 +51,10 @@ function validateSentryDsn(dsn: string): {
     error?: string;
 } {
     try {
-        // Sentry DSN format: https://PUBLIC_KEY@ORGANIZATION_ID.ingest.sentry.io/PROJECT_ID
+        // Sentry DSN format: https://PUBLIC_KEY@ORGANIZATION_ID.ingest.[region.]sentry.io/PROJECT_ID
         // PUBLIC_KEY: 32 hex chars, ORG_ID: o followed by numbers, PROJECT_ID: numbers
-        const dsnPattern = /^https:\/\/([a-f0-9]{32})@(o[0-9]+)\.ingest\.sentry\.io\/([0-9]+)$/;
+        // Region is optional (us, eu, etc.)
+        const dsnPattern = /^https:\/\/([a-f0-9]{32})@(o[0-9]+)\.ingest\.(?:(us|eu)\.)?sentry\.io\/([0-9]+)$/;
         const match = dsn.match(dsnPattern);
 
         if (!match) {
@@ -63,14 +64,14 @@ function validateSentryDsn(dsn: string): {
             };
         }
 
-        const [, publicKey, organizationId, projectId] = match;
+        const [, publicKey, organizationId, region, projectId] = match;
 
         return {
             isValid: true,
             publicKey,
             organizationId,
             projectId,
-            host: 'sentry.io',
+            host: region ? `${region}.sentry.io` : 'sentry.io',
         };
     } catch (error) {
         return {
