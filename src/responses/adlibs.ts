@@ -1,25 +1,33 @@
 import Sequelize from "sequelize";
 
-export default async (message: any, { tables }: any) => {
+export default async (message: any, { tables }: any): Promise<boolean> => {
     const { Adlibs } = tables;
     let response = message.content;
     const regex = /(-{3,})+/g;
     if (regex.test(response)) {
-        const matches = response.match(regex);
+        try {
+            const matches = response.match(regex);
 
-        await Promise.all(
-            matches.map(async (match: any) => {
-                // Pick an adlib from the stored list and say it. Skip if there are no adlibs.
-                const word = match.trim();
-                const adlib = await Adlibs.findOne({ order: Sequelize.literal('rand()') });
-                if (!adlib) {
-                    throw new Error('No adlibs found in table.');
-                }
+            await Promise.all(
+                matches.map(async (match: any) => {
+                    // Pick an adlib from the stored list and say it. Skip if there are no adlibs.
+                    const word = match.trim();
+                    const adlib = await Adlibs.findOne({ order: Sequelize.literal('rand()') });
+                    if (!adlib) {
+                        throw new Error('No adlibs found in table.');
+                    }
 
-                response = response.replace(word, `**${adlib.value}**`);
-            }),
-        );
+                    response = response.replace(word, `**${adlib.value}**`);
+                }),
+            );
 
-        message.channel.send(response);
+            await message.channel.send(response);
+            return true; // Successfully processed Adlibs message
+        } catch (error) {
+            console.error('Adlibs response failed:', error);
+            return false; // Failed to process Adlibs message
+        }
     }
+    
+    return false; // Not an Adlibs message
 }
