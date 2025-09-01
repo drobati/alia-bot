@@ -1,4 +1,5 @@
 import { SlashCommandBuilder } from "discord.js";
+import { checkOwnerPermission } from "../utils/permissions";
 
 function validateCommand(interaction: any, commandName: any) {
     const command = interaction.client.commands.get(commandName);
@@ -30,6 +31,14 @@ export default {
     async execute(interaction: any, {
         log,
     }: any) {
+        // Check owner permission first - critical security check
+        try {
+            await checkOwnerPermission(interaction, { log });
+        } catch (error) {
+            // Permission check failed, error already sent to user
+            return;
+        }
+
         const commandName = interaction.options.getString('command', true).toLowerCase();
 
         if (!validateCommand(interaction, commandName)) {
