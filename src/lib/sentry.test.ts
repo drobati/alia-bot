@@ -37,69 +37,69 @@ describe('Sentry Integration', () => {
     describe('initializeSentry', () => {
         it('should initialize Sentry with DSN', () => {
             process.env.SENTRY_DSN = 'https://test@sentry.io/123';
-            
+
             initializeSentry();
-            
+
             expect(mockSentry.init).toHaveBeenCalledWith(
                 expect.objectContaining({
                     dsn: 'https://test@sentry.io/123',
                     enableLogs: true,
-                })
+                }),
             );
         });
 
         it('should warn when DSN is not set', () => {
             const consoleSpy = jest.spyOn(console, 'warn').mockImplementation();
             delete process.env.SENTRY_DSN;
-            
+
             initializeSentry();
-            
+
             expect(consoleSpy).toHaveBeenCalledWith(
-                'SENTRY_DSN environment variable not set. Sentry logging disabled.'
+                'SENTRY_DSN environment variable not set. Sentry logging disabled.',
             );
             expect(mockSentry.init).not.toHaveBeenCalled();
-            
+
             consoleSpy.mockRestore();
         });
 
         it('should use production settings', () => {
             process.env.SENTRY_DSN = 'https://test@sentry.io/123';
             process.env.NODE_ENV = 'production';
-            
+
             initializeSentry();
-            
+
             expect(mockSentry.init).toHaveBeenCalledWith(
                 expect.objectContaining({
                     environment: 'production',
                     debug: false,
-                })
+                }),
             );
         });
 
         it('should use development settings', () => {
             process.env.SENTRY_DSN = 'https://test@sentry.io/123';
             process.env.NODE_ENV = 'development';
-            
+
             initializeSentry();
-            
+
             expect(mockSentry.init).toHaveBeenCalledWith(
                 expect.objectContaining({
                     environment: 'development',
                     debug: true,
-                })
+                }),
             );
         });
 
         it('should use VERSION for release', () => {
             process.env.SENTRY_DSN = 'https://test@sentry.io/123';
             process.env.VERSION = '2.0.0';
-            
+
             initializeSentry();
-            
+
             expect(mockSentry.init).toHaveBeenCalledWith(
                 expect.objectContaining({
                     release: '2.0.0',
-                })
+                }),
             );
         });
     });
@@ -120,7 +120,7 @@ describe('Sentry Integration', () => {
                     message: 'Owner ID Debug: test',
                     category: 'auth',
                     level: 'info',
-                })
+                }),
             );
         });
 
@@ -136,7 +136,7 @@ describe('Sentry Integration', () => {
 
             expect(mockSentry.captureMessage).toHaveBeenCalledWith(
                 'Owner ID mismatch detected',
-                'warning'
+                'warning',
             );
         });
 

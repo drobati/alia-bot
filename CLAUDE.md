@@ -138,7 +138,15 @@ The project includes Docker Compose setup for MySQL development database. Use pr
 2. Make changes and commit with descriptive messages
 3. Push feature branch: `git push -u origin feature/description-issue-number`  
 4. Create pull request via GitHub CLI: `gh pr create --title "feat: description" --body "detailed description"`
-5. NEVER commit directly to master - always use PRs for proper review and CI checks
+5. **STOP HERE** - Wait for human review and approval
+6. NEVER commit directly to master - always use PRs for proper review and CI checks
+
+**CRITICAL: Claude Code MUST NOT merge pull requests automatically:**
+- NEVER use `gh pr merge` command without explicit user instruction
+- NEVER use `--admin`, `--auto`, or other flags to bypass branch protection
+- NEVER merge PRs even if asked to "deploy" - deployment happens AFTER human review
+- CREATE the PR, then WAIT for human to review, approve, and merge
+- Only proceed with deployment AFTER the human has merged the PR
 
 **Branch Naming Convention:**
 - Features: `feature/description-issue-number`

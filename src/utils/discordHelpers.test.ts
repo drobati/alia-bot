@@ -64,7 +64,7 @@ describe('Discord Helpers', () => {
             const result = await safelySendToChannel(
                 mockChannel as any,
                 'test message',
-                mockContext
+                mockContext,
             );
 
             expect(result).toBe(true);
@@ -75,7 +75,7 @@ describe('Discord Helpers', () => {
             const result = await safelySendToChannel(
                 null,
                 'test message',
-                mockContext
+                mockContext,
             );
 
             expect(result).toBe(false);
@@ -88,7 +88,7 @@ describe('Discord Helpers', () => {
             const result = await safelySendToChannel(
                 mockChannel as any,
                 'test message',
-                mockContext
+                mockContext,
             );
 
             expect(result).toBe(false);
@@ -100,15 +100,15 @@ describe('Discord Helpers', () => {
         it('should find channel by name', () => {
             // Mock isTextBased to return true for our test channel
             mockChannel.isTextBased.mockReturnValue(true);
-            
-            const channelTypeCheck = (channel: any): channel is any => 
+
+            const channelTypeCheck = (channel: any): channel is any =>
                 channel.isTextBased();
 
             const result = safelyFindChannel(
                 mockClient as any,
                 'test-channel',
                 channelTypeCheck,
-                mockContext
+                mockContext,
             );
 
             expect(result).toBe(mockChannel);
@@ -121,7 +121,7 @@ describe('Discord Helpers', () => {
                 mockClient as any,
                 'nonexistent-channel',
                 channelTypeCheck,
-                mockContext
+                mockContext,
             );
 
             expect(result).toBeUndefined();
@@ -130,14 +130,14 @@ describe('Discord Helpers', () => {
         it('should work without context', () => {
             // Mock isTextBased to return true for our test channel
             mockChannel.isTextBased.mockReturnValue(true);
-            
-            const channelTypeCheck = (channel: any): channel is any => 
+
+            const channelTypeCheck = (channel: any): channel is any =>
                 channel.isTextBased();
 
             const result = safelyFindChannel(
                 mockClient as any,
                 'test-channel',
-                channelTypeCheck
+                channelTypeCheck,
             );
 
             expect(result).toBe(mockChannel);
@@ -149,7 +149,7 @@ describe('Discord Helpers', () => {
             const result = await sendWithRetry(
                 mockChannel as any,
                 'test message',
-                mockContext
+                mockContext,
             );
 
             expect(result).toBe(true);
@@ -165,7 +165,7 @@ describe('Discord Helpers', () => {
                 mockChannel as any,
                 'test message',
                 mockContext,
-                2
+                2,
             );
 
             expect(result).toBe(true);
@@ -179,7 +179,7 @@ describe('Discord Helpers', () => {
                 mockChannel as any,
                 'test message',
                 mockContext,
-                1
+                1,
             );
 
             expect(result).toBe(false);

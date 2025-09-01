@@ -51,10 +51,10 @@ describe('Logger Utils', () => {
         it('should handle production environment', () => {
             const originalEnv = process.env.NODE_ENV;
             process.env.NODE_ENV = 'production';
-            
+
             const logger = createLogger('prod-logger');
             expect(logger).toBeDefined();
-            
+
             process.env.NODE_ENV = originalEnv;
         });
     });
