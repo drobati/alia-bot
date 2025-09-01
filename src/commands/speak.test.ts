@@ -155,7 +155,40 @@ describe('speak command', () => {
             ]);
         });
 
-        it('should handle non-voice options', async () => {
+        it('should return all tones when tone query is empty', async () => {
+            mockAutocompleteInteraction.options.getFocused.mockReturnValue({
+                name: 'tone',
+                value: '',
+            });
+
+            await speakCommand.autocomplete(mockAutocompleteInteraction);
+
+            expect(mockAutocompleteInteraction.respond).toHaveBeenCalledWith([
+                { name: 'Neutral (Default)', value: 'neutral' },
+                { name: 'Happy/Excited', value: 'happy' },
+                { name: 'Sad/Melancholy', value: 'sad' },
+                { name: 'Angry/Intense', value: 'angry' },
+                { name: 'Calm/Soothing', value: 'calm' },
+                { name: 'Mysterious/Dark', value: 'mysterious' },
+                { name: 'Dramatic/Epic', value: 'dramatic' },
+                { name: 'Sarcastic/Witty', value: 'sarcastic' },
+            ]);
+        });
+
+        it('should filter tones by keywords', async () => {
+            mockAutocompleteInteraction.options.getFocused.mockReturnValue({
+                name: 'tone',
+                value: 'excited',
+            });
+
+            await speakCommand.autocomplete(mockAutocompleteInteraction);
+
+            expect(mockAutocompleteInteraction.respond).toHaveBeenCalledWith([
+                { name: 'Happy/Excited', value: 'happy' },
+            ]);
+        });
+
+        it('should handle non-voice and non-tone options', async () => {
             mockAutocompleteInteraction.options.getFocused.mockReturnValue({
                 name: 'text',
                 value: 'hello',
@@ -197,6 +230,7 @@ describe('speak command', () => {
         mockInteraction.options.getString.mockImplementation((option: string) => {
             if (option === 'text') {return 'x'.repeat(5000);} // Too long
             if (option === 'voice') {return 'alloy';}
+            if (option === 'tone') {return 'neutral';}
             return null;
         });
         mockInteraction.options.getBoolean.mockReturnValue(false);
@@ -213,6 +247,7 @@ describe('speak command', () => {
         mockInteraction.options.getString.mockImplementation((option: string) => {
             if (option === 'text') {return 'Hello world';}
             if (option === 'voice') {return 'invalid-voice';}
+            if (option === 'tone') {return 'neutral';}
             return null;
         });
         mockInteraction.options.getBoolean.mockReturnValue(false);
@@ -225,10 +260,29 @@ describe('speak command', () => {
         });
     });
 
+    it('should handle invalid tone option', async () => {
+        mockInteraction.options.getString.mockImplementation((option: string) => {
+            if (option === 'text') {return 'Hello world';}
+            if (option === 'voice') {return 'alloy';}
+            if (option === 'tone') {return 'invalid-tone';}
+            return null;
+        });
+        mockInteraction.options.getBoolean.mockReturnValue(false);
+
+        await speakCommand.execute(mockInteraction, mockContext);
+
+        expect(mockInteraction.reply).toHaveBeenCalledWith({
+            content: '❌ Invalid tone option. Valid tones are: ' +
+                'neutral, happy, sad, angry, calm, mysterious, dramatic, sarcastic',
+            ephemeral: true,
+        });
+    });
+
     it('should handle empty text', async () => {
         mockInteraction.options.getString.mockImplementation((option: string) => {
             if (option === 'text') {return '';}
             if (option === 'voice') {return 'alloy';}
+            if (option === 'tone') {return 'neutral';}
             return null;
         });
         mockInteraction.options.getBoolean.mockReturnValue(false);
@@ -397,14 +451,14 @@ describe('speak command', () => {
         await speakCommand.execute(mockInteraction, mockContext);
 
         expect(mockContext.log.error).toHaveBeenCalledWith(
-            'Error executing speak command',
+            'Unexpected error in TTS command',
             expect.objectContaining({
                 userId: 'test-owner-id',
                 error: generalError,
             }),
         );
         expect(mockInteraction.reply).toHaveBeenCalledWith({
-            content: '❌ An error occurred: General error',
+            content: '❌ An unexpected error occurred while processing your request.',
             ephemeral: true,
         });
     });
