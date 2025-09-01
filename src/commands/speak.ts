@@ -35,22 +35,22 @@ export default {
 
     async autocomplete(interaction: any) {
         const focusedOption = interaction.options.getFocused(true);
-        
+
         if (focusedOption.name === 'voice') {
             const query = focusedOption.value.toLowerCase();
-            
-            let filtered = VOICE_OPTIONS.filter(voice => {
+
+            let filtered = VOICE_OPTIONS.filter(voice =>
                 // Match by name or keywords
-                return voice.name.toLowerCase().includes(query) ||
-                       voice.value.toLowerCase().includes(query) ||
-                       voice.keywords.some(keyword => keyword.includes(query));
-            });
+                voice.name.toLowerCase().includes(query) ||
+                voice.value.toLowerCase().includes(query) ||
+                voice.keywords.some(keyword => keyword.includes(query)),
+            );
 
             // Limit to 25 options (Discord's limit)
             filtered = filtered.slice(0, 25);
 
             await interaction.respond(
-                filtered.map(voice => ({ name: voice.name, value: voice.value }))
+                filtered.map(voice => ({ name: voice.name, value: voice.value })),
             );
         }
     },
