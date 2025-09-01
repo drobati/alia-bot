@@ -305,6 +305,19 @@ When working on this Discord bot project, use these specialized agents for optim
 - Ensuring secure Discord token handling
 - Validating owner-only command restrictions
 
+### **discord-interaction-designer**
+**Use for:** Discord-specific UX design and bot interaction patterns
+- Designing intuitive slash command structures and parameter layouts
+- Creating user-friendly command hierarchies (like `/meme` subcommands)
+- Optimizing autocomplete experiences for better command discovery
+- Designing bot personality and response tone across different contexts
+- Planning voice channel interaction flows (join/leave/TTS patterns)
+- Creating effective embed layouts and button interaction designs
+- Designing permission-aware UX (owner-only vs public command clarity)
+- Improving error message UX to be helpful rather than frustrating
+- Planning user onboarding flows for bot feature discovery
+- Designing social dynamics considerations for server-wide bot usage
+
 ### **sprint-prioritizer**
 **Use for:** Feature planning, roadmap management, and development prioritization
 - Analyzing the 29+ open GitHub issues for priority ranking
