@@ -45,9 +45,7 @@ describe('speak command', () => {
             options: {
                 getString: jest.fn(),
                 getBoolean: jest.fn(),
-                getFocused: jest.fn(),
             },
-            respond: jest.fn(),
         };
 
         mockContext = {
@@ -300,7 +298,6 @@ describe('speak command', () => {
         mockInteraction.options.getString.mockImplementation((option: string) => {
             if (option === 'text') {return 'Hello world';}
             if (option === 'voice') {return 'alloy';}
-            if (option === 'tone') {return 'neutral';}
             return null;
         });
         mockInteraction.options.getBoolean.mockReturnValue(false);
@@ -318,7 +315,6 @@ describe('speak command', () => {
         mockInteraction.options.getString.mockImplementation((option: string) => {
             if (option === 'text') {return 'Hello world';}
             if (option === 'voice') {return 'alloy';}
-            if (option === 'tone') {return 'neutral';}
             return null;
         });
         mockInteraction.options.getBoolean.mockReturnValue(true); // join_user = true
@@ -337,7 +333,6 @@ describe('speak command', () => {
         mockInteraction.options.getString.mockImplementation((option: string) => {
             if (option === 'text') {return 'Hello world';}
             if (option === 'voice') {return 'alloy';}
-            if (option === 'tone') {return 'neutral';}
             return null;
         });
         mockInteraction.options.getBoolean.mockReturnValue(true);
@@ -356,7 +351,6 @@ describe('speak command', () => {
         mockInteraction.options.getString.mockImplementation((option: string) => {
             if (option === 'text') {return 'Hello world';}
             if (option === 'voice') {return 'alloy';}
-            if (option === 'tone') {return 'neutral';}
             return null;
         });
         mockInteraction.options.getBoolean.mockReturnValue(false);
@@ -370,11 +364,10 @@ describe('speak command', () => {
         });
     });
 
-    it('should successfully speak text with neutral tone', async () => {
+    it('should successfully speak text', async () => {
         mockInteraction.options.getString.mockImplementation((option: string) => {
             if (option === 'text') {return 'Hello world';}
             if (option === 'voice') {return 'nova';}
-            if (option === 'tone') {return 'neutral';}
             return null;
         });
         mockInteraction.options.getBoolean.mockReturnValue(false);
@@ -396,42 +389,14 @@ describe('speak command', () => {
                 guildId: 'test-guild-id',
                 textLength: 11,
                 voice: 'nova',
-                tone: 'neutral',
             }),
         );
-    });
-
-    it('should successfully speak text with emotional tone', async () => {
-        mockInteraction.options.getString.mockImplementation((option: string) => {
-            if (option === 'text') {return 'Hello world';}
-            if (option === 'voice') {return 'nova';}
-            if (option === 'tone') {return 'happy';}
-            return null;
-        });
-        mockInteraction.options.getBoolean.mockReturnValue(false);
-        mockVoiceService.isConnectedToVoice.mockReturnValue(true);
-        mockVoiceService.speakText.mockResolvedValue(undefined);
-
-        await speakCommand.execute(mockInteraction, mockContext);
-
-        expect(mockInteraction.deferReply).toHaveBeenCalledWith({ ephemeral: true });
-        // Should call with processed text that has emotional modifiers
-        expect(mockVoiceService.speakText).toHaveBeenCalledWith(
-            '[Speaking with joy and enthusiasm] Hello world! [End with upbeat energy]',
-            'test-guild-id',
-            'nova'
-        );
-        expect(mockInteraction.followUp).toHaveBeenCalledWith({
-            content: '✅ Successfully spoke text using nova voice with happy tone.',
-            ephemeral: true,
-        });
     });
 
     it('should successfully join and speak', async () => {
         mockInteraction.options.getString.mockImplementation((option: string) => {
             if (option === 'text') {return 'Hello world';}
             if (option === 'voice') {return null;} // Default to alloy
-            if (option === 'tone') {return null;} // Default to neutral
             return null;
         });
         mockInteraction.options.getBoolean.mockReturnValue(true); // join_user = true
@@ -455,7 +420,6 @@ describe('speak command', () => {
         mockInteraction.options.getString.mockImplementation((option: string) => {
             if (option === 'text') {return 'Hello world';}
             if (option === 'voice') {return 'alloy';}
-            if (option === 'tone') {return 'neutral';}
             return null;
         });
         mockInteraction.options.getBoolean.mockReturnValue(false);

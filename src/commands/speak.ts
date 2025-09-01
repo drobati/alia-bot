@@ -321,25 +321,26 @@ export default {
                 log.warn('Unauthorized TTS command attempt', {
                     userId: interaction.user.id,
                     username: interaction.user.username,
+                    guildId: interaction.guild?.id,
                 });
-                return; // Reply already sent in checkOwnerPermission
+                // Error already sent to user by checkOwnerPermission
+                return;
             }
 
-            log.error('Error executing speak command', {
+            // Handle other errors
+            log.error('Unexpected error in TTS command', {
                 userId: interaction.user.id,
                 error: error,
             });
 
-            const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
-
-            if (interaction.deferred) {
-                await interaction.followUp({
-                    content: `❌ An error occurred: ${errorMessage}`,
+            if (!interaction.replied && !interaction.deferred) {
+                await interaction.reply({
+                    content: '❌ An unexpected error occurred while processing your request.',
                     ephemeral: true,
                 });
             } else {
-                await interaction.reply({
-                    content: `❌ An error occurred: ${errorMessage}`,
+                await interaction.followUp({
+                    content: '❌ An unexpected error occurred while processing your request.',
                     ephemeral: true,
                 });
             }
