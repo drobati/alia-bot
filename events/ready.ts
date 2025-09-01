@@ -22,40 +22,40 @@ const clientReadyEvent: BotEvent = {
         const ownerId = config.get<string>('owner');
 
         // Comprehensive config debugging
-        log.warn('=== COMPREHENSIVE CONFIG DEBUG (READY EVENT) - Bot started ===');
-        log.warn(`NODE_ENV: ${process.env.NODE_ENV}`);
-        log.warn(`Config util version: ${config.util ? 'available' : 'not available'}`);
+        log.info('=== COMPREHENSIVE CONFIG DEBUG (READY EVENT) - Bot started ===');
+        log.info(`NODE_ENV: ${process.env.NODE_ENV}`);
+        log.info(`Config util version: ${config.util ? 'available' : 'not available'}`);
 
         // Try to get config source information
         try {
             const configSources = config.util?.getConfigSources?.();
-            log.warn(`Config sources: ${JSON.stringify(configSources, null, 2)}`);
+            log.info(`Config sources: ${JSON.stringify(configSources, null, 2)}`);
         } catch (error) {
-            log.warn(`Could not get config sources: ${error}`);
+            log.info(`Could not get config sources: ${error}`);
         }
 
         // Show all config keys to see what's loaded
         try {
             const allKeys = Object.keys(config);
-            log.warn(`All config keys available: ${allKeys.join(', ')}`);
+            log.info(`All config keys available: ${allKeys.join(', ')}`);
         } catch (error) {
-            log.warn(`Could not get config keys: ${error}`);
+            log.info(`Could not get config keys: ${error}`);
         }
 
         // Check if owner exists and where it comes from
-        log.warn(`Owner exists in config: ${config.has('owner')}`);
-        log.warn(`Configured Owner ID: ${ownerId}`);
-        log.warn(`Owner ID Type: ${typeof ownerId}`);
+        log.info(`Owner exists in config: ${config.has('owner')}`);
+        log.info(`Configured Owner ID: ${ownerId}`);
+        log.info(`Owner ID Type: ${typeof ownerId}`);
 
         // Try to get the raw config object to see structure
         try {
             const rawConfig = JSON.stringify(config, null, 2);
-            log.warn(`Raw config object: ${rawConfig}`);
+            log.info(`Raw config object: ${rawConfig}`);
         } catch (error) {
-            log.warn(`Could not stringify config: ${error}`);
+            log.info(`Could not stringify config: ${error}`);
         }
 
-        log.warn('================================================');
+        log.info('================================================');
 
         const deploymentMessage = stripIndent`
             🚀 **Successfully deployed on ${process.env.NODE_ENV}**

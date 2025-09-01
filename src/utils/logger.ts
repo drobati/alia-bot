@@ -201,7 +201,7 @@ export function createLogger(name: string, additionalStreams: bunyan.Stream[] = 
 
     // Add Sentry stream when DSN is configured
     if (process.env.SENTRY_DSN) {
-        const sentryLevel = process.env.NODE_ENV === 'production' ? 'warn' : 'info';
+        const sentryLevel = 'info'; // Capture info level and above in all environments
 
         streams.push({
             level: sentryLevel as bunyan.LogLevel,
