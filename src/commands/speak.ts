@@ -33,7 +33,11 @@ function applyEmotionalTone(text: string, tone: string): string {
         return text;
     }
 
-    const toneModifiers: Record<string, { prefix: string; suffix: string; textModifier?: (s: string) => string }> = {
+    const toneModifiers: Record<string, {
+        prefix: string;
+        suffix: string;
+        textModifier?: (s: string) => string; // eslint-disable-line no-unused-vars
+    }> = {
         happy: {
             prefix: '[Speaking with joy and enthusiasm] ',
             suffix: ' [End with upbeat energy]',
