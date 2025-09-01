@@ -118,6 +118,59 @@ async function startBot() {
         category: 'bot_lifecycle',
     }, `Logged in successfully. Version ${VERSION}`);
 
+    // COMPREHENSIVE CONFIG DEBUGGING - Show all config sources
+    log.info('=== COMPREHENSIVE CONFIG DEBUGGING ===');
+    log.info(`NODE_ENV: ${process.env.NODE_ENV}`);
+    log.info(`NODE_CONFIG_ENV: ${process.env.NODE_CONFIG_ENV || 'undefined'}`);
+    log.info(`NODE_CONFIG_DIR: ${process.env.NODE_CONFIG_DIR || 'default (./config)'}`);
+    log.info(`NODE_CONFIG: ${process.env.NODE_CONFIG || 'undefined'}`);
+    log.info(`Current working directory: ${process.cwd()}`);
+    
+    // Check which config files exist and would be loaded
+    const fs = require('fs');
+    const path = require('path');
+    const configDir = process.env.NODE_CONFIG_DIR || path.join(process.cwd(), 'config');
+    log.info(`Config directory: ${configDir}`);
+    
+    try {
+        const configFiles = fs.readdirSync(configDir);
+        log.info(`Available config files: ${configFiles.join(', ')}`);
+        
+        // Check specific files that would be loaded based on NODE_ENV
+        const env = process.env.NODE_ENV || 'development';
+        const possibleFiles = [
+            'default.yaml',
+            'default.yml',
+            'default.json',
+            `${env}.yaml`,
+            `${env}.yml`, 
+            `${env}.json`,
+            'local.yaml',
+            'local.yml',
+            'local.json'
+        ];
+        
+        log.info('Config file loading order and existence:');
+        possibleFiles.forEach(filename => {
+            const filePath = path.join(configDir, filename);
+            const exists = fs.existsSync(filePath);
+            log.info(`  ${filename}: ${exists ? 'EXISTS' : 'NOT FOUND'}`);
+            if (exists) {
+                const stats = fs.statSync(filePath);
+                log.info(`    Size: ${stats.size} bytes, Modified: ${stats.mtime.toISOString()}`);
+            }
+        });
+    } catch (error) {
+        log.error(`Failed to read config directory: ${(error as Error).message}`);
+    }
+
+    // Log all config sources that the config package would consider
+    log.info(`Config package sources (in precedence order):`);
+    log.info(`1. Command line arguments: ${JSON.stringify(process.argv.slice(2))}`);
+    log.info(`2. Environment variables: NODE_CONFIG exists = ${!!process.env.NODE_CONFIG}`);
+    log.info(`3. Config files: See file existence check above`);
+    log.info('=== END CONFIG DEBUGGING ===');
+
     // Log bot owner configuration for debugging
     const ownerId = config.get<string>('owner');
     log.info({
@@ -125,6 +178,38 @@ async function startBot() {
         ownerIdType: typeof ownerId,
         category: 'bot_configuration',
     }, 'Bot owner configuration loaded');
+    
+    // Additional debugging - show raw config and environment overrides
+    log.info('=== OWNER CONFIG DETAILED ANALYSIS ===');
+    
+    // Check if owner is being set by environment variable
+    const envVars = Object.keys(process.env).filter(key => 
+        key.toLowerCase().includes('owner') || 
+        key.toLowerCase().includes('config') ||
+        key.startsWith('ALIA_') ||
+        key.startsWith('BOT_')
+    );
+    log.info(`Environment variables that might affect config: ${JSON.stringify(envVars.map(key => `${key}=${process.env[key]}`))}`);
+    
+    // Try to get the raw config object
+    try {
+        const configKeys = config.util.getConfigSources();
+        log.info(`Config sources loaded: ${JSON.stringify(configKeys, null, 2)}`);
+    } catch (error) {
+        log.warn(`Could not get config sources: ${(error as Error).message}`);
+    }
+    
+    // Check if there are any config overrides
+    if (process.env.NODE_CONFIG) {
+        try {
+            const nodeConfigOverride = JSON.parse(process.env.NODE_CONFIG);
+            log.info(`NODE_CONFIG override: ${JSON.stringify(nodeConfigOverride, null, 2)}`);
+        } catch (error) {
+            log.warn(`NODE_CONFIG exists but is not valid JSON: ${process.env.NODE_CONFIG}`);
+        }
+    }
+    
+    log.info('=== END OWNER CONFIG ANALYSIS ===');
 
     // Capture owner ID configuration in Sentry for debugging
     captureOwnerIdDebug({
