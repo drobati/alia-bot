@@ -21,8 +21,8 @@ const clientReadyEvent: BotEvent = {
         // Get owner configuration for deployment message
         const ownerId = config.get<string>('owner');
 
-        // Comprehensive config debugging
-        log.info('=== COMPREHENSIVE CONFIG DEBUG (READY EVENT) ===');
+        // Comprehensive config debugging  
+        log.info('=== COMPREHENSIVE CONFIG DEBUG (READY EVENT) - Bot started ===');
         log.info(`NODE_ENV: ${process.env.NODE_ENV}`);
         log.info(`Config util version: ${config.util ? 'available' : 'not available'}`);
 
