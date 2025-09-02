@@ -97,7 +97,7 @@ function handleCommandFile(command: BotCommand, fullPath: string) {
         log.info(`Skipping development-only command: ${command.data?.name || 'unknown'}`);
         return;
     }
-    
+
     if (command.data) {
         client.commands.set(command.data.name, command);
     } else {
