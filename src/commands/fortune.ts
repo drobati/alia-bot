@@ -11,7 +11,7 @@ const FORTUNES = [
     "Your future holds many pull requests.",
     "Wise is the developer who documents their code.",
     "Today's bugs are tomorrow's features.",
-    
+
     // Humor & Tech
     "404: Fortune not found. Try again later.",
     "There are only 10 types of people: those who understand binary and those who don't.",
@@ -20,7 +20,7 @@ const FORTUNES = [
     "The answer you seek lies in Stack Overflow.",
     "Your rubber duck has wisdom to share. Listen carefully.",
     "Commit early, commit often, push with confidence.",
-    
+
     // Motivation & Success
     "Great opportunities await you in the coming sprints.",
     "Your persistence will pay off sooner than you think.",
@@ -29,7 +29,7 @@ const FORTUNES = [
     "Your next project will exceed all expectations.",
     "Collaboration will lead to unexpected breakthroughs.",
     "Your creativity knows no bounds today.",
-    
+
     // Discord & Gaming
     "Your next voice chat will bring good news.",
     "A legendary drop awaits you in your next gaming session.",
@@ -38,7 +38,7 @@ const FORTUNES = [
     "Your next raid will be victorious.",
     "RNG will be in your favor today.",
     "Your K/D ratio is about to improve significantly.",
-    
+
     // Life & Relationships
     "A pleasant surprise awaits you this week.",
     "Someone appreciates your efforts more than you know.",
@@ -47,7 +47,7 @@ const FORTUNES = [
     "Your hard work has not gone unnoticed.",
     "A new friendship will blossom from shared interests.",
     "Today is a good day to try something new.",
-    
+
     // Mysterious & Cryptic
     "The void stares back, but it thinks you're neat.",
     "When the moon is full, your code will run true.",
@@ -87,7 +87,7 @@ export default {
             const luckyNumbers = generateLuckyNumbers();
 
             // Create fortune cookie message with emoji decoration
-            const fortuneMessage = 
+            const fortuneMessage =
                 `🥠 **Your Fortune Cookie** 🥠\n\n` +
                 `*"${fortune}"*\n\n` +
                 `🔢 **Lucky Numbers:** ${luckyNumbers}\n` +
@@ -124,7 +124,7 @@ export default {
 // Helper function to get random color
 function getRandomColor(): string {
     const colors = [
-        'Red 🔴', 'Blue 🔵', 'Green 🟢', 'Yellow 🟡', 
+        'Red 🔴', 'Blue 🔵', 'Green 🟢', 'Yellow 🟡',
         'Purple 🟣', 'Orange 🟠', 'Pink 🩷', 'Gold ⭐',
         'Silver 🌙', 'Rainbow 🌈', 'Black ⚫', 'White ⚪',
     ];

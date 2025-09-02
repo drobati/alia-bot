@@ -81,7 +81,7 @@ describe('fortune command', () => {
         // Lucky numbers should be 6 numbers between 1-49, separated by commas
         const luckyNumbersMatch = replyCall.content.match(/Lucky Numbers:\*\* ([\d, ]+)/);
         expect(luckyNumbersMatch).toBeTruthy();
-        
+
         if (luckyNumbersMatch) {
             const numbers = luckyNumbersMatch[1].split(', ').map(Number);
             expect(numbers).toHaveLength(6);
@@ -100,14 +100,14 @@ describe('fortune command', () => {
         await fortuneCommand.execute(mockInteraction, mockContext);
 
         const replyCall = mockInteraction.reply.mock.calls[0][0];
-        expect(replyCall.content).toMatch(/Lucky Color:\*\* .+ [🔴🔵🟢🟡🟣🟠🩷⭐🌙🌈⚫⚪]/);
+        expect(replyCall.content).toMatch(/Lucky Color:\*\* .+ [🔴🔵🟢🟡🟣🟠🩷⭐🌙🌈⚫⚪]/u);
     });
 
     it('should include fortune level', async () => {
         await fortuneCommand.execute(mockInteraction, mockContext);
 
         const replyCall = mockInteraction.reply.mock.calls[0][0];
-        expect(replyCall.content).toMatch(/Fortune Level:\*\* .+ [⚡💎💫✨⭐🙏🍀🎯🎊]/);
+        expect(replyCall.content).toMatch(/Fortune Level:\*\* .+ [⚡💎💫✨⭐🙏🍀🎯🎊]/u);
     });
 
     it('should log fortune execution', async () => {
@@ -169,12 +169,12 @@ describe('fortune command', () => {
 
     it('should vary fortunes on multiple executions', async () => {
         const fortunes = new Set();
-        
+
         // Execute multiple times to check for variety
         for (let i = 0; i < 10; i++) {
             jest.clearAllMocks();
             await fortuneCommand.execute(mockInteraction, mockContext);
-            
+
             const replyCall = mockInteraction.reply.mock.calls[0][0];
             const fortuneMatch = replyCall.content.match(/\*"(.*)"\*/);
             if (fortuneMatch) {
