@@ -61,7 +61,7 @@ export class MemeGenerator {
                     currentLine = word;
                 } else {
                     // Word is too long, break it up
-                    const maxChars = Math.floor(maxWidth / estimatedCharWidth);
+                    const maxChars = Math.max(1, Math.floor(maxWidth / estimatedCharWidth));
                     let remainingWord = word;
                     while (remainingWord.length > maxChars) {
                         lines.push(remainingWord.substring(0, maxChars));

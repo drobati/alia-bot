@@ -1,5 +1,5 @@
 import axios from 'axios';
-import { get } from 'lodash';
+import { first } from 'lodash';
 import twitchApi from './twitch';
 
 // Mock external dependencies
@@ -7,11 +7,10 @@ jest.mock('axios');
 jest.mock('lodash');
 
 const mockAxios = axios as jest.Mocked<typeof axios>;
-const mockGet = get as jest.MockedFunction<typeof get>;
+const mockFirst = first as jest.MockedFunction<typeof first>;
 
 describe('Twitch API', () => {
     let mockModel: any;
-    let mockLog: any;
     let mockRecord: any;
 
     beforeEach(() => {
@@ -29,18 +28,13 @@ describe('Twitch API', () => {
             create: jest.fn().mockResolvedValue(mockRecord),
         };
 
-        // Setup mock logger
-        mockLog = {
-            error: jest.fn(),
-        };
-
         // Setup default axios responses
         mockAxios.post.mockResolvedValue({
             data: {
                 access_token: 'test-token-123',
                 expires_in: 3600,
-                token_type: 'bearer'
-            }
+                token_type: 'bearer',
+            },
         });
 
         mockAxios.get.mockResolvedValue({
@@ -55,10 +49,13 @@ describe('Twitch API', () => {
                     profile_image_url: 'https://static-cdn.jtvnw.net/user-default-pictures/test.png',
                     offline_image_url: '',
                     view_count: 1000,
-                    email: 'test@example.com'
-                }]
-            }
+                    email: 'test@example.com',
+                }],
+            },
         });
+
+        // Mock lodash first function to return the first user
+        mockFirst.mockImplementation((users: any) => users?.[0]);
     });
 
     describe('createToken', () => {
@@ -70,11 +67,12 @@ describe('Twitch API', () => {
             await twitchApi.createToken('client-id-123', 'secret-456', mockModel);
 
             expect(mockAxios.post).toHaveBeenCalledWith(
-                'https://id.twitch.tv/oauth2/token?client_id=client-id-123&client_secret=secret-456&grant_type=client_credentials'
+                'https://id.twitch.tv/oauth2/token?client_id=client-id-123&client_secret=secret-456' +
+                    '&grant_type=client_credentials',
             );
             expect(mockModel.create).toHaveBeenCalledWith({
                 key: 'TOKEN',
-                value: 'test-token-123'
+                value: 'test-token-123',
             });
         });
 
@@ -85,7 +83,7 @@ describe('Twitch API', () => {
 
             expect(mockRecord.update).toHaveBeenCalledWith({
                 key: 'TOKEN',
-                value: 'test-token-123'
+                value: 'test-token-123',
             });
             expect(mockModel.create).not.toHaveBeenCalled();
         });
@@ -94,8 +92,8 @@ describe('Twitch API', () => {
             const mockError = {
                 response: {
                     status: 401,
-                    data: { error: 'Invalid client credentials' }
-                }
+                    data: { error: 'Invalid client credentials' },
+                },
             };
             mockAxios.post.mockRejectedValue(mockError);
 
@@ -117,9 +115,9 @@ describe('Twitch API', () => {
                 'https://api.twitch.tv/helix/users?login=testuser',
                 {
                     headers: {
-                        Authorization: 'Bearer valid-token'
-                    }
-                }
+                        Authorization: 'Bearer valid-token',
+                    },
+                },
             );
             expect(user).toEqual({
                 id: '123456789',
@@ -131,7 +129,7 @@ describe('Twitch API', () => {
                 profile_image_url: 'https://static-cdn.jtvnw.net/user-default-pictures/test.png',
                 offline_image_url: '',
                 view_count: 1000,
-                email: 'test@example.com'
+                email: 'test@example.com',
             });
         });
 
@@ -152,8 +150,8 @@ describe('Twitch API', () => {
                     login: 'test-login',
                     scopes: [],
                     user_id: '123456',
-                    expires_in: 3600
-                }
+                    expires_in: 3600,
+                },
             };
             mockAxios.get.mockResolvedValue(validationResponse);
 
@@ -162,8 +160,8 @@ describe('Twitch API', () => {
             expect(mockAxios.get).toHaveBeenCalledWith(
                 'https://id.twitch.tv/oauth2/validate',
                 {
-                    headers: { Authorization: 'OAuth valid-token' }
-                }
+                    headers: { Authorization: 'OAuth valid-token' },
+                },
             );
             expect(result).toEqual(validationResponse);
         });
@@ -172,8 +170,8 @@ describe('Twitch API', () => {
             const invalidTokenError = {
                 response: {
                     status: 401,
-                    data: { message: 'invalid access token' }
-                }
+                    data: { message: 'invalid access token' },
+                },
             };
             mockAxios.get.mockRejectedValue(invalidTokenError);
 

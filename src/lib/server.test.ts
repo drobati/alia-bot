@@ -36,7 +36,7 @@ describe('Server Module', () => {
         mockServer = {
             route: jest.fn(),
             start: jest.fn().mockResolvedValue(undefined),
-            info: { uri: 'http://localhost:3000' }
+            info: { uri: 'http://localhost:3000' },
         };
         mockHapi.server.mockReturnValue(mockServer);
 
@@ -46,13 +46,13 @@ describe('Server Module', () => {
         // Setup Discord client mock
         mockClient = {
             users: new Map([
-                ['123', { toString: () => '<@123>' }]
-            ])
+                ['123', { toString: () => '<@123>' }],
+            ]),
         };
 
         // Setup Discord channel mock
         mockChannel = {
-            send: jest.fn().mockResolvedValue({ id: 'message123' })
+            send: jest.fn().mockResolvedValue({ id: 'message123' }),
         };
 
         // Setup Discord embed mock
@@ -60,25 +60,25 @@ describe('Server Module', () => {
             setColor: jest.fn().mockReturnThis(),
             setTitle: jest.fn().mockReturnThis(),
             setURL: jest.fn().mockReturnThis(),
-            setDescription: jest.fn().mockReturnThis()
+            setDescription: jest.fn().mockReturnThis(),
         };
 
         // Setup model mock
         mockModel = {
             Twitch_Users: {
-                findOne: jest.fn()
+                findOne: jest.fn(),
             },
             Twitch_Notifications: {
                 findOne: jest.fn(),
-                create: jest.fn()
+                create: jest.fn(),
             },
             MemeTemplate: {
-                findOne: jest.fn()
+                findOne: jest.fn(),
             },
             RollCall: {
                 findAll: jest.fn(),
-                create: jest.fn()
-            }
+                create: jest.fn(),
+            },
         };
 
         // Setup MemeGenerator mocks
@@ -87,9 +87,22 @@ describe('Server Module', () => {
 
         // Setup ChartJS mock
         const mockChartInstance = {
-            renderToBuffer: jest.fn().mockResolvedValue(Buffer.from('chart-data'))
+            renderToBuffer: jest.fn().mockResolvedValue(Buffer.from('chart-data')),
+            renderToDataURL: jest.fn().mockResolvedValue('data:image/png;base64,test'),
+            renderToDataURLSync: jest.fn().mockReturnValue('data:image/png;base64,test'),
+            renderToBufferSync: jest.fn().mockReturnValue(Buffer.from('chart-data')),
+            renderToStream: jest.fn().mockReturnValue({} as any),
+            destroy: jest.fn(),
+            getType: jest.fn().mockReturnValue('png'),
+            getQuality: jest.fn().mockReturnValue(0.92),
+            getMimeType: jest.fn().mockReturnValue('image/png'),
+            getWidth: jest.fn().mockReturnValue(400),
+            getHeight: jest.fn().mockReturnValue(400),
+            getBackgroundColour: jest.fn().mockReturnValue('#FFFFFF'),
+            getPlugins: jest.fn().mockReturnValue([]),
+            registerFont: jest.fn(),
         };
-        MockChartJSNodeCanvas.mockImplementation(() => mockChartInstance);
+        MockChartJSNodeCanvas.mockImplementation(() => mockChartInstance as any);
     });
 
     afterEach(() => {
@@ -104,7 +117,7 @@ describe('Server Module', () => {
             await serverModule(mockClient, mockChannel, mockEmbed, mockModel);
 
             expect(mockHapi.server).toHaveBeenCalledWith({
-                port: 8080
+                port: 8080,
             });
             expect(mockConfig.get).toHaveBeenCalledWith('webhook.port');
         });
@@ -125,31 +138,31 @@ describe('Server Module', () => {
             const routeCalls = mockServer.route.mock.calls;
             expect(routeCalls[0][0]).toMatchObject({
                 method: 'GET',
-                path: '/api/webhook'
+                path: '/api/webhook',
             });
             expect(routeCalls[1][0]).toMatchObject({
                 method: 'POST',
-                path: '/api/webhook'
+                path: '/api/webhook',
             });
             expect(routeCalls[2][0]).toMatchObject({
                 method: 'POST',
-                path: '/api/test-meme'
+                path: '/api/test-meme',
             });
             expect(routeCalls[3][0]).toMatchObject({
                 method: 'POST',
-                path: '/api/test-custom-meme'
+                path: '/api/test-custom-meme',
             });
             expect(routeCalls[4][0]).toMatchObject({
                 method: 'GET',
-                path: '/api/test-rc-graph/{username}'
+                path: '/api/test-rc-graph/{username}',
             });
             expect(routeCalls[5][0]).toMatchObject({
                 method: 'GET',
-                path: '/api/test-rc-graph-sample'
+                path: '/api/test-rc-graph-sample',
             });
             expect(routeCalls[6][0]).toMatchObject({
                 method: 'POST',
-                path: '/api/add-rc-score'
+                path: '/api/add-rc-score',
             });
         });
     });
@@ -164,12 +177,12 @@ describe('Server Module', () => {
 
         it('should return hub challenge for validation', () => {
             const mockRequest = {
-                query: { 'hub.challenge': 'test-challenge-123' }
+                query: { 'hub.challenge': 'test-challenge-123' },
             };
             const mockH = {
                 response: jest.fn().mockReturnValue({
-                    code: jest.fn().mockReturnThis()
-                })
+                    code: jest.fn().mockReturnThis(),
+                }),
             };
 
             const result = handler(mockRequest, mockH);
@@ -183,8 +196,8 @@ describe('Server Module', () => {
             const mockRequest = { query: {} };
             const mockH = {
                 response: jest.fn().mockReturnValue({
-                    code: jest.fn().mockReturnThis()
-                })
+                    code: jest.fn().mockReturnThis(),
+                }),
             };
 
             const result = handler(mockRequest, mockH);
@@ -210,33 +223,34 @@ describe('Server Module', () => {
                         user_id: 'twitch-user-456',
                         user_name: 'teststreamer',
                         title: 'Test Stream',
-                        type: 'live'
-                    }]
-                }
+                        type: 'live',
+                    }],
+                },
             };
             const mockH = {
                 response: jest.fn().mockReturnValue({
-                    code: jest.fn().mockReturnThis()
-                })
+                    code: jest.fn().mockReturnThis(),
+                }),
             };
 
             // Mock database responses
             mockModel.Twitch_Notifications.findOne.mockResolvedValue(null);
             mockModel.Twitch_Notifications.create.mockResolvedValue({});
             mockModel.Twitch_Users.findOne.mockResolvedValue({
-                user_id: '123'
+                user_id: '123',
             });
 
             const result = await handler(mockRequest, mockH);
 
+            expect(mockH.response).toHaveBeenCalled();
             expect(mockModel.Twitch_Notifications.findOne).toHaveBeenCalledWith({
-                where: { notification_id: 'notification-123' }
+                where: { notification_id: 'notification-123' },
             });
             expect(mockModel.Twitch_Notifications.create).toHaveBeenCalledWith({
-                notification_id: 'notification-123'
+                notification_id: 'notification-123',
             });
             expect(mockModel.Twitch_Users.findOne).toHaveBeenCalledWith({
-                where: { twitch_id: 'twitch-user-456' }
+                where: { twitch_id: 'twitch-user-456' },
             });
 
             expect(mockEmbed.setColor).toHaveBeenCalledWith('#0099ff');
@@ -256,14 +270,14 @@ describe('Server Module', () => {
                         user_id: 'unknown-user',
                         user_name: 'unknownstreamer',
                         title: 'Unknown Stream',
-                        type: 'live'
-                    }]
-                }
+                        type: 'live',
+                    }],
+                },
             };
             const mockH = {
                 response: jest.fn().mockReturnValue({
-                    code: jest.fn().mockReturnThis()
-                })
+                    code: jest.fn().mockReturnThis(),
+                }),
             };
 
             mockModel.Twitch_Notifications.findOne.mockResolvedValue(null);
@@ -272,6 +286,7 @@ describe('Server Module', () => {
 
             const result = await handler(mockRequest, mockH);
 
+            expect(mockH.response).toHaveBeenCalled();
             expect(mockChannel.send).toHaveBeenCalledWith('Unknown discord user for unknownstreamer on twitch.');
             expect(mockH.response).toHaveBeenCalledWith('success');
         });
@@ -284,20 +299,21 @@ describe('Server Module', () => {
                         user_id: 'user-123',
                         user_name: 'streamer',
                         title: 'Stream',
-                        type: 'live'
-                    }]
-                }
+                        type: 'live',
+                    }],
+                },
             };
             const mockH = {
                 response: jest.fn().mockReturnValue({
-                    code: jest.fn().mockReturnThis()
-                })
+                    code: jest.fn().mockReturnThis(),
+                }),
             };
 
             mockModel.Twitch_Notifications.findOne.mockResolvedValue({ id: 'existing' });
 
             const result = await handler(mockRequest, mockH);
 
+            expect(mockH.response).toHaveBeenCalled();
             expect(mockModel.Twitch_Notifications.create).not.toHaveBeenCalled();
             expect(mockChannel.send).not.toHaveBeenCalled();
             expect(mockH.response).toHaveBeenCalledWith('success');
@@ -308,12 +324,13 @@ describe('Server Module', () => {
             const mockRequest = { payload: {} };
             const mockH = {
                 response: jest.fn().mockReturnValue({
-                    code: jest.fn().mockReturnThis()
-                })
+                    code: jest.fn().mockReturnThis(),
+                }),
             };
 
             const result = await handler(mockRequest, mockH);
 
+            expect(mockH.response).toHaveBeenCalled();
             expect(mockH.response).toHaveBeenCalledWith('success');
             expect(result).toBe('');
         });
@@ -332,13 +349,13 @@ describe('Server Module', () => {
                 payload: {
                     templateName: 'drake',
                     topText: 'Bad thing',
-                    bottomText: 'Good thing'
-                }
+                    bottomText: 'Good thing',
+                },
             };
             const mockH = {
                 response: jest.fn().mockReturnValue({
-                    type: jest.fn().mockReturnThis()
-                })
+                    type: jest.fn().mockReturnThis(),
+                }),
             };
 
             const mockTemplate = { id: 1, name: 'drake', is_active: true };
@@ -346,17 +363,18 @@ describe('Server Module', () => {
 
             const result = await handler(mockRequest, mockH);
 
+            expect(mockH.response).toHaveBeenCalled();
             expect(mockModel.MemeTemplate.findOne).toHaveBeenCalledWith({
-                where: { name: 'drake', is_active: true }
+                where: { name: 'drake', is_active: true },
             });
             expect(MockMemeGenerator.generateMeme).toHaveBeenCalledWith(
                 mockTemplate,
                 'Bad thing',
-                'Good thing'
+                'Good thing',
             );
             expect(mockH.response).toHaveBeenCalledWith(Buffer.from('meme-data'));
             expect(consoleLogSpy).toHaveBeenCalledWith(
-                'Testing meme generation: drake with texts: "Bad thing", "Good thing"'
+                'Testing meme generation: drake with texts: "Bad thing", "Good thing"',
             );
         });
 
@@ -365,19 +383,20 @@ describe('Server Module', () => {
                 payload: {
                     templateName: 'nonexistent',
                     topText: 'Top',
-                    bottomText: 'Bottom'
-                }
+                    bottomText: 'Bottom',
+                },
             };
             const mockH = {
                 response: jest.fn().mockReturnValue({
-                    code: jest.fn().mockReturnThis()
-                })
+                    code: jest.fn().mockReturnThis(),
+                }),
             };
 
             mockModel.MemeTemplate.findOne.mockResolvedValue(null);
 
             const result = await handler(mockRequest, mockH);
 
+            expect(mockH.response).toHaveBeenCalled();
             expect(mockH.response).toHaveBeenCalledWith({ error: 'Template not found' });
         });
 
@@ -386,13 +405,13 @@ describe('Server Module', () => {
                 payload: {
                     templateName: 'drake',
                     topText: 'Top',
-                    bottomText: 'Bottom'
-                }
+                    bottomText: 'Bottom',
+                },
             };
             const mockH = {
                 response: jest.fn().mockReturnValue({
-                    code: jest.fn().mockReturnThis()
-                })
+                    code: jest.fn().mockReturnThis(),
+                }),
             };
 
             const mockTemplate = { id: 1, name: 'drake', is_active: true };
@@ -401,24 +420,25 @@ describe('Server Module', () => {
 
             const result = await handler(mockRequest, mockH);
 
+            expect(mockH.response).toHaveBeenCalled();
             expect(consoleErrorSpy).toHaveBeenCalledWith('Meme generation error:', expect.any(Error));
             expect(mockH.response).toHaveBeenCalledWith({
                 error: 'Failed to generate meme',
-                details: 'Canvas error'
+                details: 'Canvas error',
             });
         });
 
         it('should handle undefined text values', async () => {
             const mockRequest = {
                 payload: {
-                    templateName: 'drake'
+                    templateName: 'drake',
                     // No topText or bottomText
-                }
+                },
             };
             const mockH = {
                 response: jest.fn().mockReturnValue({
-                    type: jest.fn().mockReturnThis()
-                })
+                    type: jest.fn().mockReturnThis(),
+                }),
             };
 
             const mockTemplate = { id: 1, name: 'drake', is_active: true };
@@ -429,7 +449,7 @@ describe('Server Module', () => {
             expect(MockMemeGenerator.generateMeme).toHaveBeenCalledWith(
                 mockTemplate,
                 undefined,
-                undefined
+                undefined,
             );
         });
     });
@@ -446,21 +466,22 @@ describe('Server Module', () => {
             const mockRequest = {
                 payload: {
                     imageUrl: 'https://example.com/image.jpg',
-                    texts: ['Top text', 'Bottom text']
-                }
+                    texts: ['Top text', 'Bottom text'],
+                },
             };
             const mockH = {
                 response: jest.fn().mockReturnValue({
-                    type: jest.fn().mockReturnThis()
-                })
+                    type: jest.fn().mockReturnThis(),
+                }),
             };
 
             const result = await handler(mockRequest, mockH);
 
+            expect(mockH.response).toHaveBeenCalled();
             expect(MockMemeGenerator.generateCustomMeme).toHaveBeenCalledWith(
                 'https://example.com/image.jpg',
                 'Top text',
-                'Bottom text'
+                'Bottom text',
             );
             expect(mockH.response).toHaveBeenCalledWith(Buffer.from('custom-meme-data'));
         });
@@ -469,13 +490,13 @@ describe('Server Module', () => {
             const mockRequest = {
                 payload: {
                     imageUrl: 'https://example.com/image.jpg',
-                    texts: { topText: 'Top', bottomText: 'Bottom' }
-                }
+                    texts: { topText: 'Top', bottomText: 'Bottom' },
+                },
             };
             const mockH = {
                 response: jest.fn().mockReturnValue({
-                    type: jest.fn().mockReturnThis()
-                })
+                    type: jest.fn().mockReturnThis(),
+                }),
             };
 
             await handler(mockRequest, mockH);
@@ -483,7 +504,7 @@ describe('Server Module', () => {
             expect(MockMemeGenerator.generateCustomMeme).toHaveBeenCalledWith(
                 'https://example.com/image.jpg',
                 'Top',
-                'Bottom'
+                'Bottom',
             );
         });
 
@@ -491,13 +512,13 @@ describe('Server Module', () => {
             const mockRequest = {
                 payload: {
                     imageUrl: 'https://example.com/image.jpg',
-                    texts: 'Single text'
-                }
+                    texts: 'Single text',
+                },
             };
             const mockH = {
                 response: jest.fn().mockReturnValue({
-                    type: jest.fn().mockReturnThis()
-                })
+                    type: jest.fn().mockReturnThis(),
+                }),
             };
 
             await handler(mockRequest, mockH);
@@ -505,7 +526,7 @@ describe('Server Module', () => {
             expect(MockMemeGenerator.generateCustomMeme).toHaveBeenCalledWith(
                 'https://example.com/image.jpg',
                 'Single text',
-                undefined
+                undefined,
             );
         });
 
@@ -513,23 +534,24 @@ describe('Server Module', () => {
             const mockRequest = {
                 payload: {
                     imageUrl: 'https://example.com/image.jpg',
-                    texts: ['Top', 'Bottom']
-                }
+                    texts: ['Top', 'Bottom'],
+                },
             };
             const mockH = {
                 response: jest.fn().mockReturnValue({
-                    code: jest.fn().mockReturnThis()
-                })
+                    code: jest.fn().mockReturnThis(),
+                }),
             };
 
             MockMemeGenerator.generateCustomMeme.mockRejectedValue(new Error('Network error'));
 
             const result = await handler(mockRequest, mockH);
 
+            expect(mockH.response).toHaveBeenCalled();
             expect(consoleErrorSpy).toHaveBeenCalledWith('Custom meme generation error:', expect.any(Error));
             expect(mockH.response).toHaveBeenCalledWith({
                 error: 'Failed to generate custom meme',
-                details: 'Network error'
+                details: 'Network error',
             });
         });
     });
@@ -544,29 +566,30 @@ describe('Server Module', () => {
 
         it('should generate RC graph for user with scores', async () => {
             const mockRequest = {
-                params: { username: 'testuser' }
+                params: { username: 'testuser' },
             };
             const mockH = {
                 response: jest.fn().mockReturnValue({
-                    type: jest.fn().mockReturnThis()
-                })
+                    type: jest.fn().mockReturnThis(),
+                }),
             };
 
             const mockScores = [
                 { value: 10, timestamp: new Date('2025-08-23T11:46:05') },
                 { value: 8, timestamp: new Date('2025-08-24T10:30:00') },
-                { value: 9, timestamp: new Date('2025-08-25T09:15:00') }
+                { value: 9, timestamp: new Date('2025-08-25T09:15:00') },
             ];
             mockModel.RollCall.findAll.mockResolvedValue(mockScores);
 
             const result = await handler(mockRequest, mockH);
 
+            expect(mockH.response).toHaveBeenCalled();
             expect(mockModel.RollCall.findAll).toHaveBeenCalledWith({
                 where: {
                     username: 'testuser',
-                    timestamp: { [expect.anything()]: new Date(0) }
+                    timestamp: expect.any(Object),
                 },
-                order: [['timestamp', 'ASC']]
+                order: [['timestamp', 'ASC']],
             });
             expect(mockH.response).toHaveBeenCalledWith(Buffer.from('chart-data'));
             expect(consoleLogSpy).toHaveBeenCalledWith('Testing RC graph generation for: testuser');
@@ -575,58 +598,60 @@ describe('Server Module', () => {
 
         it('should handle user with no scores', async () => {
             const mockRequest = {
-                params: { username: 'newuser' }
+                params: { username: 'newuser' },
             };
             const mockH = {
                 response: jest.fn().mockReturnValue({
-                    code: jest.fn().mockReturnThis()
-                })
+                    code: jest.fn().mockReturnThis(),
+                }),
             };
 
             mockModel.RollCall.findAll.mockResolvedValue([]);
 
             const result = await handler(mockRequest, mockH);
 
+            expect(mockH.response).toHaveBeenCalled();
             expect(mockH.response).toHaveBeenCalledWith({
-                error: 'No scores found for newuser'
+                error: 'No scores found for newuser',
             });
         });
 
         it('should handle database errors', async () => {
             const mockRequest = {
-                params: { username: 'testuser' }
+                params: { username: 'testuser' },
             };
             const mockH = {
                 response: jest.fn().mockReturnValue({
-                    code: jest.fn().mockReturnThis()
-                })
+                    code: jest.fn().mockReturnThis(),
+                }),
             };
 
             mockModel.RollCall.findAll.mockRejectedValue(new Error('Database connection failed'));
 
             const result = await handler(mockRequest, mockH);
 
+            expect(mockH.response).toHaveBeenCalled();
             expect(consoleErrorSpy).toHaveBeenCalledWith('RC graph generation error:', expect.any(Error));
             expect(mockH.response).toHaveBeenCalledWith({
                 error: 'Failed to generate RC graph',
-                details: 'Database connection failed'
+                details: 'Database connection failed',
             });
         });
 
         it('should limit to most recent 10 scores', async () => {
             const mockRequest = {
-                params: { username: 'activeuser' }
+                params: { username: 'activeuser' },
             };
             const mockH = {
                 response: jest.fn().mockReturnValue({
-                    type: jest.fn().mockReturnThis()
-                })
+                    type: jest.fn().mockReturnThis(),
+                }),
             };
 
             // Create 15 scores to test slicing
             const mockScores = Array.from({ length: 15 }, (_, i) => ({
                 value: 5 + i,
-                timestamp: new Date(`2025-08-${10 + i}T10:00:00`)
+                timestamp: new Date(`2025-08-${10 + i}T10:00:00`),
             }));
             mockModel.RollCall.findAll.mockResolvedValue(mockScores);
 
@@ -650,12 +675,13 @@ describe('Server Module', () => {
             const mockRequest = {};
             const mockH = {
                 response: jest.fn().mockReturnValue({
-                    type: jest.fn().mockReturnThis()
-                })
+                    type: jest.fn().mockReturnThis(),
+                }),
             };
 
             const result = await handler(mockRequest, mockH);
 
+            expect(mockH.response).toHaveBeenCalled();
             expect(consoleLogSpy).toHaveBeenCalledWith('Testing RC graph generation with sample data');
             expect(consoleLogSpy).toHaveBeenCalledWith('Generated 5 sample scores');
             expect(mockH.response).toHaveBeenCalledWith(Buffer.from('chart-data'));
@@ -665,21 +691,35 @@ describe('Server Module', () => {
             const mockRequest = {};
             const mockH = {
                 response: jest.fn().mockReturnValue({
-                    code: jest.fn().mockReturnThis()
-                })
+                    code: jest.fn().mockReturnThis(),
+                }),
             };
 
             const mockChartInstance = {
-                renderToBuffer: jest.fn().mockRejectedValue(new Error('Chart rendering failed'))
+                renderToBuffer: jest.fn().mockRejectedValue(new Error('Chart rendering failed')),
+                renderToDataURL: jest.fn().mockResolvedValue('data:image/png;base64,test'),
+                renderToDataURLSync: jest.fn().mockReturnValue('data:image/png;base64,test'),
+                renderToBufferSync: jest.fn().mockReturnValue(Buffer.from('chart-data')),
+                renderToStream: jest.fn().mockReturnValue({} as any),
+                destroy: jest.fn(),
+                getType: jest.fn().mockReturnValue('png'),
+                getQuality: jest.fn().mockReturnValue(0.92),
+                getMimeType: jest.fn().mockReturnValue('image/png'),
+                getWidth: jest.fn().mockReturnValue(400),
+                getHeight: jest.fn().mockReturnValue(400),
+                getBackgroundColour: jest.fn().mockReturnValue('#FFFFFF'),
+                getPlugins: jest.fn().mockReturnValue([]),
+                registerFont: jest.fn(),
             };
-            MockChartJSNodeCanvas.mockImplementation(() => mockChartInstance);
+            MockChartJSNodeCanvas.mockImplementation(() => mockChartInstance as any);
 
             const result = await handler(mockRequest, mockH);
 
+            expect(mockH.response).toHaveBeenCalled();
             expect(consoleErrorSpy).toHaveBeenCalledWith('RC graph generation error:', expect.any(Error));
             expect(mockH.response).toHaveBeenCalledWith({
                 error: 'Failed to generate RC graph',
-                details: 'Chart rendering failed'
+                details: 'Chart rendering failed',
             });
         });
     });
@@ -696,27 +736,28 @@ describe('Server Module', () => {
             const mockRequest = {
                 payload: {
                     username: 'testuser',
-                    score: 85
-                }
+                    score: 85,
+                },
             };
             const mockH = {
                 response: jest.fn().mockReturnValue({
-                    code: jest.fn().mockReturnThis()
-                })
+                    code: jest.fn().mockReturnThis(),
+                }),
             };
 
             mockModel.RollCall.create.mockResolvedValue({});
 
             const result = await handler(mockRequest, mockH);
 
+            expect(mockH.response).toHaveBeenCalled();
             expect(mockModel.RollCall.create).toHaveBeenCalledWith({
                 username: 'testuser',
                 value: 85,
-                timestamp: expect.any(Date)
+                timestamp: expect.any(Date),
             });
             expect(mockH.response).toHaveBeenCalledWith({
                 success: true,
-                message: 'Added score 85 for testuser'
+                message: 'Added score 85 for testuser',
             });
             expect(consoleLogSpy).toHaveBeenCalledWith('Adding RC score for testuser: 85');
         });
@@ -725,19 +766,20 @@ describe('Server Module', () => {
             const mockRequest = {
                 payload: {
                     username: 'testuser',
-                    score: -5
-                }
+                    score: -5,
+                },
             };
             const mockH = {
                 response: jest.fn().mockReturnValue({
-                    code: jest.fn().mockReturnThis()
-                })
+                    code: jest.fn().mockReturnThis(),
+                }),
             };
 
             const result = await handler(mockRequest, mockH);
 
+            expect(mockH.response).toHaveBeenCalled();
             expect(mockH.response).toHaveBeenCalledWith({
-                error: 'Score must be between 0 and 100'
+                error: 'Score must be between 0 and 100',
             });
             expect(mockModel.RollCall.create).not.toHaveBeenCalled();
         });
@@ -746,19 +788,20 @@ describe('Server Module', () => {
             const mockRequest = {
                 payload: {
                     username: 'testuser',
-                    score: 150
-                }
+                    score: 150,
+                },
             };
             const mockH = {
                 response: jest.fn().mockReturnValue({
-                    code: jest.fn().mockReturnThis()
-                })
+                    code: jest.fn().mockReturnThis(),
+                }),
             };
 
             const result = await handler(mockRequest, mockH);
 
+            expect(mockH.response).toHaveBeenCalled();
             expect(mockH.response).toHaveBeenCalledWith({
-                error: 'Score must be between 0 and 100'
+                error: 'Score must be between 0 and 100',
             });
             expect(mockModel.RollCall.create).not.toHaveBeenCalled();
         });
@@ -767,55 +810,56 @@ describe('Server Module', () => {
             const mockRequest = {
                 payload: {
                     username: 'testuser',
-                    score: 75
-                }
+                    score: 75,
+                },
             };
             const mockH = {
                 response: jest.fn().mockReturnValue({
-                    code: jest.fn().mockReturnThis()
-                })
+                    code: jest.fn().mockReturnThis(),
+                }),
             };
 
             mockModel.RollCall.create.mockRejectedValue(new Error('Database write failed'));
 
             const result = await handler(mockRequest, mockH);
 
+            expect(mockH.response).toHaveBeenCalled();
             expect(consoleErrorSpy).toHaveBeenCalledWith('Add RC score error:', expect.any(Error));
             expect(mockH.response).toHaveBeenCalledWith({
                 error: 'Failed to add RC score',
-                details: 'Database write failed'
+                details: 'Database write failed',
             });
         });
 
         it('should accept boundary values (0 and 100)', async () => {
             const mockH = {
                 response: jest.fn().mockReturnValue({
-                    code: jest.fn().mockReturnThis()
-                })
+                    code: jest.fn().mockReturnThis(),
+                }),
             };
             mockModel.RollCall.create.mockResolvedValue({});
 
             // Test score of 0
             await handler({
-                payload: { username: 'testuser', score: 0 }
+                payload: { username: 'testuser', score: 0 },
             }, mockH);
 
             expect(mockModel.RollCall.create).toHaveBeenCalledWith({
                 username: 'testuser',
                 value: 0,
-                timestamp: expect.any(Date)
+                timestamp: expect.any(Date),
             });
 
             // Reset and test score of 100
             mockModel.RollCall.create.mockClear();
             await handler({
-                payload: { username: 'testuser', score: 100 }
+                payload: { username: 'testuser', score: 100 },
             }, mockH);
 
             expect(mockModel.RollCall.create).toHaveBeenCalledWith({
                 username: 'testuser',
                 value: 100,
-                timestamp: expect.any(Date)
+                timestamp: expect.any(Date),
             });
         });
     });
@@ -830,8 +874,8 @@ describe('Server Module', () => {
             const mockRequest = {};
             const mockH = {
                 response: jest.fn().mockReturnValue({
-                    type: jest.fn().mockReturnThis()
-                })
+                    type: jest.fn().mockReturnThis(),
+                }),
             };
 
             await sampleHandler(mockRequest, mockH);
@@ -839,7 +883,7 @@ describe('Server Module', () => {
             // Verify ChartJS was instantiated with correct dimensions
             expect(MockChartJSNodeCanvas).toHaveBeenCalledWith({
                 width: 200, // 400 / 2
-                height: 100  // 200 / 2
+                height: 100,  // 200 / 2
             });
 
             // Verify renderToBuffer was called with chart configuration
@@ -852,24 +896,24 @@ describe('Server Module', () => {
                         expect.objectContaining({
                             label: 'Roll Call Score Shadow',
                             borderColor: 'rgba(0, 0, 0, 0.7)',
-                            borderWidth: 4
+                            borderWidth: 4,
                         }),
                         expect.objectContaining({
                             label: 'Roll Call Score',
                             borderColor: 'rgba(120, 200, 255, 1)',
-                            borderWidth: 3
-                        })
-                    ])
+                            borderWidth: 3,
+                        }),
+                    ]),
                 }),
                 options: expect.objectContaining({
                     scales: {
                         x: { display: false },
-                        y: { display: false }
+                        y: { display: false },
                     },
                     plugins: {
-                        legend: { display: false }
-                    }
-                })
+                        legend: { display: false },
+                    },
+                }),
             });
         });
     });

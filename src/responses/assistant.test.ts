@@ -38,7 +38,7 @@ describe('Assistant Response System', () => {
 
         // Setup mock channel
         mockChannel = {
-            send: jest.fn().mockResolvedValue({ id: 'message-123' })
+            send: jest.fn().mockResolvedValue({ id: 'message-123' }),
         };
 
         mockMessage = {
@@ -55,7 +55,7 @@ describe('Assistant Response System', () => {
                 user: { id: 'bot-user-id' },
             },
             channelId: 'test-channel-id',
-            channel: mockChannel
+            channel: mockChannel,
         } as any;
 
         mockContext = {
@@ -72,13 +72,13 @@ describe('Assistant Response System', () => {
             classify: jest.fn().mockReturnValue({
                 intent: 'general-knowledge',
                 confidence: 0.8,
-                method: 'keyword'
+                method: 'keyword',
             }),
             getDetailedClassification: jest.fn().mockReturnValue({
                 allScores: { 'general-knowledge': 0.8 },
                 keywordMatches: ['what', 'how'],
-                bayesianScore: 0.7
-            })
+                bayesianScore: 0.7,
+            }),
         };
         MockHybridClassifier.mockImplementation(() => mockClassifier);
 
@@ -200,12 +200,19 @@ describe('Assistant Response System', () => {
             'Alia, fuck this',
             'Alia, this is shit',
             'Alia, damn you',
-            'Alia, I hate you'
+            'Alia, I hate you',
         ];
 
         inappropriateExamples.forEach(example => {
             it(`should filter inappropriate content: "${example}"`, async () => {
                 mockMessage.content = example;
+
+                // Mock classifier to return a result that would normally proceed to content check
+                mockClassifier.classify.mockReturnValue({
+                    intent: 'general-knowledge',
+                    confidence: 0.8,
+                    method: 'keyword',
+                });
 
                 const result = await assistantResponse(mockMessage as Message, mockContext);
 
@@ -213,8 +220,8 @@ describe('Assistant Response System', () => {
                 expect(mockContext.log.info).toHaveBeenCalledWith(
                     'Assistant skipped - inappropriate content detected',
                     expect.objectContaining({
-                        stage: 'content_appropriateness_filter'
-                    })
+                        stage: 'content_appropriateness_filter',
+                    }),
                 );
             });
         });
@@ -225,12 +232,19 @@ describe('Assistant Response System', () => {
             'Alia, my back aches badly',
             'Alia, I think that he is wrong',
             'Alia, you should tell them',
-            'Alia, can you tell Sarah about this'
+            'Alia, can you tell Sarah about this',
         ];
 
         personalPatterns.forEach(example => {
             it(`should filter personal/social requests: "${example}"`, async () => {
                 mockMessage.content = example;
+
+                // Mock classifier to return a result that would normally proceed to content check
+                mockClassifier.classify.mockReturnValue({
+                    intent: 'general-knowledge',
+                    confidence: 0.8,
+                    method: 'keyword',
+                });
 
                 const result = await assistantResponse(mockMessage as Message, mockContext);
 
@@ -238,8 +252,8 @@ describe('Assistant Response System', () => {
                 expect(mockContext.log.info).toHaveBeenCalledWith(
                     'Assistant skipped - inappropriate content detected',
                     expect.objectContaining({
-                        stage: 'content_appropriateness_filter'
-                    })
+                        stage: 'content_appropriateness_filter',
+                    }),
                 );
             });
         });
@@ -251,7 +265,7 @@ describe('Assistant Response System', () => {
 
             expect(mockContext.log.info).not.toHaveBeenCalledWith(
                 'Assistant skipped - inappropriate content detected',
-                expect.anything()
+                expect.anything(),
             );
         });
     });
@@ -265,7 +279,7 @@ describe('Assistant Response System', () => {
             mockClassifier.classify.mockReturnValue({
                 intent: 'general-knowledge',
                 confidence: 0.85,
-                method: 'keyword'
+                method: 'keyword',
             });
 
             const result = await assistantResponse(mockMessage as Message, mockContext);
@@ -275,8 +289,8 @@ describe('Assistant Response System', () => {
                 'Assistant threshold met, processing intent',
                 expect.objectContaining({
                     confidence: 0.85,
-                    willProcess: true
-                })
+                    willProcess: true,
+                }),
             );
         });
 
@@ -284,7 +298,7 @@ describe('Assistant Response System', () => {
             mockClassifier.classify.mockReturnValue({
                 intent: 'general-knowledge',
                 confidence: 0.5,
-                method: 'bayesian'
+                method: 'bayesian',
             });
 
             const result = await assistantResponse(mockMessage as Message, mockContext);
@@ -295,8 +309,8 @@ describe('Assistant Response System', () => {
                 expect.objectContaining({
                     confidence: 0.5,
                     confidenceThreshold: 0.7,
-                    stage: 'confidence_filtered'
-                })
+                    stage: 'confidence_filtered',
+                }),
             );
         });
 
@@ -304,7 +318,7 @@ describe('Assistant Response System', () => {
             mockClassifier.classify.mockReturnValue({
                 intent: 'social-chat',
                 confidence: 0.9,
-                method: 'keyword'
+                method: 'keyword',
             });
 
             const result = await assistantResponse(mockMessage as Message, mockContext);
@@ -315,8 +329,8 @@ describe('Assistant Response System', () => {
                 expect.objectContaining({
                     intent: 'social-chat',
                     confidence: 0.9,
-                    stage: 'intent_filtered'
-                })
+                    stage: 'intent_filtered',
+                }),
             );
         });
 
@@ -326,7 +340,7 @@ describe('Assistant Response System', () => {
                 mockClassifier.classify.mockReturnValue({
                     intent: intent,
                     confidence: 0.8,
-                    method: 'keyword'
+                    method: 'keyword',
                 });
 
                 const result = await assistantResponse(mockMessage as Message, mockContext);
@@ -336,8 +350,8 @@ describe('Assistant Response System', () => {
                     'Assistant threshold met, processing intent',
                     expect.objectContaining({
                         intent: intent,
-                        willProcess: true
-                    })
+                        willProcess: true,
+                    }),
                 );
             });
         });
@@ -361,8 +375,8 @@ describe('Assistant Response System', () => {
                 'Assistant detailed classification',
                 expect.objectContaining({
                     allScores: expect.any(Object),
-                    keywordMatches: expect.any(Array)
-                })
+                    keywordMatches: expect.any(Array),
+                }),
             );
         });
     });
@@ -382,14 +396,14 @@ describe('Assistant Response System', () => {
                 {
                     userId: 'test-user-id',
                     username: 'testuser',
-                    channelId: 'test-channel-id'
-                }
+                    channelId: 'test-channel-id',
+                },
             );
             expect(mockSafelySendToChannel).toHaveBeenCalledWith(
                 mockChannel,
                 'This is a helpful response',
                 mockContext,
-                'assistant response'
+                'assistant response',
             );
             expect(mockContext.log.info).toHaveBeenCalledWith(
                 'Assistant response sent successfully',
@@ -397,8 +411,8 @@ describe('Assistant Response System', () => {
                     userId: 'test-user-id',
                     responseLength: 25,
                     stage: 'response_sent',
-                    success: true
-                })
+                    success: true,
+                }),
             );
         });
 
@@ -412,8 +426,8 @@ describe('Assistant Response System', () => {
                 'Assistant failed to send response to Discord',
                 expect.objectContaining({
                     stage: 'discord_send',
-                    success: false
-                })
+                    success: false,
+                }),
             );
         });
 
@@ -428,8 +442,8 @@ describe('Assistant Response System', () => {
                 expect.objectContaining({
                     hasResponse: false,
                     stage: 'response_validation',
-                    success: false
-                })
+                    success: false,
+                }),
             );
         });
 
@@ -442,36 +456,42 @@ describe('Assistant Response System', () => {
             expect(mockContext.log.warn).toHaveBeenCalledWith(
                 'Assistant generated no response or channel not available',
                 expect.objectContaining({
-                    hasResponse: false
-                })
+                    hasResponse: false,
+                }),
             );
         });
 
         it('should handle missing channel', async () => {
-            mockMessage.channel = null;
+            const messageWithNoChannel = {
+                ...mockMessage,
+                channel: null,
+            };
 
-            const result = await assistantResponse(mockMessage as Message, mockContext);
+            const result = await assistantResponse(messageWithNoChannel as unknown as Message, mockContext);
 
             expect(result).toBe(false);
             expect(mockContext.log.warn).toHaveBeenCalledWith(
                 'Assistant generated no response or channel not available',
                 expect.objectContaining({
-                    hasChannel: false
-                })
+                    hasChannel: false,
+                }),
             );
         });
 
         it('should handle channel without send method', async () => {
-            mockMessage.channel = { type: 'DM' } as any;
+            const messageWithBadChannel = {
+                ...mockMessage,
+                channel: { type: 'DM' } as any,
+            };
 
-            const result = await assistantResponse(mockMessage as Message, mockContext);
+            const result = await assistantResponse(messageWithBadChannel as unknown as Message, mockContext);
 
             expect(result).toBe(false);
             expect(mockContext.log.warn).toHaveBeenCalledWith(
                 'Assistant generated no response or channel not available',
                 expect.objectContaining({
-                    hasChannel: false
-                })
+                    hasChannel: false,
+                }),
             );
         });
     });
@@ -496,8 +516,8 @@ describe('Assistant Response System', () => {
                     userId: 'test-user-id',
                     error: classificationError,
                     stage: 'classification_error',
-                    success: false
-                })
+                    success: false,
+                }),
             );
         });
 
@@ -511,8 +531,8 @@ describe('Assistant Response System', () => {
             expect(mockContext.log.error).toHaveBeenCalledWith(
                 'Assistant processing error',
                 expect.objectContaining({
-                    error: responseError
-                })
+                    error: responseError,
+                }),
             );
         });
 
@@ -525,7 +545,7 @@ describe('Assistant Response System', () => {
             expect(result).toBe(false);
             expect(mockContext.log.error).toHaveBeenCalledWith(
                 'Assistant processing error',
-                expect.anything()
+                expect.anything(),
             );
         });
     });
@@ -539,7 +559,7 @@ describe('Assistant Response System', () => {
             mockClassifier.classify.mockReturnValue({
                 intent: 'technical-question',
                 confidence: 0.892,
-                method: 'bayesian'
+                method: 'bayesian',
             });
 
             await assistantResponse(mockMessage as Message, mockContext);
@@ -555,8 +575,8 @@ describe('Assistant Response System', () => {
                     method: 'bayesian',
                     confidenceThreshold: 0.7,
                     meetsThreshold: true,
-                    timestamp: expect.any(String)
-                })
+                    timestamp: expect.any(String),
+                }),
             );
         });
 
@@ -564,7 +584,7 @@ describe('Assistant Response System', () => {
             mockClassifier.classify.mockReturnValue({
                 intent: 'general-knowledge',
                 confidence: 0.8567891234,
-                method: 'keyword'
+                method: 'keyword',
             });
 
             await assistantResponse(mockMessage as Message, mockContext);
@@ -572,21 +592,21 @@ describe('Assistant Response System', () => {
             expect(mockContext.log.info).toHaveBeenCalledWith(
                 'Assistant message classification',
                 expect.objectContaining({
-                    confidence: 0.857
-                })
+                    confidence: 0.857,
+                }),
             );
         });
 
         it('should log processing time on success', async () => {
-            const startTime = Date.now();
-            
+            Date.now();
+
             await assistantResponse(mockMessage as Message, mockContext);
 
             expect(mockContext.log.info).toHaveBeenCalledWith(
                 'Assistant response sent successfully',
                 expect.objectContaining({
-                    processingTimeMs: expect.any(Number)
-                })
+                    processingTimeMs: expect.any(Number),
+                }),
             );
         });
 
@@ -598,8 +618,8 @@ describe('Assistant Response System', () => {
             expect(mockContext.log.error).toHaveBeenCalledWith(
                 'Assistant processing error',
                 expect.objectContaining({
-                    processingTimeMs: expect.any(Number)
-                })
+                    processingTimeMs: expect.any(Number),
+                }),
             );
         });
     });
@@ -662,7 +682,7 @@ describe('Assistant Response System', () => {
             expect(mockGenerateResponse).toHaveBeenCalledWith(
                 'what is DNA?',
                 mockContext,
-                expect.any(Object)
+                expect.any(Object),
             );
         });
 
@@ -674,7 +694,7 @@ describe('Assistant Response System', () => {
             expect(mockGenerateResponse).toHaveBeenCalledWith(
                 'what is RNA?',
                 mockContext,
-                expect.any(Object)
+                expect.any(Object),
             );
         });
 
@@ -686,7 +706,7 @@ describe('Assistant Response System', () => {
             expect(mockGenerateResponse).toHaveBeenCalledWith(
                 'what is ATP?',
                 mockContext,
-                expect.any(Object)
+                expect.any(Object),
             );
         });
 
@@ -699,7 +719,7 @@ describe('Assistant Response System', () => {
             expect(mockGenerateResponse).toHaveBeenCalledWith(
                 '@Alia what is mitochondria?',
                 mockContext,
-                expect.any(Object)
+                expect.any(Object),
             );
         });
     });
