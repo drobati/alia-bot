@@ -24,13 +24,21 @@ describe('HybridClassifier - Issue #161 General Knowledge Questions', () => {
             timeMathQuestions.forEach(text => {
                 const result = classifier.classify(text);
                 const detailed = classifier.getDetailedClassification(text);
-                
-                console.log(`Question: "${text}"`);
-                console.log(`Result: ${result.intent} (${result.confidence} via ${result.method})`);
-                console.log(`Keyword: ${detailed.keyword.intent} (${detailed.keyword.confidence})`);
-                console.log(`Bayesian: ${detailed.bayesian.intent} (${detailed.bayesian.confidence})`);
-                console.log('---');
-                
+
+                // Log for debugging (disabled in CI)
+                if (process.env.NODE_ENV !== 'test') {
+                    // eslint-disable-next-line no-console
+                    console.log(`Question: "${text}"`);
+                    // eslint-disable-next-line no-console
+                    console.log(`Result: ${result.intent} (${result.confidence} via ${result.method})`);
+                    // eslint-disable-next-line no-console
+                    console.log(`Keyword: ${detailed.keyword.intent} (${detailed.keyword.confidence})`);
+                    // eslint-disable-next-line no-console
+                    console.log(`Bayesian: ${detailed.bayesian.intent} (${detailed.bayesian.confidence})`);
+                    // eslint-disable-next-line no-console
+                    console.log('---');
+                }
+
                 expect(result.intent).toBe('general-knowledge');
                 expect(result.confidence).toBeGreaterThan(0.5);
             });
@@ -48,13 +56,21 @@ describe('HybridClassifier - Issue #161 General Knowledge Questions', () => {
             economicsQuestions.forEach(text => {
                 const result = classifier.classify(text);
                 const detailed = classifier.getDetailedClassification(text);
-                
-                console.log(`Question: "${text}"`);
-                console.log(`Result: ${result.intent} (${result.confidence} via ${result.method})`);
-                console.log(`Keyword: ${detailed.keyword.intent} (${detailed.keyword.confidence})`);
-                console.log(`Bayesian: ${detailed.bayesian.intent} (${detailed.bayesian.confidence})`);
-                console.log('---');
-                
+
+                // Log for debugging (disabled in CI)
+                if (process.env.NODE_ENV !== 'test') {
+                    // eslint-disable-next-line no-console
+                    console.log(`Question: "${text}"`);
+                    // eslint-disable-next-line no-console
+                    console.log(`Result: ${result.intent} (${result.confidence} via ${result.method})`);
+                    // eslint-disable-next-line no-console
+                    console.log(`Keyword: ${detailed.keyword.intent} (${detailed.keyword.confidence})`);
+                    // eslint-disable-next-line no-console
+                    console.log(`Bayesian: ${detailed.bayesian.intent} (${detailed.bayesian.confidence})`);
+                    // eslint-disable-next-line no-console
+                    console.log('---');
+                }
+
                 expect(result.intent).toBe('general-knowledge');
                 expect(result.confidence).toBeGreaterThan(0.5);
             });
@@ -71,13 +87,21 @@ describe('HybridClassifier - Issue #161 General Knowledge Questions', () => {
             timeConceptQuestions.forEach(text => {
                 const result = classifier.classify(text);
                 const detailed = classifier.getDetailedClassification(text);
-                
-                console.log(`Question: "${text}"`);
-                console.log(`Result: ${result.intent} (${result.confidence} via ${result.method})`);
-                console.log(`Keyword: ${detailed.keyword.intent} (${detailed.keyword.confidence})`);
-                console.log(`Bayesian: ${detailed.bayesian.intent} (${detailed.bayesian.confidence})`);
-                console.log('---');
-                
+
+                // Log for debugging (disabled in CI)
+                if (process.env.NODE_ENV !== 'test') {
+                    // eslint-disable-next-line no-console
+                    console.log(`Question: "${text}"`);
+                    // eslint-disable-next-line no-console
+                    console.log(`Result: ${result.intent} (${result.confidence} via ${result.method})`);
+                    // eslint-disable-next-line no-console
+                    console.log(`Keyword: ${detailed.keyword.intent} (${detailed.keyword.confidence})`);
+                    // eslint-disable-next-line no-console
+                    console.log(`Bayesian: ${detailed.bayesian.intent} (${detailed.bayesian.confidence})`);
+                    // eslint-disable-next-line no-console
+                    console.log('---');
+                }
+
                 expect(result.intent).toBe('general-knowledge');
                 expect(result.confidence).toBeGreaterThan(0.5);
             });
@@ -96,12 +120,19 @@ describe('HybridClassifier - Issue #161 General Knowledge Questions', () => {
 
             realTimeQuestions.forEach(text => {
                 const result = classifier.classify(text);
-                const detailed = classifier.getDetailedClassification(text);
-                
-                console.log(`Question: "${text}"`);
-                console.log(`Result: ${result.intent} (${result.confidence} via ${result.method})`);
-                console.log('---');
-                
+
+                // Test should pass - no debugging needed
+
+                // Log for debugging (disabled in CI)
+                if (process.env.NODE_ENV !== 'test') {
+                    // eslint-disable-next-line no-console
+                    console.log(`Question: "${text}"`);
+                    // eslint-disable-next-line no-console
+                    console.log(`Result: ${result.intent} (${result.confidence} via ${result.method})`);
+                    // eslint-disable-next-line no-console
+                    console.log('---');
+                }
+
                 // These should NOT be classified as general-knowledge
                 expect(result.intent).not.toBe('general-knowledge');
             });
@@ -119,11 +150,17 @@ describe('HybridClassifier - Issue #161 General Knowledge Questions', () => {
 
             workingQuestions.forEach(text => {
                 const result = classifier.classify(text);
-                
-                console.log(`Question: "${text}"`);
-                console.log(`Result: ${result.intent} (${result.confidence} via ${result.method})`);
-                console.log('---');
-                
+
+                // Log for debugging (disabled in CI)
+                if (process.env.NODE_ENV !== 'test') {
+                    // eslint-disable-next-line no-console
+                    console.log(`Question: "${text}"`);
+                    // eslint-disable-next-line no-console
+                    console.log(`Result: ${result.intent} (${result.confidence} via ${result.method})`);
+                    // eslint-disable-next-line no-console
+                    console.log('---');
+                }
+
                 expect(result.intent).toBe('general-knowledge');
                 expect(result.confidence).toBeGreaterThan(0.7);
             });
@@ -141,14 +178,24 @@ describe('HybridClassifier - Issue #161 General Knowledge Questions', () => {
             allTargetQuestions.forEach(text => {
                 const result = classifier.classify(text);
                 const detailed = classifier.getDetailedClassification(text);
-                
-                console.log(`\n=== ISSUE #161 TARGET: "${text}" ===`);
-                console.log(`Final Result: ${result.intent} (${result.confidence} via ${result.method})`);
-                console.log(`Keyword Method: ${detailed.keyword.intent} (${detailed.keyword.confidence})`);
-                console.log(`Bayesian Method: ${detailed.bayesian.intent} (${detailed.bayesian.confidence})`);
-                console.log(`PASSES THRESHOLD (>0.5): ${result.confidence > 0.5 && result.intent === 'general-knowledge' ? '✅' : '❌'}`);
-                console.log('================================\n');
-                
+
+                // Log for debugging (disabled in CI)
+                if (process.env.NODE_ENV !== 'test') {
+                    // eslint-disable-next-line no-console
+                    console.log(`\n=== ISSUE #161 TARGET: "${text}" ===`);
+                    // eslint-disable-next-line no-console
+                    console.log(`Final Result: ${result.intent} (${result.confidence} via ${result.method})`);
+                    // eslint-disable-next-line no-console
+                    console.log(`Keyword Method: ${detailed.keyword.intent} (${detailed.keyword.confidence})`);
+                    // eslint-disable-next-line no-console
+                    console.log(`Bayesian Method: ${detailed.bayesian.intent} (${detailed.bayesian.confidence})`);
+                    const passSymbol = result.confidence > 0.5 && result.intent === 'general-knowledge' ? '✅' : '❌';
+                    // eslint-disable-next-line no-console
+                    console.log(`PASSES THRESHOLD (>0.5): ${passSymbol}`);
+                    // eslint-disable-next-line no-console
+                    console.log('================================\n');
+                }
+
                 // Critical assertion - these must pass for issue to be resolved
                 expect(result.intent).toBe('general-knowledge');
                 expect(result.confidence).toBeGreaterThan(0.5);

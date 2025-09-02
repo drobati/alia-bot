@@ -116,6 +116,8 @@ export class HybridClassifier {
     private static readonly CURRENT_INDICATORS = [
         'now', 'today', 'this year', '2024', '2025', 'latest',
         'who is the prime minister', 'current leader', 'what\'s happening now',
+        'what time is it', 'what\'s the time', 'current time',
+        'who is online', 'who\'s online', 'who is on', 'who\'s on',
     ];
 
     private static readonly FEEDBACK_INDICATORS = [
@@ -218,6 +220,12 @@ export class HybridClassifier {
             return keywordResult;
         }
 
+        // Special handling for real-time knowledge - prioritize keyword result
+        // because real-time questions often get misclassified by bayesian
+        if (keywordResult.intent === 'real-time-knowledge' && keywordResult.confidence > 0.6) {
+            return keywordResult;
+        }
+
         // Fall back to Bayesian classifier
         const bayesianResult = this.bayesianClassifier(message);
 
@@ -302,8 +310,13 @@ export class HybridClassifier {
 
     // General knowledge question patterns
     private isGeneralKnowledgeQuestion(content: string): boolean {
-        // Skip if it's clearly about current events
+        // Skip if it's clearly about current events or real-time knowledge
         if (content.includes('current') && (content.includes('president') || content.includes('leader'))) {
+            return false;
+        }
+
+        // Skip if it's a real-time knowledge question (to prevent keyword conflicts)
+        if (this.isRealTimeKnowledge(content)) {
             return false;
         }
 
