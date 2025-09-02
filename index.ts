@@ -92,6 +92,12 @@ async function loadFiles<T>(directory: string, extension: string, handleFile: (m
 }
 
 function handleCommandFile(command: BotCommand, fullPath: string) {
+    // Filter out development-only commands in production
+    if (command.developmentOnly && process.env.NODE_ENV === 'production') {
+        log.info(`Skipping development-only command: ${command.data?.name || 'unknown'}`);
+        return;
+    }
+
     if (command.data) {
         client.commands.set(command.data.name, command);
     } else {

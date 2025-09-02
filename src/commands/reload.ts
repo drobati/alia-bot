@@ -21,6 +21,7 @@ async function reloadCommand(client: any, commandName: any, log: any) {
 }
 
 export default {
+    developmentOnly: true, // This command should only be available in development
     data: new SlashCommandBuilder()
         .setName('reload')
         .setDescription('Reloads a command.')

@@ -3,6 +3,8 @@ import { Context } from '../utils/types';
 import { Sentry } from '../lib/sentry';
 import { checkOwnerPermission } from '../utils/permissions';
 
+export const developmentOnly = true; // This command should only be available in development
+
 export const data = new SlashCommandBuilder()
     .setName('sentry-test')
     .setDescription('Test Sentry connectivity and logging (Owner only)');
