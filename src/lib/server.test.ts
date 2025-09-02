@@ -240,7 +240,7 @@ describe('Server Module', () => {
                 user_id: '123',
             });
 
-            const result = await handler(mockRequest, mockH);
+            await handler(mockRequest, mockH);
 
             expect(mockH.response).toHaveBeenCalled();
             expect(mockModel.Twitch_Notifications.findOne).toHaveBeenCalledWith({
@@ -284,7 +284,7 @@ describe('Server Module', () => {
             mockModel.Twitch_Notifications.create.mockResolvedValue({});
             mockModel.Twitch_Users.findOne.mockResolvedValue(null);
 
-            const result = await handler(mockRequest, mockH);
+            await handler(mockRequest, mockH);
 
             expect(mockH.response).toHaveBeenCalled();
             expect(mockChannel.send).toHaveBeenCalledWith('Unknown discord user for unknownstreamer on twitch.');
@@ -361,7 +361,7 @@ describe('Server Module', () => {
             const mockTemplate = { id: 1, name: 'drake', is_active: true };
             mockModel.MemeTemplate.findOne.mockResolvedValue(mockTemplate);
 
-            const result = await handler(mockRequest, mockH);
+            await handler(mockRequest, mockH);
 
             expect(mockH.response).toHaveBeenCalled();
             expect(mockModel.MemeTemplate.findOne).toHaveBeenCalledWith({
@@ -394,7 +394,7 @@ describe('Server Module', () => {
 
             mockModel.MemeTemplate.findOne.mockResolvedValue(null);
 
-            const result = await handler(mockRequest, mockH);
+            await handler(mockRequest, mockH);
 
             expect(mockH.response).toHaveBeenCalled();
             expect(mockH.response).toHaveBeenCalledWith({ error: 'Template not found' });
@@ -418,7 +418,7 @@ describe('Server Module', () => {
             mockModel.MemeTemplate.findOne.mockResolvedValue(mockTemplate);
             MockMemeGenerator.generateMeme.mockRejectedValue(new Error('Canvas error'));
 
-            const result = await handler(mockRequest, mockH);
+            await handler(mockRequest, mockH);
 
             expect(mockH.response).toHaveBeenCalled();
             expect(consoleErrorSpy).toHaveBeenCalledWith('Meme generation error:', expect.any(Error));
@@ -475,7 +475,7 @@ describe('Server Module', () => {
                 }),
             };
 
-            const result = await handler(mockRequest, mockH);
+            await handler(mockRequest, mockH);
 
             expect(mockH.response).toHaveBeenCalled();
             expect(MockMemeGenerator.generateCustomMeme).toHaveBeenCalledWith(
@@ -545,7 +545,7 @@ describe('Server Module', () => {
 
             MockMemeGenerator.generateCustomMeme.mockRejectedValue(new Error('Network error'));
 
-            const result = await handler(mockRequest, mockH);
+            await handler(mockRequest, mockH);
 
             expect(mockH.response).toHaveBeenCalled();
             expect(consoleErrorSpy).toHaveBeenCalledWith('Custom meme generation error:', expect.any(Error));
@@ -581,7 +581,7 @@ describe('Server Module', () => {
             ];
             mockModel.RollCall.findAll.mockResolvedValue(mockScores);
 
-            const result = await handler(mockRequest, mockH);
+            await handler(mockRequest, mockH);
 
             expect(mockH.response).toHaveBeenCalled();
             expect(mockModel.RollCall.findAll).toHaveBeenCalledWith({
@@ -608,7 +608,7 @@ describe('Server Module', () => {
 
             mockModel.RollCall.findAll.mockResolvedValue([]);
 
-            const result = await handler(mockRequest, mockH);
+            await handler(mockRequest, mockH);
 
             expect(mockH.response).toHaveBeenCalled();
             expect(mockH.response).toHaveBeenCalledWith({
@@ -628,7 +628,7 @@ describe('Server Module', () => {
 
             mockModel.RollCall.findAll.mockRejectedValue(new Error('Database connection failed'));
 
-            const result = await handler(mockRequest, mockH);
+            await handler(mockRequest, mockH);
 
             expect(mockH.response).toHaveBeenCalled();
             expect(consoleErrorSpy).toHaveBeenCalledWith('RC graph generation error:', expect.any(Error));
@@ -679,7 +679,7 @@ describe('Server Module', () => {
                 }),
             };
 
-            const result = await handler(mockRequest, mockH);
+            await handler(mockRequest, mockH);
 
             expect(mockH.response).toHaveBeenCalled();
             expect(consoleLogSpy).toHaveBeenCalledWith('Testing RC graph generation with sample data');
@@ -713,7 +713,7 @@ describe('Server Module', () => {
             };
             MockChartJSNodeCanvas.mockImplementation(() => mockChartInstance as any);
 
-            const result = await handler(mockRequest, mockH);
+            await handler(mockRequest, mockH);
 
             expect(mockH.response).toHaveBeenCalled();
             expect(consoleErrorSpy).toHaveBeenCalledWith('RC graph generation error:', expect.any(Error));
@@ -747,7 +747,7 @@ describe('Server Module', () => {
 
             mockModel.RollCall.create.mockResolvedValue({});
 
-            const result = await handler(mockRequest, mockH);
+            await handler(mockRequest, mockH);
 
             expect(mockH.response).toHaveBeenCalled();
             expect(mockModel.RollCall.create).toHaveBeenCalledWith({
@@ -775,7 +775,7 @@ describe('Server Module', () => {
                 }),
             };
 
-            const result = await handler(mockRequest, mockH);
+            await handler(mockRequest, mockH);
 
             expect(mockH.response).toHaveBeenCalled();
             expect(mockH.response).toHaveBeenCalledWith({
@@ -797,7 +797,7 @@ describe('Server Module', () => {
                 }),
             };
 
-            const result = await handler(mockRequest, mockH);
+            await handler(mockRequest, mockH);
 
             expect(mockH.response).toHaveBeenCalled();
             expect(mockH.response).toHaveBeenCalledWith({
@@ -821,7 +821,7 @@ describe('Server Module', () => {
 
             mockModel.RollCall.create.mockRejectedValue(new Error('Database write failed'));
 
-            const result = await handler(mockRequest, mockH);
+            await handler(mockRequest, mockH);
 
             expect(mockH.response).toHaveBeenCalled();
             expect(consoleErrorSpy).toHaveBeenCalledWith('Add RC score error:', expect.any(Error));
