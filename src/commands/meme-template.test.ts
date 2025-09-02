@@ -24,7 +24,7 @@ describe('Meme Template Command', () => {
             followUp: jest.fn().mockResolvedValue(undefined),
             replied: false,
             deferred: false,
-        };
+        } as any;
 
         mockMemeTemplate = {
             findOne: jest.fn(),
@@ -80,6 +80,7 @@ describe('Meme Template Command', () => {
                 options: {
                     getFocused: jest.fn().mockReturnValue({ name: 'name', value: 'drake' }),
                 },
+                respond: jest.fn(),
             };
 
             mockMemeTemplate.findAll.mockResolvedValue(mockTemplates);
@@ -102,6 +103,7 @@ describe('Meme Template Command', () => {
                 options: {
                     getFocused: jest.fn().mockReturnValue({ name: 'name', value: 'test' }),
                 },
+                respond: jest.fn(),
             };
 
             mockMemeTemplate.findAll.mockRejectedValue(new Error('Database error'));

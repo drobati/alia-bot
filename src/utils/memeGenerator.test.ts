@@ -31,7 +31,6 @@ describe('MemeGenerator', () => {
 
         // Setup mock fonts
         mockFont = { name: 'mock-font' };
-        mockOutlineFont = { name: 'mock-outline-font' };
         mockLoadFont.mockResolvedValue(mockFont);
 
         // Setup axios mock

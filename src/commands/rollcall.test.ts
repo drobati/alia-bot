@@ -31,7 +31,7 @@ describe('Rollcall Command', () => {
                 id: 'test-user-id',
             } as any,
             reply: jest.fn().mockResolvedValue(undefined),
-        };
+        } as any;
 
         mockRollCall = {
             findAll: jest.fn(),
@@ -85,6 +85,7 @@ describe('Rollcall Command', () => {
                 options: {
                     getFocused: jest.fn().mockReturnValue({ name: 'username', value: 'test' }),
                 },
+                respond: jest.fn(),
             };
 
             mockRollCall.findAll.mockResolvedValue(mockUsers);
