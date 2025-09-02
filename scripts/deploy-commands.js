@@ -30,6 +30,12 @@ for (const file of commandFiles) {
         const command = require(filePath);
         
         if (command.default && command.default.data) {
+            // Skip development-only commands in production
+            if (command.default.developmentOnly && process.env.NODE_ENV === 'production') {
+                console.log(`⏭️ Skipping development-only command: ${command.default.data.name}`);
+                continue;
+            }
+            
             // Convert SlashCommandBuilder to JSON
             const commandData = command.default.data.toJSON ? 
                 command.default.data.toJSON() : 

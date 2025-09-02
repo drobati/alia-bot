@@ -12,6 +12,7 @@ import { Context } from './index';
 // Command interface
 export interface BotCommand {
     data: SlashCommandBuilder;
+    developmentOnly?: boolean; // Flag to mark commands that should only be available in development
     execute(interaction: CommandInteraction, context: Context): Promise<void>;
     autocomplete?(interaction: AutocompleteInteraction, context: Context): Promise<void>;
 }
