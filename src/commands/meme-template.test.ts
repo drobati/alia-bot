@@ -31,6 +31,7 @@ describe('Meme Template Command', () => {
             findAll: jest.fn(),
             create: jest.fn(),
             update: jest.fn(),
+            upsert: jest.fn(),
             destroy: jest.fn(),
             findAndCountAll: jest.fn(),
         };
@@ -233,8 +234,17 @@ describe('Meme Template Command', () => {
             });
 
             expect(mockInteraction.reply).toHaveBeenCalledWith({
-                content: 'Template "Test Template" has been added successfully!',
-                ephemeral: true,
+                embeds: [expect.objectContaining({
+                    title: '✅ Template Added Successfully',
+                    description: '**Test Template** has been added to the meme templates.',
+                    fields: expect.arrayContaining([
+                        { name: 'URL', value: 'https://example.com/image.jpg', inline: false },
+                        { name: 'Description', value: 'A test template', inline: true },
+                        { name: 'Font Size', value: '50', inline: true },
+                    ]),
+                    color: 0x00FF00,
+                    footer: { text: 'Created by testuser' },
+                })],
             });
         });
 
@@ -304,8 +314,8 @@ describe('Meme Template Command', () => {
             await memeTemplateCommand.execute(mockInteraction as ChatInputCommandInteraction, mockContext);
 
             expect(mockContext.log.error).toHaveBeenCalledWith(
-                { error: expect.any(Error) },
-                'Error in meme-template command',
+                { error: expect.any(Error), name: 'Test Template' },
+                'Failed to add meme template',
             );
         });
     });
@@ -327,8 +337,7 @@ describe('Meme Template Command', () => {
             await memeTemplateCommand.execute(mockInteraction as ChatInputCommandInteraction, mockContext);
 
             expect(mockInteraction.reply).toHaveBeenCalledWith({
-                content: 'Template "Test Template" has been removed.',
-                ephemeral: true,
+                content: '✅ Template "Test Template" has been removed successfully.',
             });
         });
 
@@ -340,7 +349,7 @@ describe('Meme Template Command', () => {
             await memeTemplateCommand.execute(mockInteraction as ChatInputCommandInteraction, mockContext);
 
             expect(mockInteraction.reply).toHaveBeenCalledWith({
-                content: 'Template "Nonexistent Template" not found.',
+                content: 'Template not found.',
                 ephemeral: true,
             });
         });
@@ -362,21 +371,25 @@ describe('Meme Template Command', () => {
                 id: 1,
                 name: 'Old Template',
                 url: 'https://example.com/old-image.jpg',
-                update: jest.fn().mockResolvedValue([1]),
             };
             mockMemeTemplate.findOne.mockResolvedValue(mockTemplate);
 
             await memeTemplateCommand.execute(mockInteraction as ChatInputCommandInteraction, mockContext);
 
-            expect(mockTemplate.update).toHaveBeenCalledWith({
+            expect(mockMemeTemplate.upsert).toHaveBeenCalledWith({
+                id: 1,
+                name: 'Old Template',
                 url: 'https://example.com/new-image.jpg',
                 description: 'Updated description',
                 default_font_size: 60,
             });
 
             expect(mockInteraction.reply).toHaveBeenCalledWith({
-                content: 'Template "Old Template" has been updated successfully!',
-                ephemeral: true,
+                embeds: [expect.objectContaining({
+                    title: '✅ Template Updated Successfully',
+                    description: '**Old Template** has been updated.',
+                    color: 0x00FF00,
+                })],
             });
         });
 
@@ -390,13 +403,14 @@ describe('Meme Template Command', () => {
             const mockTemplate = {
                 id: 1,
                 name: 'Test Template',
-                update: jest.fn().mockResolvedValue([1]),
             };
             mockMemeTemplate.findOne.mockResolvedValue(mockTemplate);
 
             await memeTemplateCommand.execute(mockInteraction as ChatInputCommandInteraction, mockContext);
 
-            expect(mockTemplate.update).toHaveBeenCalledWith({
+            expect(mockMemeTemplate.upsert).toHaveBeenCalledWith({
+                id: 1,
+                name: 'Test Template',
                 description: 'New description only',
             });
         });
@@ -414,7 +428,7 @@ describe('Meme Template Command', () => {
             await memeTemplateCommand.execute(mockInteraction as ChatInputCommandInteraction, mockContext);
 
             expect(mockInteraction.reply).toHaveBeenCalledWith({
-                content: 'No changes provided to update.',
+                content: 'No changes specified.',
                 ephemeral: true,
             });
         });
@@ -427,7 +441,7 @@ describe('Meme Template Command', () => {
             await memeTemplateCommand.execute(mockInteraction as ChatInputCommandInteraction, mockContext);
 
             expect(mockInteraction.reply).toHaveBeenCalledWith({
-                content: 'Template "Nonexistent Template" not found.',
+                content: 'Template not found.',
                 ephemeral: true,
             });
         });
@@ -461,16 +475,18 @@ describe('Meme Template Command', () => {
                 id: 1,
                 name: 'Active Template',
                 is_active: true,
-                update: jest.fn().mockResolvedValue([1]),
             };
             mockMemeTemplate.findOne.mockResolvedValue(mockTemplate);
 
             await memeTemplateCommand.execute(mockInteraction as ChatInputCommandInteraction, mockContext);
 
-            expect(mockTemplate.update).toHaveBeenCalledWith({ is_active: false });
+            expect(mockMemeTemplate.upsert).toHaveBeenCalledWith({
+                id: 1,
+                name: 'Active Template',
+                is_active: false,
+            });
             expect(mockInteraction.reply).toHaveBeenCalledWith({
-                content: 'Template "Active Template" has been disabled.',
-                ephemeral: true,
+                content: '❌ Template "Active Template" has been disabled.',
             });
         });
 
@@ -481,16 +497,18 @@ describe('Meme Template Command', () => {
                 id: 1,
                 name: 'Inactive Template',
                 is_active: false,
-                update: jest.fn().mockResolvedValue([1]),
             };
             mockMemeTemplate.findOne.mockResolvedValue(mockTemplate);
 
             await memeTemplateCommand.execute(mockInteraction as ChatInputCommandInteraction, mockContext);
 
-            expect(mockTemplate.update).toHaveBeenCalledWith({ is_active: true });
+            expect(mockMemeTemplate.upsert).toHaveBeenCalledWith({
+                id: 1,
+                name: 'Inactive Template',
+                is_active: true,
+            });
             expect(mockInteraction.reply).toHaveBeenCalledWith({
-                content: 'Template "Inactive Template" has been enabled.',
-                ephemeral: true,
+                content: '✅ Template "Inactive Template" has been enabled.',
             });
         });
 
@@ -502,7 +520,7 @@ describe('Meme Template Command', () => {
             await memeTemplateCommand.execute(mockInteraction as ChatInputCommandInteraction, mockContext);
 
             expect(mockInteraction.reply).toHaveBeenCalledWith({
-                content: 'Template "Nonexistent Template" not found.',
+                content: 'Template not found.',
                 ephemeral: true,
             });
         });
@@ -584,7 +602,7 @@ describe('Meme Template Command', () => {
             await memeTemplateCommand.execute(mockInteraction as ChatInputCommandInteraction, mockContext);
 
             expect(mockInteraction.reply).toHaveBeenCalledWith({
-                content: 'Template "Nonexistent Template" not found.',
+                content: 'Template not found.',
                 ephemeral: true,
             });
         });
