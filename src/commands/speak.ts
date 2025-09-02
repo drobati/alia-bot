@@ -12,8 +12,6 @@ const VOICE_OPTIONS = [
     { name: 'Shimmer (Soft Female)', value: 'shimmer', keywords: ['soft', 'female', 'gentle', 'quiet'] },
 ];
 
-
-
 export default {
     data: new SlashCommandBuilder()
         .setName('speak')
@@ -88,7 +86,6 @@ export default {
                 });
                 return;
             }
-
 
             // Validate text length
             if (text.length > TTS_CONFIG.MAX_TEXT_LENGTH) {
