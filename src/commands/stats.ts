@@ -19,7 +19,7 @@ export default {
                     { name: 'Server Overview', value: 'server' },
                     { name: 'Bot Usage', value: 'bot' },
                     { name: 'Member Activity', value: 'activity' },
-                    { name: 'All Statistics', value: 'all' }
+                    { name: 'All Statistics', value: 'all' },
                 ))
         .addBooleanOption(option =>
             option
@@ -28,7 +28,7 @@ export default {
                 .setRequired(false)),
 
     async execute(interaction: any, context: Context) {
-        const { log, tables } = context;
+        const { log } = context;
         const statsType = interaction.options.getString('type') || 'server';
         const isPublic = interaction.options.getBoolean('public') || false;
 
@@ -53,7 +53,7 @@ export default {
 
             switch (statsType) {
                 case 'server':
-                    await addServerStats(embed, guild, context);
+                    await addServerStats(embed, guild);
                     break;
                 case 'bot':
                     attachments = await addBotUsageStats(embed, guild, context);
@@ -61,12 +61,13 @@ export default {
                 case 'activity':
                     attachments = await addActivityStats(embed, guild, context);
                     break;
-                case 'all':
-                    await addServerStats(embed, guild, context);
+                case 'all': {
+                    await addServerStats(embed, guild);
                     const botAttachments = await addBotUsageStats(embed, guild, context);
                     const activityAttachments = await addActivityStats(embed, guild, context);
                     attachments = [...botAttachments, ...activityAttachments];
                     break;
+                }
             }
 
             await interaction.editReply({
@@ -89,7 +90,7 @@ export default {
             });
 
             const errorMessage = '❌ Failed to generate statistics. Please try again later.';
-            
+
             if (interaction.deferred) {
                 await interaction.editReply({ content: errorMessage });
             } else {
@@ -99,13 +100,13 @@ export default {
     },
 };
 
-async function addServerStats(embed: EmbedBuilder, guild: any, context: Context): Promise<void> {
+async function addServerStats(embed: EmbedBuilder, guild: any): Promise<void> {
     // Server member statistics
     const totalMembers = guild.memberCount;
-    const onlineMembers = guild.members.cache.filter((member: any) => 
-        member.presence?.status === 'online' || member.presence?.status === 'idle' || member.presence?.status === 'dnd'
+    const onlineMembers = guild.members.cache.filter((member: any) =>
+        member.presence?.status === 'online' || member.presence?.status === 'idle' || member.presence?.status === 'dnd',
     ).size;
-    
+
     const botCount = guild.members.cache.filter((member: any) => member.user.bot).size;
     const humanCount = totalMembers - botCount;
 
@@ -126,9 +127,9 @@ async function addServerStats(embed: EmbedBuilder, guild: any, context: Context)
                 `**Total:** ${totalMembers.toLocaleString()}`,
                 `**Online:** ${onlineMembers.toLocaleString()}`,
                 `**Humans:** ${humanCount.toLocaleString()}`,
-                `**Bots:** ${botCount.toLocaleString()}`
+                `**Bots:** ${botCount.toLocaleString()}`,
             ].join('\n'),
-            inline: true
+            inline: true,
         },
         {
             name: '🏠 Server Info',
@@ -137,10 +138,10 @@ async function addServerStats(embed: EmbedBuilder, guild: any, context: Context)
                 `**Boost Level:** ${boostLevel}`,
                 `**Boosts:** ${boostCount}`,
                 `**Channels:** ${channelCount.toLocaleString()}`,
-                `**Roles:** ${roleCount.toLocaleString()}`
+                `**Roles:** ${roleCount.toLocaleString()}`,
             ].join('\n'),
-            inline: true
-        }
+            inline: true,
+        },
     ]);
 }
 
@@ -149,8 +150,8 @@ async function addBotUsageStats(embed: EmbedBuilder, guild: any, context: Contex
         // Get command usage from memories or config table
         const commandStats = await context.tables.Config.findAll({
             where: {
-                key: { [Op.like]: 'command_usage_%' }
-            }
+                key: { [Op.like]: 'command_usage_%' },
+            },
         });
 
         // Process command statistics
@@ -166,7 +167,7 @@ async function addBotUsageStats(embed: EmbedBuilder, guild: any, context: Contex
 
         // Get top 8 commands for chart
         const topCommands = Object.entries(commandCounts)
-            .sort(([,a], [,b]) => b - a)
+            .sort(([, a], [, b]) => b - a)
             .slice(0, 8);
 
         if (topCommands.length > 0) {
@@ -187,10 +188,10 @@ async function addBotUsageStats(embed: EmbedBuilder, guild: any, context: Contex
                         `**Unique Commands:** ${Object.keys(commandCounts).length}`,
                         '',
                         '**Top Commands:**',
-                        topCommandsText
+                        topCommandsText,
                     ].join('\n'),
-                    inline: false
-                }
+                    inline: false,
+                },
             ]);
 
             // Generate chart
@@ -202,11 +203,11 @@ async function addBotUsageStats(embed: EmbedBuilder, guild: any, context: Contex
                         data: topCommands.map(([, count]) => count),
                         backgroundColor: [
                             '#FF6384', '#36A2EB', '#FFCE56', '#4BC0C0',
-                            '#9966FF', '#FF9F40', '#FF6384', '#C9CBCF'
+                            '#9966FF', '#FF9F40', '#FF6384', '#C9CBCF',
                         ],
                         borderWidth: 2,
-                        borderColor: '#36393F'
-                    }]
+                        borderColor: '#36393F',
+                    }],
                 },
                 options: {
                     responsive: true,
@@ -215,21 +216,21 @@ async function addBotUsageStats(embed: EmbedBuilder, guild: any, context: Contex
                             display: true,
                             text: 'Command Usage Distribution',
                             color: '#FFFFFF',
-                            font: { size: 16 }
+                            font: { size: 16 },
                         },
                         legend: {
                             position: 'right' as const,
-                            labels: { color: '#FFFFFF' }
-                        }
+                            labels: { color: '#FFFFFF' },
+                        },
                     },
-                    backgroundColor: '#2C2F33'
-                }
+                    backgroundColor: '#2C2F33',
+                },
             };
 
             const chartCanvas = new ChartJSNodeCanvas({
                 width: CHART_WIDTH,
                 height: CHART_HEIGHT,
-                backgroundColour: '#2C2F33'
+                backgroundColour: '#2C2F33',
             });
 
             const chartBuffer = await chartCanvas.renderToBuffer(chartConfig);
@@ -251,10 +252,10 @@ async function addActivityStats(embed: EmbedBuilder, guild: any, context: Contex
             where: {
                 guildId: guild.id,
                 updatedAt: {
-                    [Op.gte]: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000) // Last 7 days
-                }
+                    [Op.gte]: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000), // Last 7 days
+                },
             },
-            order: [['updatedAt', 'DESC']]
+            order: [['updatedAt', 'DESC']],
         });
 
         if (recentActivity.length > 0) {
@@ -274,7 +275,7 @@ async function addActivityStats(embed: EmbedBuilder, guild: any, context: Contex
             // Count activity per day
             recentActivity.forEach((activity: any) => {
                 const day = activity.updatedAt.toISOString().split('T')[0];
-                if (dailyActivity.hasOwnProperty(day)) {
+                if (Object.prototype.hasOwnProperty.call(dailyActivity, day)) {
                     dailyActivity[day]++;
                 }
             });
@@ -287,10 +288,10 @@ async function addActivityStats(embed: EmbedBuilder, guild: any, context: Contex
                     value: [
                         `**Active Members:** ${activeMembers}`,
                         `**Total Activity:** ${recentActivity.length}`,
-                        `**Daily Average:** ${Math.round(recentActivity.length / 7)}`
+                        `**Daily Average:** ${Math.round(recentActivity.length / 7)}`,
                     ].join('\n'),
-                    inline: true
-                }
+                    inline: true,
+                },
             ]);
 
             // Generate activity chart
@@ -307,8 +308,8 @@ async function addActivityStats(embed: EmbedBuilder, guild: any, context: Contex
                         borderColor: '#7289DA',
                         backgroundColor: 'rgba(114, 137, 218, 0.2)',
                         tension: 0.4,
-                        fill: true
-                    }]
+                        fill: true,
+                    }],
                 },
                 options: {
                     responsive: true,
@@ -317,31 +318,31 @@ async function addActivityStats(embed: EmbedBuilder, guild: any, context: Contex
                             display: true,
                             text: 'Member Activity - Last 7 Days',
                             color: '#FFFFFF',
-                            font: { size: 16 }
+                            font: { size: 16 },
                         },
                         legend: {
-                            display: false
-                        }
+                            display: false,
+                        },
                     },
                     scales: {
                         y: {
                             beginAtZero: true,
                             ticks: { color: '#FFFFFF' },
-                            grid: { color: '#4F545C' }
+                            grid: { color: '#4F545C' },
                         },
                         x: {
                             ticks: { color: '#FFFFFF' },
-                            grid: { color: '#4F545C' }
-                        }
+                            grid: { color: '#4F545C' },
+                        },
                     },
-                    backgroundColor: '#2C2F33'
-                }
+                    backgroundColor: '#2C2F33',
+                },
             };
 
             const chartCanvas = new ChartJSNodeCanvas({
                 width: CHART_WIDTH,
                 height: CHART_HEIGHT,
-                backgroundColour: '#2C2F33'
+                backgroundColour: '#2C2F33',
             });
 
             const chartBuffer = await chartCanvas.renderToBuffer(chartConfig);

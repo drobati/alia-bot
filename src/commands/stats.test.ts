@@ -1,6 +1,4 @@
-import { EmbedBuilder } from 'discord.js';
 import statsCommand from './stats';
-import { Context } from '../utils/types';
 
 // Mock ChartJSNodeCanvas
 jest.mock('chartjs-node-canvas', () => ({
@@ -61,7 +59,7 @@ describe('Stats Command', () => {
             deferred: false,
         };
 
-        // Mock context  
+        // Mock context
         mockContext = {
             log: {
                 info: jest.fn(),
@@ -97,15 +95,15 @@ describe('Stats Command', () => {
         test('should have type option with correct choices', () => {
             const options = statsCommand.data.options;
             const typeOption = options.find((opt: any) => opt.name === 'type') as any;
-            
+
             expect(typeOption).toBeDefined();
             if (typeOption && 'choices' in typeOption) {
                 expect(typeOption.choices).toHaveLength(4);
                 expect(typeOption.choices.map((c: any) => c.name)).toEqual([
                     'Server Overview',
-                    'Bot Usage', 
+                    'Bot Usage',
                     'Member Activity',
-                    'All Statistics'
+                    'All Statistics',
                 ]);
             }
         });
@@ -113,7 +111,7 @@ describe('Stats Command', () => {
         test('should have public option', () => {
             const options = statsCommand.data.options;
             const publicOption = options.find((opt: any) => opt.name === 'public') as any;
-            
+
             expect(publicOption).toBeDefined();
             if (publicOption && 'type' in publicOption) {
                 expect(publicOption.type).toBe(5); // Boolean type
@@ -132,7 +130,7 @@ describe('Stats Command', () => {
 
             const editReplyCall = mockInteraction.editReply.mock.calls[0][0];
             expect(editReplyCall.embeds).toHaveLength(1);
-            
+
             const embed = editReplyCall.embeds[0];
             expect(embed.data.title).toBe('📊 Test Server Statistics');
             expect(embed.data.color).toBe(0x3498DB);
@@ -140,7 +138,7 @@ describe('Stats Command', () => {
 
         test('should calculate member statistics correctly', async () => {
             // Mock specific member filtering for bots
-            mockMemberCache.cache.filter = jest.fn().mockImplementation((filterFn) => {
+            mockMemberCache.cache.filter = jest.fn().mockImplementation(filterFn => {
                 // First call: online members
                 if (filterFn.toString().includes('presence')) {
                     return { size: 25 };
@@ -156,7 +154,7 @@ describe('Stats Command', () => {
 
             const editReplyCall = mockInteraction.editReply.mock.calls[0][0];
             const embed = editReplyCall.embeds[0];
-            
+
             // Check that member statistics are included
             const memberField = embed.data.fields?.find((f: any) => f.name === '👥 Members');
             expect(memberField).toBeDefined();
@@ -172,7 +170,7 @@ describe('Stats Command', () => {
 
             const editReplyCall = mockInteraction.editReply.mock.calls[0][0];
             const embed = editReplyCall.embeds[0];
-            
+
             const serverInfoField = embed.data.fields?.find((f: any) => f.name === '🏠 Server Info');
             expect(serverInfoField).toBeDefined();
             expect(serverInfoField.value).toContain('Created:**');
@@ -191,7 +189,7 @@ describe('Stats Command', () => {
     describe('Bot Usage Stats', () => {
         test('should display bot usage statistics with commands', async () => {
             mockInteraction.options.getString.mockReturnValue('bot');
-            
+
             // Mock command usage data
             (mockContext.tables.Config.findAll as jest.Mock).mockResolvedValue([
                 { key: 'command_usage_speak', value: '50' },
@@ -204,13 +202,13 @@ describe('Stats Command', () => {
 
             expect(mockContext.tables.Config.findAll).toHaveBeenCalledWith({
                 where: {
-                    key: expect.any(Object)
-                }
+                    key: expect.any(Object),
+                },
             });
 
             const editReplyCall = mockInteraction.editReply.mock.calls[0][0];
             const embed = editReplyCall.embeds[0];
-            
+
             const botUsageField = embed.data.fields?.find((f: any) => f.name === '🤖 Bot Usage');
             expect(botUsageField).toBeDefined();
             expect(botUsageField.value).toContain('Total Commands:** 110');
@@ -220,7 +218,7 @@ describe('Stats Command', () => {
 
         test('should generate chart for command usage', async () => {
             mockInteraction.options.getString.mockReturnValue('bot');
-            
+
             (mockContext.tables.Config.findAll as jest.Mock).mockResolvedValue([
                 { key: 'command_usage_speak', value: '50' },
                 { key: 'command_usage_meme', value: '30' },
@@ -247,7 +245,7 @@ describe('Stats Command', () => {
     describe('Activity Stats', () => {
         test('should display activity statistics', async () => {
             mockInteraction.options.getString.mockReturnValue('activity');
-            
+
             // Mock recent activity data
             const mockActivity = [
                 { userId: 'user1', updatedAt: new Date(), guildId: 'test-guild-id' },
@@ -261,14 +259,14 @@ describe('Stats Command', () => {
             expect(mockContext.tables.RollCall.findAll).toHaveBeenCalledWith({
                 where: {
                     guildId: 'test-guild-id',
-                    updatedAt: expect.any(Object)
+                    updatedAt: expect.any(Object),
                 },
-                order: [['updatedAt', 'DESC']]
+                order: [['updatedAt', 'DESC']],
             });
 
             const editReplyCall = mockInteraction.editReply.mock.calls[0][0];
             const embed = editReplyCall.embeds[0];
-            
+
             const activityField = embed.data.fields?.find((f: any) => f.name === '📈 Activity (Last 7 Days)');
             expect(activityField).toBeDefined();
             expect(activityField.value).toContain('Active Members:** 2');
@@ -277,7 +275,7 @@ describe('Stats Command', () => {
 
         test('should generate activity chart', async () => {
             mockInteraction.options.getString.mockReturnValue('activity');
-            
+
             (mockContext.tables.RollCall.findAll as jest.Mock).mockResolvedValue([
                 { userId: 'user1', updatedAt: new Date(), guildId: 'test-guild-id' },
             ]);
@@ -303,7 +301,7 @@ describe('Stats Command', () => {
     describe('All Stats', () => {
         test('should display all statistics types', async () => {
             mockInteraction.options.getString.mockReturnValue('all');
-            
+
             (mockContext.tables.Config.findAll as jest.Mock).mockResolvedValue([
                 { key: 'command_usage_speak', value: '50' },
             ]);
@@ -315,13 +313,13 @@ describe('Stats Command', () => {
 
             const editReplyCall = mockInteraction.editReply.mock.calls[0][0];
             const embed = editReplyCall.embeds[0];
-            
+
             // Should have all field types
             expect(embed.data.fields?.some((f: any) => f.name === '👥 Members')).toBe(true);
             expect(embed.data.fields?.some((f: any) => f.name === '🏠 Server Info')).toBe(true);
             expect(embed.data.fields?.some((f: any) => f.name === '🤖 Bot Usage')).toBe(true);
             expect(embed.data.fields?.some((f: any) => f.name === '📈 Activity (Last 7 Days)')).toBe(true);
-            
+
             // Should have both chart types
             expect(editReplyCall.files).toHaveLength(2);
             expect(editReplyCall.files.some((f: any) => f.name === 'bot-usage-chart.png')).toBe(true);
@@ -372,7 +370,7 @@ describe('Stats Command', () => {
 
         test('should handle chart generation errors', async () => {
             mockInteraction.options.getString.mockReturnValue('bot');
-            
+
             // Mock database error to trigger the catch block
             (mockContext.tables.Config.findAll as jest.Mock).mockRejectedValue(new Error('Chart generation failed'));
 
@@ -413,7 +411,7 @@ describe('Stats Command', () => {
     describe('Data Processing', () => {
         test('should correctly calculate command percentages', async () => {
             mockInteraction.options.getString.mockReturnValue('bot');
-            
+
             (mockContext.tables.Config.findAll as jest.Mock).mockResolvedValue([
                 { key: 'command_usage_speak', value: '80' }, // 80%
                 { key: 'command_usage_meme', value: '20' },  // 20%
@@ -423,7 +421,7 @@ describe('Stats Command', () => {
 
             const editReplyCall = mockInteraction.editReply.mock.calls[0][0];
             const embed = editReplyCall.embeds[0];
-            
+
             const botUsageField = embed.data.fields?.find((f: any) => f.name === '🤖 Bot Usage');
             expect(botUsageField.value).toContain('80.0%');
             expect(botUsageField.value).toContain('20.0%');
@@ -431,7 +429,7 @@ describe('Stats Command', () => {
 
         test('should sort commands by usage count', async () => {
             mockInteraction.options.getString.mockReturnValue('bot');
-            
+
             (mockContext.tables.Config.findAll as jest.Mock).mockResolvedValue([
                 { key: 'command_usage_fortune', value: '5' },
                 { key: 'command_usage_speak', value: '50' },
@@ -442,9 +440,9 @@ describe('Stats Command', () => {
 
             const editReplyCall = mockInteraction.editReply.mock.calls[0][0];
             const embed = editReplyCall.embeds[0];
-            
+
             const botUsageField = embed.data.fields?.find((f: any) => f.name === '🤖 Bot Usage');
-            
+
             // Should be ordered by count: speak (50), meme (25), fortune (5)
             const lines = botUsageField.value.split('\n');
             expect(lines.find((l: string) => l.includes('1.**'))).toContain('/speak');
@@ -454,7 +452,7 @@ describe('Stats Command', () => {
 
         test('should handle invalid command usage values', async () => {
             mockInteraction.options.getString.mockReturnValue('bot');
-            
+
             (mockContext.tables.Config.findAll as jest.Mock).mockResolvedValue([
                 { key: 'command_usage_speak', value: 'invalid' },
                 { key: 'command_usage_meme', value: null },
