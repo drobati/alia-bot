@@ -1,14 +1,24 @@
 import { Message } from 'discord.js';
+import { Context } from '../utils/types';
+
+// Mock the dependencies BEFORE importing the module that uses them
+jest.mock('../utils/assistant');
+jest.mock('../utils/discordHelpers');
+
+// Create a more explicit mock for HybridClassifier
+const mockClassifierInstance = {
+    classify: jest.fn(),
+    getDetailedClassification: jest.fn(),
+};
+
+jest.mock('../utils/hybrid-classifier', () => ({
+    HybridClassifier: jest.fn().mockImplementation(() => mockClassifierInstance)
+}));
+
 import assistantResponse from './assistant';
 import generateResponse from '../utils/assistant';
 import { HybridClassifier } from '../utils/hybrid-classifier';
 import { safelySendToChannel } from '../utils/discordHelpers';
-import { Context } from '../utils/types';
-
-// Mock the dependencies
-jest.mock('../utils/assistant');
-jest.mock('../utils/hybrid-classifier');
-jest.mock('../utils/discordHelpers');
 
 // Mock OpenAI at the module level to prevent instantiation errors
 jest.mock('openai', () => ({
@@ -29,7 +39,6 @@ const mockSafelySendToChannel = safelySendToChannel as jest.MockedFunction<typeo
 describe('Assistant Response System', () => {
     let mockMessage: Partial<Message>;
     let mockContext: Context;
-    let mockClassifier: any;
     let mockChannel: any;
 
     beforeEach(() => {
@@ -67,20 +76,18 @@ describe('Assistant Response System', () => {
             },
         } as any;
 
-        // Setup mock classifier
-        mockClassifier = {
-            classify: jest.fn().mockReturnValue({
-                intent: 'general-knowledge',
-                confidence: 0.8,
-                method: 'keyword',
-            }),
-            getDetailedClassification: jest.fn().mockReturnValue({
-                allScores: { 'general-knowledge': 0.8 },
-                keywordMatches: ['what', 'how'],
-                bayesianScore: 0.7,
-            }),
-        };
-        MockHybridClassifier.mockImplementation(() => mockClassifier);
+        // Setup the mock classifier instance with default return values
+        mockClassifierInstance.classify.mockReturnValue({
+            intent: 'general-knowledge',
+            confidence: 0.8,
+            method: 'keyword',
+        });
+        
+        mockClassifierInstance.getDetailedClassification.mockReturnValue({
+            allScores: { 'general-knowledge': 0.8 },
+            keywordMatches: ['what', 'how'],
+            bayesianScore: 0.7,
+        });
 
         // Setup default mocks
         mockGenerateResponse.mockResolvedValue('This is a helpful response');
@@ -208,7 +215,7 @@ describe('Assistant Response System', () => {
                 mockMessage.content = example;
 
                 // Mock classifier to return a result that would normally proceed to content check
-                mockClassifier.classify.mockReturnValue({
+                mockClassifierInstance.classify.mockReturnValue({
                     intent: 'general-knowledge',
                     confidence: 0.8,
                     method: 'keyword',
@@ -217,6 +224,13 @@ describe('Assistant Response System', () => {
                 const result = await assistantResponse(mockMessage as Message, mockContext);
 
                 expect(result).toBe(false);
+                // The assistant logs processing message first, then filters inappropriate content
+                expect(mockContext.log.info).toHaveBeenCalledWith(
+                    'Assistant processing directly addressed message',
+                    expect.objectContaining({
+                        stage: 'direct_addressing_passed',
+                    }),
+                );
                 expect(mockContext.log.info).toHaveBeenCalledWith(
                     'Assistant skipped - inappropriate content detected',
                     expect.objectContaining({
@@ -240,7 +254,7 @@ describe('Assistant Response System', () => {
                 mockMessage.content = example;
 
                 // Mock classifier to return a result that would normally proceed to content check
-                mockClassifier.classify.mockReturnValue({
+                mockClassifierInstance.classify.mockReturnValue({
                     intent: 'general-knowledge',
                     confidence: 0.8,
                     method: 'keyword',
@@ -249,6 +263,13 @@ describe('Assistant Response System', () => {
                 const result = await assistantResponse(mockMessage as Message, mockContext);
 
                 expect(result).toBe(false);
+                // The assistant logs processing message first, then filters inappropriate content
+                expect(mockContext.log.info).toHaveBeenCalledWith(
+                    'Assistant processing directly addressed message',
+                    expect.objectContaining({
+                        stage: 'direct_addressing_passed',
+                    }),
+                );
                 expect(mockContext.log.info).toHaveBeenCalledWith(
                     'Assistant skipped - inappropriate content detected',
                     expect.objectContaining({
@@ -276,7 +297,7 @@ describe('Assistant Response System', () => {
         });
 
         it('should process messages above confidence threshold', async () => {
-            mockClassifier.classify.mockReturnValue({
+            mockClassifierInstance.classify.mockReturnValue({
                 intent: 'general-knowledge',
                 confidence: 0.85,
                 method: 'keyword',
@@ -295,7 +316,7 @@ describe('Assistant Response System', () => {
         });
 
         it('should skip messages below confidence threshold', async () => {
-            mockClassifier.classify.mockReturnValue({
+            mockClassifierInstance.classify.mockReturnValue({
                 intent: 'general-knowledge',
                 confidence: 0.5,
                 method: 'bayesian',
@@ -315,7 +336,7 @@ describe('Assistant Response System', () => {
         });
 
         it('should skip messages with non-response intents', async () => {
-            mockClassifier.classify.mockReturnValue({
+            mockClassifierInstance.classify.mockReturnValue({
                 intent: 'social-chat',
                 confidence: 0.9,
                 method: 'keyword',
@@ -337,7 +358,7 @@ describe('Assistant Response System', () => {
         const responseIntents = ['general-knowledge', 'real-time-knowledge', 'technical-question'];
         responseIntents.forEach(intent => {
             it(`should process ${intent} intent`, async () => {
-                mockClassifier.classify.mockReturnValue({
+                mockClassifierInstance.classify.mockReturnValue({
                     intent: intent,
                     confidence: 0.8,
                     method: 'keyword',
@@ -370,7 +391,7 @@ describe('Assistant Response System', () => {
         it('should log detailed classification in debug mode', async () => {
             await assistantResponse(mockMessage as Message, mockContext);
 
-            expect(mockClassifier.getDetailedClassification).toHaveBeenCalledWith('what is quantum physics?');
+            expect(mockClassifierInstance.getDetailedClassification).toHaveBeenCalledWith('what is quantum physics?');
             expect(mockContext.log.debug).toHaveBeenCalledWith(
                 'Assistant detailed classification',
                 expect.objectContaining({
@@ -409,7 +430,7 @@ describe('Assistant Response System', () => {
                 'Assistant response sent successfully',
                 expect.objectContaining({
                     userId: 'test-user-id',
-                    responseLength: 25,
+                    responseLength: 26,
                     stage: 'response_sent',
                     success: true,
                 }),
@@ -503,7 +524,7 @@ describe('Assistant Response System', () => {
 
         it('should handle classification errors', async () => {
             const classificationError = new Error('Classification failed');
-            mockClassifier.classify.mockImplementation(() => {
+            mockClassifierInstance.classify.mockImplementation(() => {
                 throw classificationError;
             });
 
@@ -556,7 +577,7 @@ describe('Assistant Response System', () => {
         });
 
         it('should log classification metrics', async () => {
-            mockClassifier.classify.mockReturnValue({
+            mockClassifierInstance.classify.mockReturnValue({
                 intent: 'technical-question',
                 confidence: 0.892,
                 method: 'bayesian',
@@ -581,7 +602,7 @@ describe('Assistant Response System', () => {
         });
 
         it('should round confidence to 3 decimals', async () => {
-            mockClassifier.classify.mockReturnValue({
+            mockClassifierInstance.classify.mockReturnValue({
                 intent: 'general-knowledge',
                 confidence: 0.8567891234,
                 method: 'keyword',
@@ -677,7 +698,7 @@ describe('Assistant Response System', () => {
         it('should handle "Alia," prefix with comma', async () => {
             mockMessage.content = 'Alia, what is DNA?';
 
-            await assistantResponse(mockMessage as Message, mockContext);
+            const result = await assistantResponse(mockMessage as Message, mockContext);
 
             expect(mockGenerateResponse).toHaveBeenCalledWith(
                 'what is DNA?',

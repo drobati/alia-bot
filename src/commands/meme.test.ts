@@ -296,10 +296,24 @@ describe('Meme Command', () => {
         });
 
         it('should handle missing text fields', async () => {
+            const mockTemplate: MemeTemplateAttributes = {
+                id: 1,
+                name: 'Test Template',
+                url: 'http://example.com/image.jpg',
+                is_active: true,
+                usage_count: 5,
+                description: 'Test description',
+                default_font_size: 40,
+                createdAt: new Date(),
+                updatedAt: new Date(),
+            };
+
             (mockInteraction.options!.getString as jest.Mock)
                 .mockReturnValueOnce('Test Template')
                 .mockReturnValueOnce(null) // top
                 .mockReturnValueOnce(null); // bottom
+
+            mockMemeTemplate.findOne.mockResolvedValue(mockTemplate);
 
             await memeCommand.execute(mockInteraction as ChatInputCommandInteraction, mockContext);
 
