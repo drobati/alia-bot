@@ -1,17 +1,16 @@
-name: Claude Code Review
+# This workflow has been consolidated into ci.yml
+# The claude-review job now runs after lint, test, and coverage pass
+# This prevents unnecessary Claude reviews on PRs with failing basic checks
+
+name: Claude Code Review (DEPRECATED)
 
 on:
-  pull_request:
-    types: [opened, synchronize]
-    # Optional: Only run on specific file changes
-    # paths:
-    #   - "src/**/*.ts"
-    #   - "src/**/*.tsx"
-    #   - "src/**/*.js"
-    #   - "src/**/*.jsx"
+  # Disabled - functionality moved to ci.yml
+  workflow_dispatch:
+    # Manual trigger only for testing
 
 jobs:
-  claude-review:
+  claude-review-deprecated:
     # Optional: Filter by PR author
     # if: |
     #   github.event.pull_request.user.login == 'external-contributor' ||
