@@ -1,15 +1,44 @@
 name: Claude Code Review
 
 on:
-  workflow_run:
-    workflows: ["CI"]
-    types: [completed]
-    # No branches filter - let it trigger for all branches, then filter in job condition
+  pull_request:
+    types: [opened, synchronize]
 
 jobs:
+  wait-for-ci:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Wait for CI to complete
+        uses: lewagon/wait-on-check-action@v1.3.4
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+          check-name: 'Lint'
+          repo-token: ${{ secrets.GITHUB_TOKEN }}
+          wait-interval: 10
+      - name: Wait for Test (20) to complete
+        uses: lewagon/wait-on-check-action@v1.3.4
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+          check-name: 'Test (20)'
+          repo-token: ${{ secrets.GITHUB_TOKEN }}
+          wait-interval: 10
+      - name: Wait for Test (21) to complete  
+        uses: lewagon/wait-on-check-action@v1.3.4
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+          check-name: 'Test (21)'
+          repo-token: ${{ secrets.GITHUB_TOKEN }}
+          wait-interval: 10
+      - name: Wait for Coverage to complete
+        uses: lewagon/wait-on-check-action@v1.3.4
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+          check-name: 'Coverage'
+          repo-token: ${{ secrets.GITHUB_TOKEN }}
+          wait-interval: 10
+
   claude-review:
-    # Only run if CI succeeded and not on master branch
-    if: github.event.workflow_run.conclusion == 'success' && github.event.workflow_run.head_branch != 'master'
+    needs: wait-for-ci
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -18,44 +47,18 @@ jobs:
       id-token: write
     
     steps:
-      - name: Get PR number from workflow run
-        id: get-pr
-        uses: actions/github-script@v7
-        with:
-          script: |
-            const { data: pullRequests } = await github.rest.pulls.list({
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              head: `${context.repo.owner}:${context.payload.workflow_run.head_branch}`,
-              state: 'open'
-            });
-            
-            if (pullRequests.length === 0) {
-              console.log('No open PR found for this branch');
-              return null;
-            }
-            
-            const pr = pullRequests[0];
-            console.log(`Found PR #${pr.number}: ${pr.title}`);
-            return pr.number;
-
       - name: Checkout repository
-        if: steps.get-pr.outputs.result != 'null'
         uses: actions/checkout@v4
         with:
-          ref: ${{ github.event.workflow_run.head_sha }}
           fetch-depth: 1
 
       - name: Run Claude Code Review
-        if: steps.get-pr.outputs.result != 'null'
         id: claude-review
         uses: anthropics/claude-code-action@v1
-        env:
-          PR_NUMBER: ${{ steps.get-pr.outputs.result }}
         with:
           claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
           prompt: |
-            Please review pull request #${{ steps.get-pr.outputs.result }} and provide feedback on:
+            Please review this pull request and provide feedback on:
             - Code quality and best practices
             - Potential bugs or issues
             - Performance considerations
@@ -64,7 +67,7 @@ jobs:
             
             Use the repository's CLAUDE.md for guidance on style and conventions. Be constructive and helpful in your feedback.
 
-            Use `gh pr comment ${{ steps.get-pr.outputs.result }}` with your Bash tool to leave your review as a comment on the PR.
+            Use `gh pr comment` with your Bash tool to leave your review as a comment on the PR.
           
           # See https://github.com/anthropics/claude-code-action/blob/main/docs/usage.md
           # or https://docs.anthropic.com/en/docs/claude-code/sdk#command-line for available options
