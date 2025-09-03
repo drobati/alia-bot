@@ -6,9 +6,13 @@ import { Op } from 'sequelize';
 
 // Mock dependencies
 jest.mock('chartjs-node-canvas');
-jest.mock('lodash', () => ({
-    uniq: jest.fn(arr => [...new Set(arr)]), // Simple mock implementation
-}));
+jest.mock('lodash', () => {
+    const actualLodash = jest.requireActual('lodash');
+    return {
+        ...actualLodash,
+        uniq: jest.fn(arr => [...new Set(arr)]), // Override uniq with our mock
+    };
+});
 
 const mockChartJSNodeCanvas = ChartJSNodeCanvas as jest.MockedClass<typeof ChartJSNodeCanvas>;
 
@@ -182,9 +186,12 @@ describe('Rollcall Command', () => {
         });
 
         it('should handle errors in execute function', async () => {
-            (mockInteraction.options!.getSubcommand as jest.Mock).mockImplementation(() => {
-                throw new Error('Test error');
-            });
+            // Mock a database error instead of throwing during getSubcommand
+            (mockInteraction.options!.getSubcommand as jest.Mock).mockReturnValue('set');
+            (mockInteraction.options!.getNumber as jest.Mock).mockReturnValue(75);
+
+            // Make the database create operation throw an error
+            mockRollCall.create.mockRejectedValue(new Error('Database error'));
 
             await rollcallCommand.execute(mockInteraction, mockContext);
 
