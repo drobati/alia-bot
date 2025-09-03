@@ -233,32 +233,9 @@ export class ZodiacUtil {
 
     static async getSignSuggestions(input: string): Promise<any[]> {
         const suggestions: any[] = [];
-
-        // Check if input looks like a date
-        if (/^\d{1,2}[/-]?\d{0,2}$/.test(input)) {
-            const dateParts = input.replace(/[/-]/, '-').split('-');
-            if (dateParts.length === 1) {
-                // Just month, suggest format
-                suggestions.push({
-                    name: `${input}-DD (Enter your birth date)`,
-                    value: input,
-                });
-            } else if (dateParts.length === 2) {
-                const month = parseInt(dateParts[0], 10);
-                const day = parseInt(dateParts[1], 10);
-                if (month >= 1 && month <= 12 && day >= 1 && day <= 31) {
-                    const sign = this.getSignByDate(month, day);
-                    const zodiacInfo = this.getZodiacInfo(sign);
-                    suggestions.push({
-                        name: `${input} → ${zodiacInfo.emoji} ${sign} (${zodiacInfo.dateRange})`,
-                        value: input,
-                    });
-                }
-            }
-        }
-
-        // Add zodiac sign suggestions
         const normalizedInput = input.toLowerCase();
+
+        // Add zodiac sign suggestions only
         for (const [sign, data] of Object.entries(this.ZODIAC_DATA)) {
             if (
                 sign.includes(normalizedInput) ||
