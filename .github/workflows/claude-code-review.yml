@@ -1,68 +1,16 @@
 name: Claude Code Review
 
 on:
-  pull_request:
-    types: [opened, synchronize]
+  workflow_run:
+    workflows: ["CI"]
+    types: [completed]
+    branches-ignore: ["master"]  # Only run on PR branches
 
 jobs:
-  check-ci-status:
-    runs-on: ubuntu-latest
-    outputs:
-      ci-passed: ${{ steps.wait-and-check.outputs.result }}
-    steps:
-      - name: Wait for CI checks and validate
-        id: wait-and-check
-        uses: actions/github-script@v7
-        with:
-          script: |
-            const requiredChecks = ['Lint', 'Test (20)', 'Test (21)', 'Coverage'];
-            const maxWaitTime = 20 * 60 * 1000; // 20 minutes
-            const pollInterval = 30 * 1000; // 30 seconds
-            const startTime = Date.now();
-            
-            while (Date.now() - startTime < maxWaitTime) {
-              const { data: checkRuns } = await github.rest.checks.listForRef({
-                owner: context.repo.owner,
-                repo: context.repo.repo,
-                ref: context.payload.pull_request.head.sha
-              });
-              
-              const completedChecks = checkRuns.check_runs.filter(check => 
-                requiredChecks.includes(check.name) && 
-                check.status === 'completed' && 
-                check.conclusion === 'success'
-              );
-              
-              console.log(`Found ${completedChecks.length}/${requiredChecks.length} completed successful CI checks`);
-              
-              if (completedChecks.length === requiredChecks.length) {
-                console.log('All CI checks passed! ✅');
-                return true;
-              }
-              
-              // Check for any failed CI checks
-              const failedChecks = checkRuns.check_runs.filter(check => 
-                requiredChecks.includes(check.name) && 
-                check.status === 'completed' && 
-                check.conclusion !== 'success'
-              );
-              
-              if (failedChecks.length > 0) {
-                console.log(`Found failed CI checks: ${failedChecks.map(c => c.name).join(', ')} ❌`);
-                return false;
-              }
-              
-              console.log('Waiting for CI checks to complete...');
-              await new Promise(resolve => setTimeout(resolve, pollInterval));
-            }
-            
-            console.log('Timeout waiting for CI checks to complete');
-            return false;
-
   claude-review:
-    needs: check-ci-status
+    # Only run if the CI workflow succeeded
+    if: github.event.workflow_run.conclusion == 'success'
     runs-on: ubuntu-latest
-    if: needs.check-ci-status.outputs.ci-passed == 'true'
     permissions:
       contents: read
       pull-requests: read
@@ -70,18 +18,44 @@ jobs:
       id-token: write
     
     steps:
+      - name: Get PR number from workflow run
+        id: get-pr
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const { data: pullRequests } = await github.rest.pulls.list({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              head: `${context.repo.owner}:${context.payload.workflow_run.head_branch}`,
+              state: 'open'
+            });
+            
+            if (pullRequests.length === 0) {
+              console.log('No open PR found for this branch');
+              return null;
+            }
+            
+            const pr = pullRequests[0];
+            console.log(`Found PR #${pr.number}: ${pr.title}`);
+            return pr.number;
+
       - name: Checkout repository
+        if: steps.get-pr.outputs.result != 'null'
         uses: actions/checkout@v4
         with:
+          ref: ${{ github.event.workflow_run.head_sha }}
           fetch-depth: 1
 
       - name: Run Claude Code Review
+        if: steps.get-pr.outputs.result != 'null'
         id: claude-review
         uses: anthropics/claude-code-action@v1
+        env:
+          PR_NUMBER: ${{ steps.get-pr.outputs.result }}
         with:
           claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
           prompt: |
-            Please review this pull request and provide feedback on:
+            Please review pull request #${{ steps.get-pr.outputs.result }} and provide feedback on:
             - Code quality and best practices
             - Potential bugs or issues
             - Performance considerations
@@ -90,7 +64,7 @@ jobs:
             
             Use the repository's CLAUDE.md for guidance on style and conventions. Be constructive and helpful in your feedback.
 
-            Use `gh pr comment` with your Bash tool to leave your review as a comment on the PR.
+            Use `gh pr comment ${{ steps.get-pr.outputs.result }}` with your Bash tool to leave your review as a comment on the PR.
           
           # See https://github.com/anthropics/claude-code-action/blob/main/docs/usage.md
           # or https://docs.anthropic.com/en/docs/claude-code/sdk#command-line for available options
