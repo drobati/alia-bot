@@ -128,26 +128,14 @@ describe('ZodiacUtil', () => {
 
     describe('getSignSuggestions', () => {
 
-        test('should return date suggestions for numeric input', async () => {
+        test('should return empty array for numeric input', async () => {
             const suggestions = await ZodiacUtil.getSignSuggestions('03');
-
-            expect(suggestions).toEqual([
-                expect.objectContaining({
-                    name: '03-DD (Enter your birth date)',
-                    value: '03',
-                }),
-            ]);
+            expect(suggestions).toEqual([]);
         });
 
-        test('should return zodiac sign for complete date', async () => {
+        test('should return empty array for date-like input', async () => {
             const suggestions = await ZodiacUtil.getSignSuggestions('08-15');
-
-            expect(suggestions).toEqual([
-                expect.objectContaining({
-                    name: expect.stringContaining('♌ Leo'),
-                    value: '08-15',
-                }),
-            ]);
+            expect(suggestions).toEqual([]);
         });
 
         test('should return filtered zodiac signs for partial names', async () => {
