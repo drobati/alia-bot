@@ -103,6 +103,35 @@ export interface MemeTemplateAttributes {
     updatedAt?: Date;
 }
 
+export interface HoroscopeUserAttributes {
+    id?: number;
+    userId: string;
+    guildId?: string;
+    zodiacSign: string;
+    birthDate?: string; // MM-DD format
+    preferredType: string; // default: 'daily'
+    lastReadDate?: Date;
+    totalReads: number;
+    favoriteReadings: number;
+    createdAt?: Date;
+    updatedAt?: Date;
+}
+
+export interface HoroscopeCacheAttributes {
+    cacheKey: string;
+    sign: string;
+    type: string;
+    period: string;
+    content: string;
+    luckyNumbers: string;
+    luckyColor: string;
+    compatibility: string;
+    mood: string;
+    expiresAt: Date;
+    createdAt?: Date;
+    updatedAt?: Date;
+}
+
 // Simplified model interfaces for now - avoiding complex Sequelize inheritance issues
 export interface AdlibsModel extends AdlibsAttributes {
     update(_values: Partial<AdlibsAttributes>): Promise<AdlibsModel>;
@@ -141,6 +170,16 @@ export interface TwitchModel extends TwitchAttributes {
 
 export interface MemeTemplateModel extends MemeTemplateAttributes {
     update(_values: Partial<MemeTemplateAttributes>): Promise<MemeTemplateModel>;
+    destroy(): Promise<void>;
+}
+
+export interface HoroscopeUserModel extends HoroscopeUserAttributes {
+    update(_values: Partial<HoroscopeUserAttributes>): Promise<HoroscopeUserModel>;
+    destroy(): Promise<void>;
+}
+
+export interface HoroscopeCacheModel extends HoroscopeCacheAttributes {
+    update(_values: Partial<HoroscopeCacheAttributes>): Promise<HoroscopeCacheModel>;
     destroy(): Promise<void>;
 }
 
@@ -227,6 +266,26 @@ export interface MemeTemplateModelStatic {
         : Promise<{ count: number; rows: MemeTemplateModel[] }>;
 }
 
+export interface HoroscopeUserModelStatic {
+    findAll(options?: FindOptions<HoroscopeUserAttributes>): Promise<HoroscopeUserModel[]>;
+    findOne(options?: FindOptions<HoroscopeUserAttributes>): Promise<HoroscopeUserModel | null>;
+    create(values: HoroscopeUserAttributes): Promise<HoroscopeUserModel>;
+    findOrCreate(options: FindOrCreateOptions<HoroscopeUserAttributes>): Promise<[HoroscopeUserModel, boolean]>;
+    upsert(values: HoroscopeUserAttributes, options?: UpsertOptions): Promise<[HoroscopeUserModel, boolean]>;
+    destroy(options: DestroyOptions<HoroscopeUserAttributes>): Promise<number>;
+    count(options?: FindOptions<HoroscopeUserAttributes>): Promise<number>;
+}
+
+export interface HoroscopeCacheModelStatic {
+    findAll(options?: FindOptions<HoroscopeCacheAttributes>): Promise<HoroscopeCacheModel[]>;
+    findOne(options?: FindOptions<HoroscopeCacheAttributes>): Promise<HoroscopeCacheModel | null>;
+    create(values: HoroscopeCacheAttributes): Promise<HoroscopeCacheModel>;
+    findOrCreate(options: FindOrCreateOptions<HoroscopeCacheAttributes>): Promise<[HoroscopeCacheModel, boolean]>;
+    upsert(values: HoroscopeCacheAttributes, options?: UpsertOptions): Promise<[HoroscopeCacheModel, boolean]>;
+    destroy(options: DestroyOptions<HoroscopeCacheAttributes>): Promise<number>;
+    count(options?: FindOptions<HoroscopeCacheAttributes>): Promise<number>;
+}
+
 // Combined database tables interface
 export interface DatabaseTables {
     Adlibs: AdlibsModelStatic;
@@ -237,5 +296,7 @@ export interface DatabaseTables {
     RollCall: RollCallModelStatic;
     Twitch: TwitchModelStatic;
     MemeTemplate: MemeTemplateModelStatic;
+    HoroscopeUser: HoroscopeUserModelStatic;
+    HoroscopeCache: HoroscopeCacheModelStatic;
     [key: string]: any; // Allow dynamic table access
 }

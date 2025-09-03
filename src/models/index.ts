@@ -8,6 +8,8 @@ import PollVote from "./PollVote";
 import RollCall from "./rollcall";
 import Twitch from "./twitch";
 import MemeTemplate from "./memeTemplate";
+import HoroscopeUser from "./horoscopeUser";
+import HoroscopeCache from "./horoscopeCache";
 
 export default {
     Adlibs,
@@ -20,4 +22,6 @@ export default {
     RollCall,
     Twitch,
     MemeTemplate,
+    HoroscopeUser,
+    HoroscopeCache,
 };
