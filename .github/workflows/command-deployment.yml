@@ -1,0 +1,427 @@
+name: Discord Commands CI/CD
+
+on:
+  workflow_run:
+    workflows: ["CI"]
+    branches: [master]
+    types: [completed]
+  
+  # Manual trigger for emergency rollbacks
+  workflow_dispatch:
+    inputs:
+      action:
+        description: 'Action to perform'
+        required: true
+        default: 'deploy'
+        type: choice
+        options:
+        - deploy
+        - rollback
+        - staging
+      backup_file:
+        description: 'Backup file for rollback (leave empty for latest)'
+        required: false
+        type: string
+
+env:
+  AWS_REGION: us-east-1
+
+jobs:
+  detect-command-changes:
+    runs-on: ubuntu-latest
+    if: github.event.workflow_run.conclusion == 'success' || github.event_name == 'workflow_dispatch'
+    outputs:
+      has-changes: ${{ steps.detect.outputs.has-changes }}
+      deployment-required: ${{ steps.detect.outputs.deployment-required }}
+      validation-passed: ${{ steps.detect.outputs.validation-passed }}
+      new-commands: ${{ steps.detect.outputs.new-commands }}
+      modified-commands: ${{ steps.detect.outputs.modified-commands }}
+      deleted-commands: ${{ steps.detect.outputs.deleted-commands }}
+    
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.workflow_run.head_sha }}
+          fetch-depth: 2
+
+      - name: Use Node.js 20
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build TypeScript
+        run: npm run build
+
+      - name: Restore command checksums cache
+        uses: actions/cache@v3
+        with:
+          path: .command-checksums.json
+          key: command-checksums-${{ github.sha }}
+          restore-keys: |
+            command-checksums-
+
+      - name: Detect command changes
+        id: detect
+        run: |
+          chmod +x scripts/discord-commands/command-detector.js
+          node scripts/discord-commands/command-detector.js
+
+      - name: Upload command deployment report
+        uses: actions/upload-artifact@v4
+        with:
+          name: command-deployment-report
+          path: command-deployment-report.json
+
+      - name: Save command checksums cache
+        uses: actions/cache@v3
+        with:
+          path: .command-checksums.json
+          key: command-checksums-${{ github.sha }}
+
+      - name: Comment on PR with command changes
+        if: github.event.workflow_run.event == 'pull_request' && steps.detect.outputs.has-changes == 'true'
+        uses: actions/github-script@v6
+        with:
+          script: |
+            const fs = require('fs');
+            const report = JSON.parse(fs.readFileSync('command-deployment-report.json', 'utf8'));
+            
+            let comment = '🤖 **Discord Command Changes Detected**\n\n';
+            
+            if (report.changes.new.length > 0) {
+              comment += '**New Commands:**\n';
+              report.changes.new.forEach(cmd => {
+                comment += `- \`/${cmd.name}\`: ${cmd.description}\n`;
+              });
+              comment += '\n';
+            }
+            
+            if (report.changes.modified.length > 0) {
+              comment += '**Modified Commands:**\n';
+              report.changes.modified.forEach(cmd => {
+                comment += `- \`/${cmd.name}\`: ${cmd.description}\n`;
+              });
+              comment += '\n';
+            }
+            
+            if (report.changes.deleted.length > 0) {
+              comment += '**Deleted Commands:**\n';
+              report.changes.deleted.forEach(cmd => {
+                comment += `- \`/${cmd.name}\`: ${cmd.description}\n`;
+              });
+              comment += '\n';
+            }
+            
+            if (report.validation.warnings.length > 0) {
+              comment += '**Warnings:**\n';
+              report.validation.warnings.forEach(warning => {
+                comment += `- ⚠️ ${warning}\n`;
+              });
+              comment += '\n';
+            }
+            
+            comment += `**Total Commands:** ${report.totalCommands}`;
+            comment += `\n**Deployment Required:** ${report.deployment.required ? '✅ Yes' : '❌ No'}`;
+            
+            const { data: pullRequests } = await github.rest.pulls.list({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              head: `${context.repo.owner}:${context.ref}`,
+              state: 'open'
+            });
+            
+            if (pullRequests.length > 0) {
+              await github.rest.issues.createComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: pullRequests[0].number,
+                body: comment
+              });
+            }
+
+  staging-deployment:
+    runs-on: ubuntu-latest
+    needs: detect-command-changes
+    if: needs.detect-command-changes.outputs.deployment-required == 'true' || github.event.inputs.action == 'staging'
+    environment: staging
+    
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.workflow_run.head_sha }}
+
+      - name: Use Node.js 20
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build TypeScript
+        run: npm run build
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v1
+        with:
+          role-to-assume: ${{ secrets.ROLE_TO_ASSUME }}
+          role-session-name: ${{ secrets.ROLE_SESSION_NAME }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Get Discord credentials from AWS Parameter Store
+        id: get-credentials
+        run: |
+          BOT_TOKEN=$(aws ssm get-parameter --name "/alia-bot/staging/BOT_TOKEN" --with-decryption --query 'Parameter.Value' --output text)
+          CLIENT_ID=$(aws ssm get-parameter --name "/alia-bot/staging/CLIENT_ID" --query 'Parameter.Value' --output text)
+          GUILD_ID=$(aws ssm get-parameter --name "/alia-bot/staging/GUILD_ID" --query 'Parameter.Value' --output text 2>/dev/null || echo "")
+          
+          echo "::add-mask::$BOT_TOKEN"
+          echo "BOT_TOKEN=$BOT_TOKEN" >> $GITHUB_ENV
+          echo "CLIENT_ID=$CLIENT_ID" >> $GITHUB_ENV
+          echo "GUILD_ID=$GUILD_ID" >> $GITHUB_ENV
+
+      - name: Deploy commands to staging
+        env:
+          NODE_ENV: staging
+        run: |
+          chmod +x scripts/deploy-commands.js
+          node scripts/deploy-commands.js --staging
+
+      - name: Test staging deployment
+        run: |
+          # Add staging deployment verification tests here
+          echo "🧪 Staging deployment verification would run here"
+          # Could include:
+          # - Discord API calls to verify commands exist
+          # - Basic functionality tests
+          # - Permission validation tests
+
+      - name: Upload staging deployment logs
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: staging-deployment-logs
+          path: |
+            deployment.log
+            command-backups/
+
+      - name: Notify Slack about staging deployment
+        if: always()
+        uses: 8398a7/action-slack@v3
+        with:
+          status: ${{ job.status }}
+          channel: '#alia-bot-deployments'
+          text: |
+            Staging Deployment ${{ job.status }}
+            Commands: ${{ needs.detect-command-changes.outputs.new-commands }} new, ${{ needs.detect-command-changes.outputs.modified-commands }} modified, ${{ needs.detect-command-changes.outputs.deleted-commands }} deleted
+            Commit: ${{ github.sha }}
+        env:
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
+
+  production-deployment:
+    runs-on: ubuntu-latest
+    needs: [detect-command-changes, staging-deployment]
+    if: needs.detect-command-changes.outputs.deployment-required == 'true' && needs.staging-deployment.result == 'success' && github.event.inputs.action != 'staging'
+    environment: production
+    
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.workflow_run.head_sha }}
+
+      - name: Use Node.js 20
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build TypeScript
+        run: npm run build
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v1
+        with:
+          role-to-assume: ${{ secrets.ROLE_TO_ASSUME }}
+          role-session-name: ${{ secrets.ROLE_SESSION_NAME }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Get Discord credentials from AWS Parameter Store
+        run: |
+          BOT_TOKEN=$(aws ssm get-parameter --name "/alia-bot/production/BOT_TOKEN" --with-decryption --query 'Parameter.Value' --output text)
+          CLIENT_ID=$(aws ssm get-parameter --name "/alia-bot/production/CLIENT_ID" --query 'Parameter.Value' --output text)
+          
+          echo "::add-mask::$BOT_TOKEN"
+          echo "BOT_TOKEN=$BOT_TOKEN" >> $GITHUB_ENV
+          echo "CLIENT_ID=$CLIENT_ID" >> $GITHUB_ENV
+
+      - name: Download staging deployment logs
+        uses: actions/download-artifact@v4
+        with:
+          name: staging-deployment-logs
+          path: ./
+
+      - name: Production deployment with circuit breaker
+        env:
+          NODE_ENV: production
+        run: |
+          chmod +x scripts/deploy-commands.js
+          
+          # Circuit breaker: check if staging deployment was recent and successful
+          STAGING_SUCCESS=$(grep -c '"success":true' deployment.log 2>/dev/null || echo "0")
+          STAGING_TIME=$(tail -1 deployment.log 2>/dev/null | jq -r '.timestamp' 2>/dev/null || echo "")
+          
+          if [ "$STAGING_SUCCESS" -eq "0" ]; then
+            echo "❌ Circuit breaker: No successful staging deployment found"
+            exit 1
+          fi
+          
+          if [ -n "$STAGING_TIME" ]; then
+            STAGING_AGE=$(($(date +%s) - $(date -d "$STAGING_TIME" +%s)))
+            if [ "$STAGING_AGE" -gt 3600 ]; then
+              echo "❌ Circuit breaker: Staging deployment is too old (${STAGING_AGE}s > 1h)"
+              exit 1
+            fi
+          fi
+          
+          echo "✅ Circuit breaker passed, proceeding with production deployment"
+          node scripts/deploy-commands.js
+
+      - name: Post-deployment verification
+        run: |
+          echo "🔍 Running post-deployment verification..."
+          
+          # Verify command count matches expected
+          EXPECTED_COUNT=$(jq '.totalCommands' command-deployment-report.json)
+          echo "Expected command count: $EXPECTED_COUNT"
+          
+          # Add more verification checks here:
+          # - Discord API health check
+          # - Critical command functionality tests
+          # - Permission validation
+
+      - name: Upload production deployment artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: production-deployment-logs
+          path: |
+            deployment.log
+            command-backups/
+            command-deployment-report.json
+
+      - name: Create deployment GitHub issue on failure
+        if: failure()
+        uses: actions/github-script@v6
+        with:
+          script: |
+            await github.rest.issues.create({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              title: `🚨 Production Command Deployment Failed - ${new Date().toISOString()}`,
+              body: `
+            **Production command deployment failed!**
+            
+            **Commit:** ${context.sha}
+            **Workflow:** [${context.workflow}](${context.payload.workflow_run?.html_url || context.payload.repository.html_url + '/actions'})
+            **Time:** ${new Date().toISOString()}
+            
+            **Next Steps:**
+            1. Check deployment logs in workflow artifacts
+            2. Verify Discord API status
+            3. Consider emergency rollback if needed:
+               \`\`\`bash
+               # Emergency rollback command
+               gh workflow run command-deployment.yml -f action=rollback
+               \`\`\`
+            
+            **Command Changes:**
+            - New: ${{ needs.detect-command-changes.outputs.new-commands }}
+            - Modified: ${{ needs.detect-command-changes.outputs.modified-commands }}
+            - Deleted: ${{ needs.detect-command-changes.outputs.deleted-commands }}
+            
+            @${{ github.actor }} please investigate immediately.
+            `,
+              labels: ['production', 'deployment', 'critical']
+            });
+
+      - name: Notify Slack about production deployment
+        if: always()
+        uses: 8398a7/action-slack@v3
+        with:
+          status: ${{ job.status }}
+          channel: '#alia-bot-deployments'
+          text: |
+            🚀 Production Deployment ${{ job.status }}!
+            Commands: ${{ needs.detect-command-changes.outputs.new-commands }} new, ${{ needs.detect-command-changes.outputs.modified-commands }} modified, ${{ needs.detect-command-changes.outputs.deleted-commands }} deleted
+            Commit: ${{ github.sha }}
+            ${{ job.status == 'failure' && '⚠️ IMMEDIATE ACTION REQUIRED - Check logs and consider rollback' || '' }}
+        env:
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
+
+  emergency-rollback:
+    runs-on: ubuntu-latest
+    if: github.event.inputs.action == 'rollback'
+    environment: production
+    
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Use Node.js 20
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v1
+        with:
+          role-to-assume: ${{ secrets.ROLE_TO_ASSUME }}
+          role-session-name: ${{ secrets.ROLE_SESSION_NAME }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Get Discord credentials
+        run: |
+          BOT_TOKEN=$(aws ssm get-parameter --name "/alia-bot/production/BOT_TOKEN" --with-decryption --query 'Parameter.Value' --output text)
+          CLIENT_ID=$(aws ssm get-parameter --name "/alia-bot/production/CLIENT_ID" --query 'Parameter.Value' --output text)
+          
+          echo "::add-mask::$BOT_TOKEN"
+          echo "BOT_TOKEN=$BOT_TOKEN" >> $GITHUB_ENV
+          echo "CLIENT_ID=$CLIENT_ID" >> $GITHUB_ENV
+
+      - name: Execute emergency rollback
+        run: |
+          chmod +x scripts/discord-commands/rollback-commands.js
+          
+          if [ -n "${{ github.event.inputs.backup_file }}" ]; then
+            echo "Rolling back to specified backup: ${{ github.event.inputs.backup_file }}"
+            node scripts/discord-commands/rollback-commands.js --file "${{ github.event.inputs.backup_file }}"
+          else
+            echo "Rolling back to latest backup"
+            node scripts/discord-commands/rollback-commands.js --latest
+          fi
+
+      - name: Notify about emergency rollback
+        uses: 8398a7/action-slack@v3
+        with:
+          status: ${{ job.status }}
+          channel: '#alia-bot-deployments'
+          text: |
+            🆘 EMERGENCY ROLLBACK ${{ job.status }}!
+            Backup file: ${{ github.event.inputs.backup_file || 'latest' }}
+            Triggered by: @${{ github.actor }}
+            Time: $(date -Iseconds)
+            
+            ${{ job.status == 'success' && '✅ Commands rolled back successfully' || '❌ ROLLBACK FAILED - MANUAL INTERVENTION REQUIRED' }}
+        env:
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}

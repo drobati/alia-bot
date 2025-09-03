@@ -1,0 +1,963 @@
+[
+  {
+    "id": "1408660319357898794",
+    "application_id": "555566299086979072",
+    "version": "1408660319793844341",
+    "default_member_permissions": null,
+    "type": 1,
+    "name": "adlibs",
+    "description": "Add or remove adlibs.",
+    "guild_id": "1352767815958007879",
+    "options": [
+      {
+        "type": 1,
+        "name": "add",
+        "description": "Add an adlib.",
+        "options": [
+          {
+            "type": 3,
+            "name": "adlib",
+            "description": "The adlib to add."
+          }
+        ]
+      },
+      {
+        "type": 1,
+        "name": "remove",
+        "description": "Remove an adlib.",
+        "options": [
+          {
+            "type": 3,
+            "name": "adlib",
+            "description": "The adlib to remove."
+          }
+        ]
+      }
+    ],
+    "nsfw": false
+  },
+  {
+    "id": "1408660319357898795",
+    "application_id": "555566299086979072",
+    "version": "1408660319793844342",
+    "default_member_permissions": null,
+    "type": 1,
+    "name": "exchange",
+    "description": "Get exchange rates from coinbase.",
+    "guild_id": "1352767815958007879",
+    "options": [
+      {
+        "type": 3,
+        "name": "source",
+        "description": "Source currency.",
+        "required": true,
+        "autocomplete": true
+      },
+      {
+        "type": 3,
+        "name": "target",
+        "description": "Target currency.",
+        "required": true,
+        "autocomplete": true
+      },
+      {
+        "type": 10,
+        "name": "amount",
+        "description": "Amount of source currency."
+      }
+    ],
+    "nsfw": false
+  },
+  {
+    "id": "1408660319357898796",
+    "application_id": "555566299086979072",
+    "version": "1408660319793844343",
+    "default_member_permissions": null,
+    "type": 1,
+    "name": "config",
+    "description": "Add or remove configurations.",
+    "guild_id": "1352767815958007879",
+    "options": [
+      {
+        "type": 1,
+        "name": "add",
+        "description": "Add a configuration.",
+        "options": [
+          {
+            "type": 3,
+            "name": "key",
+            "description": "The configuration key.",
+            "required": true
+          },
+          {
+            "type": 3,
+            "name": "value",
+            "description": "The configuration value.",
+            "required": true
+          }
+        ]
+      },
+      {
+        "type": 1,
+        "name": "remove",
+        "description": "Remove a configuration.",
+        "options": [
+          {
+            "type": 3,
+            "name": "key",
+            "description": "The configuration key.",
+            "required": true,
+            "autocomplete": true
+          }
+        ]
+      }
+    ],
+    "nsfw": false
+  },
+  {
+    "id": "1408660319357898797",
+    "application_id": "555566299086979072",
+    "version": "1408660319995297922",
+    "default_member_permissions": null,
+    "type": 1,
+    "name": "dadjoke",
+    "description": "Get a random dad joke.",
+    "guild_id": "1352767815958007879",
+    "nsfw": false
+  },
+  {
+    "id": "1408660319357898798",
+    "application_id": "555566299086979072",
+    "version": "1408660319995297923",
+    "default_member_permissions": null,
+    "type": 1,
+    "name": "fear",
+    "description": "Litany Against Fear",
+    "guild_id": "1352767815958007879",
+    "nsfw": false
+  },
+  {
+    "id": "1408660319357898799",
+    "application_id": "555566299086979072",
+    "version": "1410069436227911766",
+    "default_member_permissions": null,
+    "type": 1,
+    "name": "loud",
+    "description": "Manage loud messages.",
+    "guild_id": "1352767815958007879",
+    "options": [
+      {
+        "type": 1,
+        "name": "delete",
+        "description": "Delete the loud with the matching text.",
+        "options": [
+          {
+            "type": 3,
+            "name": "text",
+            "description": "The text of the loud to delete.",
+            "required": true,
+            "autocomplete": true
+          }
+        ]
+      },
+      {
+        "type": 1,
+        "name": "ban",
+        "description": "Forbid a certain loud.",
+        "options": [
+          {
+            "type": 3,
+            "name": "text",
+            "description": "The text of the loud to ban.",
+            "required": true,
+            "autocomplete": true
+          }
+        ]
+      },
+      {
+        "type": 1,
+        "name": "unban",
+        "description": "Remove a forbidden loud.",
+        "options": [
+          {
+            "type": 3,
+            "name": "text",
+            "description": "The text of the loud to unban.",
+            "required": true,
+            "autocomplete": true
+          }
+        ]
+      },
+      {
+        "type": 1,
+        "name": "count",
+        "description": "Show total number of louds."
+      },
+      {
+        "type": 1,
+        "name": "list",
+        "description": "List recent louds.",
+        "options": [
+          {
+            "type": 4,
+            "name": "limit",
+            "description": "Number of louds to show (default: 10)"
+          }
+        ]
+      }
+    ],
+    "nsfw": false
+  },
+  {
+    "id": "1408660319793844335",
+    "application_id": "555566299086979072",
+    "version": "1408660319995297925",
+    "default_member_permissions": null,
+    "type": 1,
+    "name": "remember",
+    "description": "Memory management for the bot.",
+    "guild_id": "1352767815958007879",
+    "options": [
+      {
+        "type": 1,
+        "name": "get",
+        "description": "Returns a remembered value.",
+        "options": [
+          {
+            "type": 3,
+            "name": "key",
+            "description": "The key to get the memory for",
+            "required": true
+          }
+        ]
+      },
+      {
+        "type": 1,
+        "name": "add",
+        "description": "Remembers a new key and value.",
+        "options": [
+          {
+            "type": 3,
+            "name": "key",
+            "description": "The key to remember",
+            "required": true
+          },
+          {
+            "type": 3,
+            "name": "value",
+            "description": "The value to remember",
+            "required": true
+          }
+        ]
+      },
+      {
+        "type": 1,
+        "name": "delete",
+        "description": "Removes a key from memory.",
+        "options": [
+          {
+            "type": 3,
+            "name": "key",
+            "description": "The key to delete",
+            "required": true
+          }
+        ]
+      },
+      {
+        "type": 1,
+        "name": "top",
+        "description": "Returns the top remembered keys.",
+        "options": [
+          {
+            "type": 4,
+            "name": "amount",
+            "description": "The number of top keys to return"
+          }
+        ]
+      },
+      {
+        "type": 1,
+        "name": "random",
+        "description": "Returns random remembered keys.",
+        "options": [
+          {
+            "type": 4,
+            "name": "amount",
+            "description": "The number of random keys to return"
+          }
+        ]
+      },
+      {
+        "type": 1,
+        "name": "trigger",
+        "description": "Flags a key as triggered.",
+        "options": [
+          {
+            "type": 3,
+            "name": "key",
+            "description": "The key to trigger",
+            "required": true
+          }
+        ]
+      },
+      {
+        "type": 1,
+        "name": "untrigger",
+        "description": "Unflags a triggered key.",
+        "options": [
+          {
+            "type": 3,
+            "name": "key",
+            "description": "The key to untrigger",
+            "required": true
+          }
+        ]
+      }
+    ],
+    "nsfw": false
+  },
+  {
+    "id": "1408660319793844336",
+    "application_id": "555566299086979072",
+    "version": "1408660319995297926",
+    "default_member_permissions": null,
+    "type": 1,
+    "name": "qr",
+    "description": "Generate a QR code for the provided URL.",
+    "guild_id": "1352767815958007879",
+    "options": [
+      {
+        "type": 3,
+        "name": "url",
+        "description": "The URL to generate a QR code for",
+        "required": true
+      }
+    ],
+    "nsfw": false
+  },
+  {
+    "id": "1408660319793844337",
+    "application_id": "555566299086979072",
+    "version": "1408660319995297927",
+    "default_member_permissions": null,
+    "type": 1,
+    "name": "reload",
+    "description": "Reloads a command.",
+    "guild_id": "1352767815958007879",
+    "options": [
+      {
+        "type": 3,
+        "name": "command",
+        "description": "The command to reload.",
+        "required": true
+      }
+    ],
+    "nsfw": false
+  },
+  {
+    "id": "1408660319793844338",
+    "application_id": "555566299086979072",
+    "version": "1408660319995297928",
+    "default_member_permissions": null,
+    "type": 1,
+    "name": "rc",
+    "description": "Roll Call command",
+    "guild_id": "1352767815958007879",
+    "options": [
+      {
+        "type": 1,
+        "name": "for",
+        "description": "Get RC score for a user",
+        "options": [
+          {
+            "type": 3,
+            "name": "username",
+            "description": "Enter a username",
+            "required": true,
+            "autocomplete": true
+          },
+          {
+            "type": 3,
+            "name": "interval",
+            "description": "Enter time interval (e.g., 3h, 2d)"
+          }
+        ]
+      },
+      {
+        "type": 1,
+        "name": "graph",
+        "description": "Show RC graph for a user",
+        "options": [
+          {
+            "type": 3,
+            "name": "username",
+            "description": "Enter a username",
+            "required": true,
+            "autocomplete": true
+          }
+        ]
+      },
+      {
+        "type": 1,
+        "name": "set",
+        "description": "Set your RC score",
+        "options": [
+          {
+            "type": 10,
+            "name": "score",
+            "description": "Enter your score",
+            "required": true
+          }
+        ]
+      }
+    ],
+    "nsfw": false
+  },
+  {
+    "id": "1408660319793844339",
+    "application_id": "555566299086979072",
+    "version": "1408660319995297929",
+    "default_member_permissions": null,
+    "type": 1,
+    "name": "twitch",
+    "description": "Manage Twitch webhooks subscriptions.",
+    "guild_id": "1352767815958007879",
+    "options": [
+      {
+        "type": 1,
+        "name": "subscribe",
+        "description": "Start a subscription to a Twitch user.",
+        "options": [
+          {
+            "type": 3,
+            "name": "username",
+            "description": "The Twitch username to subscribe to.",
+            "required": true
+          }
+        ]
+      },
+      {
+        "type": 1,
+        "name": "unsubscribe",
+        "description": "End a subscription to a Twitch user."
+      }
+    ],
+    "nsfw": false
+  },
+  {
+    "id": "1410069436227911764",
+    "application_id": "555566299086979072",
+    "version": "1410069436227911767",
+    "default_member_permissions": null,
+    "type": 1,
+    "name": "meme-template",
+    "description": "Manage meme templates",
+    "guild_id": "1352767815958007879",
+    "options": [
+      {
+        "type": 1,
+        "name": "add",
+        "description": "Add a new meme template",
+        "options": [
+          {
+            "type": 3,
+            "name": "name",
+            "description": "Unique name for the template",
+            "required": true
+          },
+          {
+            "type": 3,
+            "name": "url",
+            "description": "URL of the template image",
+            "required": true
+          },
+          {
+            "type": 3,
+            "name": "description",
+            "description": "Description of the template"
+          },
+          {
+            "type": 4,
+            "name": "fontsize",
+            "description": "Default font size (default: 40)",
+            "min_value": 10,
+            "max_value": 100
+          }
+        ]
+      },
+      {
+        "type": 1,
+        "name": "remove",
+        "description": "Remove a meme template",
+        "options": [
+          {
+            "type": 3,
+            "name": "name",
+            "description": "Name of the template to remove",
+            "required": true,
+            "autocomplete": true
+          }
+        ]
+      },
+      {
+        "type": 1,
+        "name": "edit",
+        "description": "Edit an existing meme template",
+        "options": [
+          {
+            "type": 3,
+            "name": "name",
+            "description": "Name of the template to edit",
+            "required": true,
+            "autocomplete": true
+          },
+          {
+            "type": 3,
+            "name": "url",
+            "description": "New URL for the template image"
+          },
+          {
+            "type": 3,
+            "name": "description",
+            "description": "New description for the template"
+          },
+          {
+            "type": 4,
+            "name": "fontsize",
+            "description": "New default font size",
+            "min_value": 10,
+            "max_value": 100
+          }
+        ]
+      },
+      {
+        "type": 1,
+        "name": "toggle",
+        "description": "Enable or disable a meme template",
+        "options": [
+          {
+            "type": 3,
+            "name": "name",
+            "description": "Name of the template to toggle",
+            "required": true,
+            "autocomplete": true
+          }
+        ]
+      },
+      {
+        "type": 1,
+        "name": "info",
+        "description": "Get detailed information about a meme template",
+        "options": [
+          {
+            "type": 3,
+            "name": "name",
+            "description": "Name of the template to view",
+            "required": true,
+            "autocomplete": true
+          }
+        ]
+      },
+      {
+        "type": 1,
+        "name": "stats",
+        "description": "View meme template usage statistics",
+        "options": [
+          {
+            "type": 4,
+            "name": "limit",
+            "description": "Number of top templates to show (default: 10)",
+            "min_value": 1,
+            "max_value": 25
+          }
+        ]
+      }
+    ],
+    "nsfw": false
+  },
+  {
+    "id": "1410069436227911765",
+    "application_id": "555566299086979072",
+    "version": "1410069436227911768",
+    "default_member_permissions": null,
+    "type": 1,
+    "name": "meme",
+    "description": "Generate memes with text overlays",
+    "guild_id": "1352767815958007879",
+    "options": [
+      {
+        "type": 1,
+        "name": "create",
+        "description": "Create a meme using a template",
+        "options": [
+          {
+            "type": 3,
+            "name": "template",
+            "description": "Name of the meme template to use",
+            "required": true,
+            "autocomplete": true
+          },
+          {
+            "type": 3,
+            "name": "top",
+            "description": "Top text for the meme"
+          },
+          {
+            "type": 3,
+            "name": "bottom",
+            "description": "Bottom text for the meme"
+          }
+        ]
+      },
+      {
+        "type": 1,
+        "name": "custom",
+        "description": "Create a meme with a custom image URL",
+        "options": [
+          {
+            "type": 3,
+            "name": "url",
+            "description": "URL of the image to use",
+            "required": true
+          },
+          {
+            "type": 3,
+            "name": "top",
+            "description": "Top text for the meme"
+          },
+          {
+            "type": 3,
+            "name": "bottom",
+            "description": "Bottom text for the meme"
+          }
+        ]
+      },
+      {
+        "type": 1,
+        "name": "list",
+        "description": "List available meme templates",
+        "options": [
+          {
+            "type": 4,
+            "name": "page",
+            "description": "Page number (10 templates per page)",
+            "min_value": 1
+          }
+        ]
+      }
+    ],
+    "nsfw": false
+  },
+  {
+    "id": "1410836181029093378",
+    "application_id": "555566299086979072",
+    "version": "1410836181029093379",
+    "default_member_permissions": null,
+    "type": 1,
+    "name": "poll",
+    "description": "Poll commands",
+    "guild_id": "1352767815958007879",
+    "options": [
+      {
+        "type": 1,
+        "name": "create",
+        "description": "Create a poll with emoji reactions",
+        "options": [
+          {
+            "type": 3,
+            "name": "question",
+            "description": "The poll question",
+            "required": true
+          },
+          {
+            "type": 3,
+            "name": "options",
+            "description": "Poll options separated by commas (max 10)",
+            "required": true
+          },
+          {
+            "type": 4,
+            "name": "duration",
+            "description": "Poll duration in minutes (default: 60)",
+            "min_value": 1,
+            "max_value": 1440
+          }
+        ]
+      },
+      {
+        "type": 1,
+        "name": "results",
+        "description": "View poll results",
+        "options": [
+          {
+            "type": 3,
+            "name": "poll_id",
+            "description": "The poll ID (shown in the poll embed)",
+            "required": true
+          }
+        ]
+      },
+      {
+        "type": 1,
+        "name": "list",
+        "description": "List your active polls in this channel"
+      },
+      {
+        "type": 1,
+        "name": "close",
+        "description": "Manually close one of your polls",
+        "options": [
+          {
+            "type": 3,
+            "name": "poll_id",
+            "description": "The poll ID (shown in the poll embed)",
+            "required": true
+          }
+        ]
+      }
+    ],
+    "nsfw": false
+  },
+  {
+    "id": "1410872549331697694",
+    "application_id": "555566299086979072",
+    "version": "1410872549331697695",
+    "default_member_permissions": "16",
+    "type": 1,
+    "name": "motivational-config",
+    "description": "Configure automated motivational messages for channels.",
+    "guild_id": "1352767815958007879",
+    "options": [
+      {
+        "type": 1,
+        "name": "setup",
+        "description": "Set up motivational messages for a channel.",
+        "options": [
+          {
+            "type": 7,
+            "name": "channel",
+            "description": "The channel to send motivational messages to.",
+            "required": true,
+            "channel_types": [
+              0
+            ]
+          },
+          {
+            "type": 3,
+            "name": "frequency",
+            "description": "How often to send messages.",
+            "required": true,
+            "choices": [
+              {
+                "name": "Daily",
+                "value": "daily"
+              },
+              {
+                "name": "Weekly",
+                "value": "weekly"
+              }
+            ]
+          },
+          {
+            "type": 3,
+            "name": "category",
+            "description": "Type of motivational messages.",
+            "required": true,
+            "choices": [
+              {
+                "name": "Motivation",
+                "value": "motivation"
+              },
+              {
+                "name": "Productivity",
+                "value": "productivity"
+              },
+              {
+                "name": "General",
+                "value": "general"
+              }
+            ]
+          },
+          {
+            "type": 3,
+            "name": "schedule",
+            "description": "Custom cron schedule (e.g., \"0 9 * * *\" for 9 AM daily). Optional."
+          }
+        ]
+      },
+      {
+        "type": 1,
+        "name": "disable",
+        "description": "Disable motivational messages for a channel.",
+        "options": [
+          {
+            "type": 7,
+            "name": "channel",
+            "description": "The channel to disable messages for.",
+            "required": true,
+            "channel_types": [
+              0
+            ]
+          }
+        ]
+      },
+      {
+        "type": 1,
+        "name": "enable",
+        "description": "Enable motivational messages for a channel.",
+        "options": [
+          {
+            "type": 7,
+            "name": "channel",
+            "description": "The channel to enable messages for.",
+            "required": true,
+            "channel_types": [
+              0
+            ]
+          }
+        ]
+      },
+      {
+        "type": 1,
+        "name": "status",
+        "description": "View status of all motivational message configurations."
+      }
+    ],
+    "nsfw": false
+  },
+  {
+    "id": "1411543739343573034",
+    "application_id": "555566299086979072",
+    "version": "1411543739821985887",
+    "default_member_permissions": null,
+    "type": 1,
+    "name": "join",
+    "description": "Make the bot join your voice channel (Owner only)",
+    "guild_id": "1352767815958007879",
+    "nsfw": false
+  },
+  {
+    "id": "1411543739343573035",
+    "application_id": "555566299086979072",
+    "version": "1411543739821985888",
+    "default_member_permissions": null,
+    "type": 1,
+    "name": "leave",
+    "description": "Make the bot leave the voice channel (Owner only)",
+    "guild_id": "1352767815958007879",
+    "nsfw": false
+  },
+  {
+    "id": "1411543739821985885",
+    "application_id": "555566299086979072",
+    "version": "1412155915762663675",
+    "default_member_permissions": null,
+    "type": 1,
+    "name": "speak",
+    "description": "Make the bot speak text in a voice channel (Owner only)",
+    "guild_id": "1352767815958007879",
+    "options": [
+      {
+        "type": 3,
+        "name": "text",
+        "description": "The text to speak",
+        "required": true
+      },
+      {
+        "type": 3,
+        "name": "voice",
+        "description": "Voice to use for TTS (type to search)",
+        "autocomplete": true
+      },
+      {
+        "type": 3,
+        "name": "tone",
+        "description": "Emotional tone for the speech (type to search)",
+        "autocomplete": true
+      },
+      {
+        "type": 5,
+        "name": "join_user",
+        "description": "Join your current voice channel first"
+      }
+    ],
+    "nsfw": false
+  },
+  {
+    "id": "1411543739821985886",
+    "application_id": "555566299086979072",
+    "version": "1411543739821985890",
+    "default_member_permissions": null,
+    "type": 1,
+    "name": "tts-config",
+    "description": "Configure TTS settings (Owner only)",
+    "guild_id": "1352767815958007879",
+    "options": [
+      {
+        "type": 1,
+        "name": "show",
+        "description": "Show current TTS configuration"
+      },
+      {
+        "type": 1,
+        "name": "set-voice",
+        "description": "Set the default TTS voice",
+        "options": [
+          {
+            "type": 3,
+            "name": "voice",
+            "description": "Voice to use as default",
+            "required": true,
+            "choices": [
+              {
+                "name": "Alloy (Neutral)",
+                "value": "alloy"
+              },
+              {
+                "name": "Echo (Male)",
+                "value": "echo"
+              },
+              {
+                "name": "Fable (British Male)",
+                "value": "fable"
+              },
+              {
+                "name": "Onyx (Deep Male)",
+                "value": "onyx"
+              },
+              {
+                "name": "Nova (Female)",
+                "value": "nova"
+              },
+              {
+                "name": "Shimmer (Soft Female)",
+                "value": "shimmer"
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "type": 1,
+        "name": "set-max-length",
+        "description": "Set maximum text length for TTS",
+        "options": [
+          {
+            "type": 4,
+            "name": "max_length",
+            "description": "Maximum characters (1-4096)",
+            "required": true,
+            "min_value": 1,
+            "max_value": 4096
+          }
+        ]
+      },
+      {
+        "type": 1,
+        "name": "reset",
+        "description": "Reset all TTS configuration to defaults"
+      }
+    ],
+    "nsfw": false
+  }
+]
