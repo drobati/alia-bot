@@ -7,5 +7,6 @@ database.sqlite
 coverage
 .idea
 .env
+.env.*
 
 .DS_Store

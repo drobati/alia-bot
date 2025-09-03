@@ -76,17 +76,18 @@ export default {
             // Validate zodiac sign input
             const normalizedSign = userInput!.toLowerCase();
             const zodiacInfo = ZodiacUtil.getZodiacInfo(normalizedSign);
-            
+
             // Check if it's a valid sign by comparing with known signs
             const validSigns = ZodiacUtil.getAllSigns();
-            if (!validSigns.includes(normalizedSign) && 
+            if (!validSigns.includes(normalizedSign) &&
                 !validSigns.some(sign => ZodiacUtil.getZodiacInfo(sign).sign.toLowerCase() === normalizedSign)) {
+                const validSignNames = validSigns.map(s => ZodiacUtil.getZodiacInfo(s).sign).join(', ');
                 await interaction.editReply({
-                    content: `❌ "${userInput}" is not a valid zodiac sign. Please choose from: ${validSigns.map(s => ZodiacUtil.getZodiacInfo(s).sign).join(', ')}`,
+                    content: `❌ "${userInput}" is not a valid zodiac sign. Please choose from: ${validSignNames}`,
                 });
                 return;
             }
-            
+
             const zodiacSign = zodiacInfo.sign.toLowerCase();
 
             // Generate horoscope
@@ -135,7 +136,7 @@ export default {
     },
 };
 
-async function createSignSelectionEmbed(): Promise<EmbedBuilder> {
+/* async function createSignSelectionEmbed(): Promise<EmbedBuilder> {
     return new EmbedBuilder()
         .setTitle('🔮 Welcome to Your Personal Horoscope!')
         .setDescription(
@@ -154,7 +155,7 @@ async function createSignSelectionEmbed(): Promise<EmbedBuilder> {
         )
         .setColor(0x9966FF)
         .setFooter({ text: 'Your preferences will be saved for future readings!' });
-}
+} */
 
 async function createHoroscopeEmbed(
     horoscopeData: any,
