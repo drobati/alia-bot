@@ -15,7 +15,10 @@ export interface HoroscopeCacheAttributes {
     updatedAt?: Date;
 }
 
-interface HoroscopeCacheModel extends Model<InferAttributes<HoroscopeCacheModel>, InferCreationAttributes<HoroscopeCacheModel>> {
+interface HoroscopeCacheModel extends Model<
+    InferAttributes<HoroscopeCacheModel>,
+    InferCreationAttributes<HoroscopeCacheModel>
+> {
     cacheKey: string;
     sign: string;
     type: string;
@@ -39,8 +42,8 @@ export default (sequelize: Sequelize) => ({
             type: DataTypes.STRING(20),
             allowNull: false,
             validate: {
-                isIn: [['aries', 'taurus', 'gemini', 'cancer', 'leo', 'virgo', 
-                       'libra', 'scorpio', 'sagittarius', 'capricorn', 'aquarius', 'pisces']],
+                isIn: [['aries', 'taurus', 'gemini', 'cancer', 'leo', 'virgo',
+                    'libra', 'scorpio', 'sagittarius', 'capricorn', 'aquarius', 'pisces']],
             },
         },
         type: {
@@ -92,5 +95,5 @@ export default (sequelize: Sequelize) => ({
                 fields: ['sign', 'type', 'period'],
             },
         ],
-    })
+    }),
 });

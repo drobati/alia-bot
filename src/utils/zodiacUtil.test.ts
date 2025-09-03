@@ -5,7 +5,7 @@ describe('ZodiacUtil', () => {
         test('should return correct info for all zodiac signs', () => {
             const signs = [
                 'aries', 'taurus', 'gemini', 'cancer', 'leo', 'virgo',
-                'libra', 'scorpio', 'sagittarius', 'capricorn', 'aquarius', 'pisces'
+                'libra', 'scorpio', 'sagittarius', 'capricorn', 'aquarius', 'pisces',
             ];
 
             signs.forEach(sign => {
@@ -52,29 +52,29 @@ describe('ZodiacUtil', () => {
 
         test('should parse date formats and return zodiac signs', () => {
             // Test various date formats
-            expect(ZodiacUtil.parseSignInput('03-21')).toEqual({ 
-                sign: 'aries', 
-                birthDate: '03-21' 
+            expect(ZodiacUtil.parseSignInput('03-21')).toEqual({
+                sign: 'aries',
+                birthDate: '03-21',
             });
-            expect(ZodiacUtil.parseSignInput('3/21')).toEqual({ 
-                sign: 'aries', 
-                birthDate: '03-21' 
+            expect(ZodiacUtil.parseSignInput('3/21')).toEqual({
+                sign: 'aries',
+                birthDate: '03-21',
             });
-            expect(ZodiacUtil.parseSignInput('12-25')).toEqual({ 
-                sign: 'capricorn', 
-                birthDate: '12-25' 
+            expect(ZodiacUtil.parseSignInput('12-25')).toEqual({
+                sign: 'capricorn',
+                birthDate: '12-25',
             });
         });
 
         test('should handle edge cases for date parsing', () => {
             // Valid dates
-            expect(ZodiacUtil.parseSignInput('1-1')).toEqual({ 
-                sign: 'capricorn', 
-                birthDate: '01-01' 
+            expect(ZodiacUtil.parseSignInput('1-1')).toEqual({
+                sign: 'capricorn',
+                birthDate: '01-01',
             });
-            expect(ZodiacUtil.parseSignInput('12-31')).toEqual({ 
-                sign: 'capricorn', 
-                birthDate: '12-31' 
+            expect(ZodiacUtil.parseSignInput('12-31')).toEqual({
+                sign: 'capricorn',
+                birthDate: '12-31',
             });
 
             // Invalid dates should fall back to sign parsing
@@ -95,7 +95,7 @@ describe('ZodiacUtil', () => {
             expect(ZodiacUtil.getSignByDate(3, 21)).toBe('Aries'); // Start of Aries
             expect(ZodiacUtil.getSignByDate(4, 19)).toBe('Aries'); // End of Aries
             expect(ZodiacUtil.getSignByDate(4, 20)).toBe('Taurus'); // Start of Taurus
-            
+
             expect(ZodiacUtil.getSignByDate(12, 22)).toBe('Capricorn'); // Start of Capricorn
             expect(ZodiacUtil.getSignByDate(1, 19)).toBe('Capricorn'); // End of Capricorn (year crossing)
             expect(ZodiacUtil.getSignByDate(1, 20)).toBe('Aquarius'); // Start of Aquarius
@@ -127,46 +127,39 @@ describe('ZodiacUtil', () => {
     });
 
     describe('getSignSuggestions', () => {
-        let mockContext: any;
-
-        beforeEach(() => {
-            mockContext = {
-                // Mock context as needed
-            };
-        });
 
         test('should return date suggestions for numeric input', async () => {
-            const suggestions = await ZodiacUtil.getSignSuggestions('03', mockContext);
-            
+            const suggestions = await ZodiacUtil.getSignSuggestions('03');
+
             expect(suggestions).toEqual([
                 expect.objectContaining({
                     name: '03-DD (Enter your birth date)',
                     value: '03',
-                })
+                }),
             ]);
         });
 
         test('should return zodiac sign for complete date', async () => {
-            const suggestions = await ZodiacUtil.getSignSuggestions('08-15', mockContext);
-            
+            const suggestions = await ZodiacUtil.getSignSuggestions('08-15');
+
             expect(suggestions).toEqual([
                 expect.objectContaining({
                     name: expect.stringContaining('♌ Leo'),
                     value: '08-15',
-                })
+                }),
             ]);
         });
 
         test('should return filtered zodiac signs for partial names', async () => {
-            const suggestions = await ZodiacUtil.getSignSuggestions('ar', mockContext);
-            
+            const suggestions = await ZodiacUtil.getSignSuggestions('ar');
+
             expect(suggestions.length).toBeGreaterThan(0);
             expect(suggestions[0].name).toContain('Aries');
         });
 
         test('should sort suggestions by relevance', async () => {
-            const suggestions = await ZodiacUtil.getSignSuggestions('a', mockContext);
-            
+            const suggestions = await ZodiacUtil.getSignSuggestions('a');
+
             // Should find Aries, Aquarius - exact matches first, then partial
             expect(suggestions.length).toBeGreaterThan(1);
             const names = suggestions.map(s => s.name);
@@ -175,7 +168,7 @@ describe('ZodiacUtil', () => {
         });
 
         test('should limit results to 25 suggestions', async () => {
-            const suggestions = await ZodiacUtil.getSignSuggestions('', mockContext);
+            const suggestions = await ZodiacUtil.getSignSuggestions('');
             expect(suggestions.length).toBeLessThanOrEqual(25);
         });
     });
@@ -183,11 +176,11 @@ describe('ZodiacUtil', () => {
     describe('getRandomCompatibleSign', () => {
         test('should return a compatible sign for each zodiac sign', () => {
             const signs = ZodiacUtil.getAllSigns();
-            
+
             signs.forEach(sign => {
                 const compatible = ZodiacUtil.getRandomCompatibleSign(sign);
                 const zodiacInfo = ZodiacUtil.getZodiacInfo(sign);
-                
+
                 expect(zodiacInfo.compatibility).toContain(compatible);
                 expect(compatible).not.toBe(zodiacInfo.sign);
             });
@@ -195,12 +188,12 @@ describe('ZodiacUtil', () => {
 
         test('should return different results on multiple calls (randomness)', () => {
             const results = new Set();
-            
+
             // Call multiple times to test randomness
             for (let i = 0; i < 10; i++) {
                 results.add(ZodiacUtil.getRandomCompatibleSign('aries'));
             }
-            
+
             // Should get some variety (though not guaranteed due to randomness)
             expect(results.size).toBeGreaterThan(0);
         });
@@ -210,13 +203,13 @@ describe('ZodiacUtil', () => {
         test('should return correct signs for each element', () => {
             const fireSigns = ZodiacUtil.getElementSigns('Fire');
             expect(fireSigns).toEqual(['Aries', 'Leo', 'Sagittarius']);
-            
+
             const earthSigns = ZodiacUtil.getElementSigns('Earth');
             expect(earthSigns).toEqual(['Taurus', 'Virgo', 'Capricorn']);
-            
+
             const airSigns = ZodiacUtil.getElementSigns('Air');
             expect(airSigns).toEqual(['Gemini', 'Libra', 'Aquarius']);
-            
+
             const waterSigns = ZodiacUtil.getElementSigns('Water');
             expect(waterSigns).toEqual(['Cancer', 'Scorpio', 'Pisces']);
         });
@@ -234,7 +227,7 @@ describe('ZodiacUtil', () => {
     describe('getSignsByCompatibility', () => {
         test('should return most and least compatible signs', () => {
             const compatibility = ZodiacUtil.getSignsByCompatibility('aries');
-            
+
             expect(compatibility.most).toEqual(['Leo', 'Sagittarius', 'Gemini', 'Aquarius']);
             expect(compatibility.least).toHaveLength(4);
             expect(compatibility.least).not.toContain('Aries');
@@ -244,17 +237,17 @@ describe('ZodiacUtil', () => {
 
         test('should work for all zodiac signs', () => {
             const signs = ZodiacUtil.getAllSigns();
-            
+
             signs.forEach(sign => {
                 const compatibility = ZodiacUtil.getSignsByCompatibility(sign);
-                
+
                 expect(compatibility.most).toHaveLength(4);
                 expect(compatibility.least).toHaveLength(4);
-                
+
                 // Should not include the sign itself in either list
                 expect(compatibility.most).not.toContain(ZodiacUtil.getZodiacInfo(sign).sign);
                 expect(compatibility.least).not.toContain(ZodiacUtil.getZodiacInfo(sign).sign);
-                
+
                 // Most and least should not overlap
                 const mostSet = new Set(compatibility.most);
                 compatibility.least.forEach(leastSign => {
@@ -267,15 +260,15 @@ describe('ZodiacUtil', () => {
     describe('Date Range Validation', () => {
         test('should have valid date ranges for all signs', () => {
             const signs = ZodiacUtil.getAllSigns();
-            
+
             signs.forEach(sign => {
                 const info = ZodiacUtil.getZodiacInfo(sign);
-                
+
                 expect(info.startDate.month).toBeGreaterThanOrEqual(1);
                 expect(info.startDate.month).toBeLessThanOrEqual(12);
                 expect(info.startDate.day).toBeGreaterThanOrEqual(1);
                 expect(info.startDate.day).toBeLessThanOrEqual(31);
-                
+
                 expect(info.endDate.month).toBeGreaterThanOrEqual(1);
                 expect(info.endDate.month).toBeLessThanOrEqual(12);
                 expect(info.endDate.day).toBeGreaterThanOrEqual(1);
@@ -286,7 +279,7 @@ describe('ZodiacUtil', () => {
         test('should cover the entire year without gaps', () => {
             // Test that every day of the year maps to exactly one sign
             const daySignMap = new Map<string, string>();
-            
+
             for (let month = 1; month <= 12; month++) {
                 const daysInMonth = new Date(2024, month, 0).getDate();
                 for (let day = 1; day <= daysInMonth; day++) {
@@ -295,10 +288,10 @@ describe('ZodiacUtil', () => {
                     daySignMap.set(dateKey, sign);
                 }
             }
-            
+
             // Should have entries for all days
             expect(daySignMap.size).toBeGreaterThan(360); // Account for different month lengths
-            
+
             // All signs should appear
             const signsFound = new Set(Array.from(daySignMap.values()));
             expect(signsFound.size).toBe(12);

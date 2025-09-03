@@ -172,11 +172,11 @@ export class ZodiacUtil {
         const trimmed = input.trim();
 
         // Check if input is a date (MM-DD format)
-        const dateMatch = trimmed.match(/^(\d{1,2})[\/\-](\d{1,2})$/);
+        const dateMatch = trimmed.match(/^(\d{1,2})[/-](\d{1,2})$/);
         if (dateMatch) {
             const month = parseInt(dateMatch[1], 10);
             const day = parseInt(dateMatch[2], 10);
-            
+
             if (month >= 1 && month <= 12 && day >= 1 && day <= 31) {
                 const sign = this.getSignByDate(month, day);
                 return {
@@ -189,7 +189,7 @@ export class ZodiacUtil {
         // Check if input is a zodiac sign name
         const normalizedInput = trimmed.toLowerCase();
         for (const [sign, data] of Object.entries(this.ZODIAC_DATA)) {
-            if (sign === normalizedInput || 
+            if (sign === normalizedInput ||
                 data.sign.toLowerCase() === normalizedInput ||
                 data.sign.toLowerCase().startsWith(normalizedInput)) {
                 return { sign };
@@ -201,7 +201,7 @@ export class ZodiacUtil {
     }
 
     static getSignByDate(month: number, day: number): string {
-        for (const [sign, data] of Object.entries(this.ZODIAC_DATA)) {
+        for (const [, data] of Object.entries(this.ZODIAC_DATA)) {
             if (this.isDateInRange(month, day, data.startDate, data.endDate)) {
                 return data.sign;
             }
@@ -213,7 +213,7 @@ export class ZodiacUtil {
         month: number,
         day: number,
         start: { month: number; day: number },
-        end: { month: number; day: number }
+        end: { month: number; day: number },
     ): boolean {
         // Handle year-crossing signs (Capricorn)
         if (start.month > end.month) {
@@ -231,12 +231,12 @@ export class ZodiacUtil {
         );
     }
 
-    static async getSignSuggestions(input: string, context: any): Promise<any[]> {
+    static async getSignSuggestions(input: string): Promise<any[]> {
         const suggestions: any[] = [];
-        
+
         // Check if input looks like a date
-        if (/^\d{1,2}[\/\-]?\d{0,2}$/.test(input)) {
-            const dateParts = input.replace(/[\/\-]/, '-').split('-');
+        if (/^\d{1,2}[/-]?\d{0,2}$/.test(input)) {
+            const dateParts = input.replace(/[/-]/, '-').split('-');
             if (dateParts.length === 1) {
                 // Just month, suggest format
                 suggestions.push({
@@ -275,13 +275,13 @@ export class ZodiacUtil {
         suggestions.sort((a, b) => {
             const aExact = a.value.toLowerCase() === normalizedInput;
             const bExact = b.value.toLowerCase() === normalizedInput;
-            if (aExact && !bExact) return -1;
-            if (!aExact && bExact) return 1;
+            if (aExact && !bExact) {return -1;}
+            if (!aExact && bExact) {return 1;}
 
             const aStarts = a.value.toLowerCase().startsWith(normalizedInput);
             const bStarts = b.value.toLowerCase().startsWith(normalizedInput);
-            if (aStarts && !bStarts) return -1;
-            if (!aStarts && bStarts) return 1;
+            if (aStarts && !bStarts) {return -1;}
+            if (!aStarts && bStarts) {return 1;}
 
             return a.name.localeCompare(b.name);
         });
@@ -304,10 +304,10 @@ export class ZodiacUtil {
     static getSignsByCompatibility(sign: string): { most: string[]; least: string[] } {
         const zodiacInfo = this.getZodiacInfo(sign);
         const allSigns = Object.values(this.ZODIAC_DATA).map(data => data.sign);
-        
+
         const most = zodiacInfo.compatibility;
-        const least = allSigns.filter(s => 
-            s !== zodiacInfo.sign && !most.includes(s)
+        const least = allSigns.filter(s =>
+            s !== zodiacInfo.sign && !most.includes(s),
         ).slice(0, 4);
 
         return { most, least };

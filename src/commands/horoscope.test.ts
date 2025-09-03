@@ -72,18 +72,42 @@ describe('Horoscope Command', () => {
 
         // Set up default mock return values - will be overridden in individual tests
         mockZodiacUtil.parseSignInput.mockImplementation((input: string) => {
-            if (input === 'leo') return { sign: 'leo' };
-            if (input === '03-21') return { sign: 'aries', birthDate: '03-21' };
-            if (input === 'cancer') return { sign: 'cancer' };
-            if (input === 'libra') return { sign: 'libra' };
-            if (input === 'scorpio') return { sign: 'scorpio' };
-            if (input === 'virgo') return { sign: 'virgo', birthDate: '09-15' };
-            if (input === 'gemini') return { sign: 'gemini' };
-            if (input === 'taurus') return { sign: 'taurus' };
-            if (input === 'sagittarius') return { sign: 'sagittarius' };
-            if (input === 'capricorn') return { sign: 'capricorn' };
-            if (input === 'pisces') return { sign: 'pisces' };
-            if (input === 'aquarius') return { sign: 'aquarius' };
+            if (input === 'leo') {
+                return { sign: 'leo' };
+            }
+            if (input === '03-21') {
+                return { sign: 'aries', birthDate: '03-21' };
+            }
+            if (input === 'cancer') {
+                return { sign: 'cancer' };
+            }
+            if (input === 'libra') {
+                return { sign: 'libra' };
+            }
+            if (input === 'scorpio') {
+                return { sign: 'scorpio' };
+            }
+            if (input === 'virgo') {
+                return { sign: 'virgo', birthDate: '09-15' };
+            }
+            if (input === 'gemini') {
+                return { sign: 'gemini' };
+            }
+            if (input === 'taurus') {
+                return { sign: 'taurus' };
+            }
+            if (input === 'sagittarius') {
+                return { sign: 'sagittarius' };
+            }
+            if (input === 'capricorn') {
+                return { sign: 'capricorn' };
+            }
+            if (input === 'pisces') {
+                return { sign: 'pisces' };
+            }
+            if (input === 'aquarius') {
+                return { sign: 'aquarius' };
+            }
             return { sign: 'aries' }; // default
         });
         mockZodiacUtil.getZodiacInfo.mockReturnValue({
@@ -120,9 +144,9 @@ describe('Horoscope Command', () => {
 
         test('should have all required options', () => {
             const options = horoscopeCommand.data.options;
-            
+
             expect(options).toHaveLength(4);
-            
+
             const signOption = options.find((opt: any) => opt.name === 'sign') as any;
             expect(signOption).toBeDefined();
             expect(signOption?.autocomplete).toBe(true);
@@ -164,7 +188,7 @@ describe('Horoscope Command', () => {
 
             await horoscopeCommand.autocomplete(mockInteraction, mockContext);
 
-            expect(mockZodiacUtil.getSignSuggestions).toHaveBeenCalledWith('ari', mockContext);
+            expect(mockZodiacUtil.getSignSuggestions).toHaveBeenCalledWith('ari');
             expect(mockInteraction.respond).toHaveBeenCalledWith(mockSuggestions.slice(0, 25));
         });
 
@@ -186,9 +210,9 @@ describe('Horoscope Command', () => {
     describe('First Time User Flow', () => {
         test('should show sign selection embed for new users', async () => {
             mockInteraction.options.getString.mockImplementation((param: string) => {
-                if (param === 'sign') return null;
-                if (param === 'type') return null;
-                if (param === 'period') return null;
+                if (param === 'sign') {return null;}
+                if (param === 'type') {return null;}
+                if (param === 'period') {return null;}
                 return null;
             });
 
@@ -199,7 +223,7 @@ describe('Horoscope Command', () => {
                 where: {
                     userId: 'test-user-id',
                     guildId: 'test-guild-id',
-                }
+                },
             });
             expect(mockInteraction.editReply).toHaveBeenCalledWith({
                 embeds: [expect.objectContaining({
@@ -212,9 +236,9 @@ describe('Horoscope Command', () => {
 
         test('should use saved preferences for returning users', async () => {
             mockInteraction.options.getString.mockImplementation((param: string) => {
-                if (param === 'sign') return null;
-                if (param === 'type') return 'love';
-                if (param === 'period') return 'today';
+                if (param === 'sign') {return null;}
+                if (param === 'type') {return 'love';}
+                if (param === 'period') {return 'today';}
                 return null;
             });
 
@@ -239,15 +263,15 @@ describe('Horoscope Command', () => {
     describe('Sign Input Processing', () => {
         test('should handle zodiac sign input', async () => {
             mockInteraction.options.getString.mockImplementation((param: string) => {
-                if (param === 'sign') return 'leo';
-                if (param === 'type') return 'daily';
-                if (param === 'period') return 'today';
+                if (param === 'sign') {return 'leo';}
+                if (param === 'type') {return 'daily';}
+                if (param === 'period') {return 'today';}
                 return null;
             });
 
-            mockZodiacUtil.parseSignInput.mockReturnValue({ 
+            mockZodiacUtil.parseSignInput.mockReturnValue({
                 sign: 'leo',
-                birthDate: undefined 
+                birthDate: undefined,
             });
 
             await horoscopeCommand.execute(mockInteraction, mockContext);
@@ -264,15 +288,15 @@ describe('Horoscope Command', () => {
 
         test('should handle birth date input', async () => {
             mockInteraction.options.getString.mockImplementation((param: string) => {
-                if (param === 'sign') return '03-21';
-                if (param === 'type') return 'daily';
-                if (param === 'period') return 'today';
+                if (param === 'sign') {return '03-21';}
+                if (param === 'type') {return 'daily';}
+                if (param === 'period') {return 'today';}
                 return null;
             });
 
-            mockZodiacUtil.parseSignInput.mockReturnValue({ 
+            mockZodiacUtil.parseSignInput.mockReturnValue({
                 sign: 'aries',
-                birthDate: '03-21'
+                birthDate: '03-21',
             });
 
             await horoscopeCommand.execute(mockInteraction, mockContext);
@@ -291,9 +315,9 @@ describe('Horoscope Command', () => {
     describe('Horoscope Generation and Display', () => {
         test('should generate and display daily horoscope', async () => {
             mockInteraction.options.getString.mockImplementation((param: string) => {
-                if (param === 'sign') return 'cancer';
-                if (param === 'type') return 'daily';
-                if (param === 'period') return 'today';
+                if (param === 'sign') {return 'cancer';}
+                if (param === 'type') {return 'daily';}
+                if (param === 'period') {return 'today';}
                 return null;
             });
 
@@ -321,7 +345,7 @@ describe('Horoscope Command', () => {
             expect(embed.data.title).toContain('Today');
             expect(embed.data.description).toBe('*Test horoscope content for Aries today.*');
             expect(embed.data.color).toBe(0x87CEEB);
-            
+
             // Check fields - should have at least 3 basic fields
             const fields = embed.data.fields;
             expect(fields.length).toBeGreaterThanOrEqual(3);
@@ -332,9 +356,9 @@ describe('Horoscope Command', () => {
 
         test('should display love horoscope with compatibility', async () => {
             mockInteraction.options.getString.mockImplementation((param: string) => {
-                if (param === 'sign') return 'libra';
-                if (param === 'type') return 'love';
-                if (param === 'period') return 'today';
+                if (param === 'sign') {return 'libra';}
+                if (param === 'type') {return 'love';}
+                if (param === 'period') {return 'today';}
                 return null;
             });
 
@@ -359,14 +383,14 @@ describe('Horoscope Command', () => {
 
         test('should handle different time periods correctly', async () => {
             const periods = ['today', 'tomorrow', 'this-week', 'next-week', 'this-month'];
-            
+
             for (const period of periods) {
                 jest.clearAllMocks();
-                
+
                 mockInteraction.options.getString.mockImplementation((param: string) => {
-                    if (param === 'sign') return 'scorpio';
-                    if (param === 'type') return 'daily';
-                    if (param === 'period') return period;
+                    if (param === 'sign') {return 'scorpio';}
+                    if (param === 'type') {return 'daily';}
+                    if (param === 'period') {return period;}
                     return null;
                 });
 
@@ -386,15 +410,15 @@ describe('Horoscope Command', () => {
     describe('User Statistics Update', () => {
         test('should update user preferences and statistics', async () => {
             mockInteraction.options.getString.mockImplementation((param: string) => {
-                if (param === 'sign') return 'virgo';
-                if (param === 'type') return 'career';
-                if (param === 'period') return 'today';
+                if (param === 'sign') {return 'virgo';}
+                if (param === 'type') {return 'career';}
+                if (param === 'period') {return 'today';}
                 return null;
             });
 
-            mockZodiacUtil.parseSignInput.mockReturnValue({ 
+            mockZodiacUtil.parseSignInput.mockReturnValue({
                 sign: 'virgo',
-                birthDate: '09-15'
+                birthDate: '09-15',
             });
 
             await horoscopeCommand.execute(mockInteraction, mockContext);
@@ -422,7 +446,7 @@ describe('Horoscope Command', () => {
 
         test('should increment existing usage stats', async () => {
             mockInteraction.options.getString.mockImplementation((param: string) => {
-                if (param === 'sign') return 'gemini';
+                if (param === 'sign') {return 'gemini';}
                 return 'daily';
             });
 
@@ -467,9 +491,9 @@ describe('Horoscope Command', () => {
     describe('Error Handling', () => {
         test('should handle horoscope generation errors', async () => {
             mockInteraction.options.getString.mockImplementation((param: string) => {
-                if (param === 'sign') return 'sagittarius';
-                if (param === 'type') return 'daily';
-                if (param === 'period') return 'today';
+                if (param === 'sign') {return 'sagittarius';}
+                if (param === 'type') {return 'daily';}
+                if (param === 'period') {return 'today';}
                 return null;
             });
             mockHoroscopeGenerator.generate.mockRejectedValue(new Error('API Error'));
@@ -488,9 +512,9 @@ describe('Horoscope Command', () => {
 
         test('should handle database errors gracefully', async () => {
             mockInteraction.options.getString.mockImplementation((param: string) => {
-                if (param === 'sign') return null; // No sign provided, force database lookup
-                if (param === 'type') return 'daily';
-                if (param === 'period') return 'today';
+                if (param === 'sign') {return null;} // No sign provided, force database lookup
+                if (param === 'type') {return 'daily';}
+                if (param === 'period') {return 'today';}
                 return null;
             });
             (mockContext.tables.HoroscopeUser.findOne as jest.Mock).mockRejectedValue(new Error('Database Error'));
@@ -529,9 +553,9 @@ describe('Horoscope Command', () => {
     describe('Logging', () => {
         test('should log successful command execution', async () => {
             mockInteraction.options.getString.mockImplementation((param: string) => {
-                if (param === 'sign') return 'aquarius';
-                if (param === 'type') return 'weekly';
-                if (param === 'period') return 'this-week';
+                if (param === 'sign') {return 'aquarius';}
+                if (param === 'type') {return 'weekly';}
+                if (param === 'period') {return 'this-week';}
                 return null;
             });
             mockInteraction.options.getBoolean.mockReturnValue(true);
@@ -553,7 +577,7 @@ describe('Horoscope Command', () => {
     describe('Default Values', () => {
         test('should use default type and period when not specified', async () => {
             mockInteraction.options.getString.mockImplementation((param: string) => {
-                if (param === 'sign') return 'leo';
+                if (param === 'sign') {return 'leo';}
                 // type and period return null (defaults)
                 return null;
             });
@@ -574,12 +598,12 @@ describe('Horoscope Command', () => {
         test('should handle missing guild context', async () => {
             mockInteraction.guild = null;
             mockInteraction.options.getString.mockImplementation((param: string) => {
-                if (param === 'sign') return null; // No sign provided, force user prefs lookup
-                if (param === 'type') return 'daily';
-                if (param === 'period') return 'today';
+                if (param === 'sign') {return null;} // No sign provided, force user prefs lookup
+                if (param === 'type') {return 'daily';}
+                if (param === 'period') {return 'today';}
                 return null;
             });
-            
+
             // Mock existing user preferences
             (mockContext.tables.HoroscopeUser.findOne as jest.Mock).mockResolvedValue({
                 zodiacSign: 'aries',
@@ -593,7 +617,7 @@ describe('Horoscope Command', () => {
                 where: {
                     userId: 'test-user-id',
                     guildId: null,
-                }
+                },
             });
 
             expect(mockHoroscopeGenerator.generate).toHaveBeenCalledWith({

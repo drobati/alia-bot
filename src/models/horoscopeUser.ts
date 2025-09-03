@@ -13,7 +13,10 @@ export interface HoroscopeUserAttributes {
     updatedAt?: Date;
 }
 
-interface HoroscopeUserModel extends Model<InferAttributes<HoroscopeUserModel>, InferCreationAttributes<HoroscopeUserModel>> {
+interface HoroscopeUserModel extends Model<
+    InferAttributes<HoroscopeUserModel>,
+    InferCreationAttributes<HoroscopeUserModel>
+> {
     userId: string;
     guildId?: string;
     zodiacSign: string;
@@ -38,8 +41,8 @@ export default (sequelize: Sequelize) => ({
             type: DataTypes.STRING(20),
             allowNull: false,
             validate: {
-                isIn: [['aries', 'taurus', 'gemini', 'cancer', 'leo', 'virgo', 
-                       'libra', 'scorpio', 'sagittarius', 'capricorn', 'aquarius', 'pisces']],
+                isIn: [['aries', 'taurus', 'gemini', 'cancer', 'leo', 'virgo',
+                    'libra', 'scorpio', 'sagittarius', 'capricorn', 'aquarius', 'pisces']],
             },
         },
         birthDate: {
@@ -85,5 +88,5 @@ export default (sequelize: Sequelize) => ({
                 fields: ['lastReadDate'],
             },
         ],
-    })
+    }),
 });
