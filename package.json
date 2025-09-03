@@ -8,7 +8,15 @@
         "start": "node dist/index.js",
         "lint": "eslint .",
         "test": "cross-env NODE_ENV=test jest",
-        "coverage": "cross-env NODE_ENV=test jest --collectCoverage --"
+        "coverage": "cross-env NODE_ENV=test jest --collectCoverage --",
+        "commands:detect": "node scripts/discord-commands/command-detector.js",
+        "commands:deploy": "node scripts/deploy-commands.js",
+        "commands:deploy:staging": "NODE_ENV=staging node scripts/deploy-commands.js --staging",
+        "commands:rollback": "node scripts/discord-commands/rollback-commands.js",
+        "commands:monitor": "node scripts/discord-commands/deployment-monitor.js",
+        "commands:monitor:continuous": "node scripts/discord-commands/deployment-monitor.js --continuous",
+        "commands:health": "node scripts/discord-commands/deployment-monitor.js",
+        "commands:backup:list": "node scripts/discord-commands/rollback-commands.js --list"
     },
     "repository": {
         "type": "git",
