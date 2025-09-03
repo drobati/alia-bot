@@ -1,10 +1,23 @@
 import { Message } from 'discord.js';
-import assistantResponse from './assistant';
 import { Context } from '../utils/types';
 
-// Mock the dependencies
+// Mock the dependencies BEFORE importing the module that uses them
 jest.mock('../utils/assistant');
-jest.mock('../utils/hybrid-classifier');
+jest.mock('../utils/discordHelpers');
+
+// Create a more explicit mock for HybridClassifier
+const mockClassifierInstance = {
+    classify: jest.fn(),
+    getDetailedClassification: jest.fn(),
+};
+
+jest.mock('../utils/hybrid-classifier', () => ({
+    HybridClassifier: jest.fn().mockImplementation(() => mockClassifierInstance),
+}));
+
+import assistantResponse from './assistant';
+import generateResponse from '../utils/assistant';
+import { safelySendToChannel } from '../utils/discordHelpers';
 
 // Mock OpenAI at the module level to prevent instantiation errors
 jest.mock('openai', () => ({
@@ -18,13 +31,22 @@ jest.mock('openai', () => ({
     })),
 }));
 
-describe('Assistant Response Layer Filtering', () => {
+const mockGenerateResponse = generateResponse as jest.MockedFunction<typeof generateResponse>;
+const mockSafelySendToChannel = safelySendToChannel as jest.MockedFunction<typeof safelySendToChannel>;
+
+describe('Assistant Response System', () => {
     let mockMessage: Partial<Message>;
     let mockContext: Context;
+    let mockChannel: any;
 
     beforeEach(() => {
         // Reset all mocks
         jest.clearAllMocks();
+
+        // Setup mock channel
+        mockChannel = {
+            send: jest.fn().mockResolvedValue({ id: 'message-123' }),
+        };
 
         mockMessage = {
             author: {
@@ -40,6 +62,7 @@ describe('Assistant Response Layer Filtering', () => {
                 user: { id: 'bot-user-id' },
             },
             channelId: 'test-channel-id',
+            channel: mockChannel,
         } as any;
 
         mockContext = {
@@ -47,16 +70,47 @@ describe('Assistant Response Layer Filtering', () => {
                 debug: jest.fn(),
                 info: jest.fn(),
                 error: jest.fn(),
+                warn: jest.fn(),
             },
         } as any;
+
+        // Setup the mock classifier instance with default return values
+        mockClassifierInstance.classify.mockReturnValue({
+            intent: 'general-knowledge',
+            confidence: 0.8,
+            method: 'keyword',
+        });
+
+        mockClassifierInstance.getDetailedClassification.mockReturnValue({
+            allScores: { 'general-knowledge': 0.8 },
+            keywordMatches: ['what', 'how'],
+            bayesianScore: 0.7,
+        });
+
+        // Setup default mocks
+        mockGenerateResponse.mockResolvedValue('This is a helpful response');
+        mockSafelySendToChannel.mockResolvedValue(true);
+    });
+
+    describe('Bot Message Filtering', () => {
+        it('should skip messages from bots', async () => {
+            mockMessage.author!.bot = true;
+            mockMessage.content = 'Alia, what is 2+2?';
+
+            const result = await assistantResponse(mockMessage as Message, mockContext);
+
+            expect(result).toBe(false);
+            expect(mockContext.log.debug).not.toHaveBeenCalled();
+        });
     });
 
     describe('Layer 1: Direct Addressing Pre-filter', () => {
         it('should skip processing messages not directed at bot', async () => {
             mockMessage.content = 'Today\'s accountability challenge, read one Chapter in a book.';
 
-            await assistantResponse(mockMessage as Message, mockContext);
+            const result = await assistantResponse(mockMessage as Message, mockContext);
 
+            expect(result).toBe(false);
             expect(mockContext.log.debug).toHaveBeenCalledWith(
                 'Assistant skipped - not directly addressed',
                 expect.objectContaining({
@@ -70,8 +124,9 @@ describe('Assistant Response Layer Filtering', () => {
         it('should skip processing unclear statements not directed at bot', async () => {
             mockMessage.content = 'HE IS WHITE AND NONESENSE';
 
-            await assistantResponse(mockMessage as Message, mockContext);
+            const result = await assistantResponse(mockMessage as Message, mockContext);
 
+            expect(result).toBe(false);
             expect(mockContext.log.debug).toHaveBeenCalledWith(
                 'Assistant skipped - not directly addressed',
                 expect.objectContaining({
@@ -119,8 +174,9 @@ describe('Assistant Response Layer Filtering', () => {
         it('should skip empty content after prefix removal', async () => {
             mockMessage.content = 'Alia,';
 
-            await assistantResponse(mockMessage as Message, mockContext);
+            const result = await assistantResponse(mockMessage as Message, mockContext);
 
+            expect(result).toBe(false);
             expect(mockContext.log.debug).toHaveBeenCalledWith(
                 'Assistant skipped - no meaningful content after prefix removal',
                 expect.objectContaining({
@@ -141,6 +197,450 @@ describe('Assistant Response Layer Filtering', () => {
                 }),
             );
         });
+
+        const inappropriateExamples = [
+            'Alia, you are stupid',
+            'Alia, you suck at this',
+            'Alia, shut up',
+            'Alia, fuck this',
+            'Alia, this is shit',
+            'Alia, damn you',
+            'Alia, I hate you',
+        ];
+
+        inappropriateExamples.forEach(example => {
+            it(`should filter inappropriate content: "${example}"`, async () => {
+                mockMessage.content = example;
+
+                // Mock classifier to return a result that would normally proceed to content check
+                mockClassifierInstance.classify.mockReturnValue({
+                    intent: 'general-knowledge',
+                    confidence: 0.8,
+                    method: 'keyword',
+                });
+
+                const result = await assistantResponse(mockMessage as Message, mockContext);
+
+                expect(result).toBe(false);
+                // The assistant logs processing message first, then filters inappropriate content
+                expect(mockContext.log.info).toHaveBeenCalledWith(
+                    'Assistant processing directly addressed message',
+                    expect.objectContaining({
+                        stage: 'direct_addressing_passed',
+                    }),
+                );
+                expect(mockContext.log.info).toHaveBeenCalledWith(
+                    'Assistant skipped - inappropriate content detected',
+                    expect.objectContaining({
+                        stage: 'content_appropriateness_filter',
+                    }),
+                );
+            });
+        });
+
+        const personalPatterns = [
+            'Alia, tell John he should come',
+            'Alia, my hand hurts',
+            'Alia, my back aches badly',
+            'Alia, I think that he is wrong',
+            'Alia, you should tell them',
+            'Alia, can you tell Sarah about this',
+        ];
+
+        personalPatterns.forEach(example => {
+            it(`should filter personal/social requests: "${example}"`, async () => {
+                mockMessage.content = example;
+
+                // Mock classifier to return a result that would normally proceed to content check
+                mockClassifierInstance.classify.mockReturnValue({
+                    intent: 'general-knowledge',
+                    confidence: 0.8,
+                    method: 'keyword',
+                });
+
+                const result = await assistantResponse(mockMessage as Message, mockContext);
+
+                expect(result).toBe(false);
+                // The assistant logs processing message first, then filters inappropriate content
+                expect(mockContext.log.info).toHaveBeenCalledWith(
+                    'Assistant processing directly addressed message',
+                    expect.objectContaining({
+                        stage: 'direct_addressing_passed',
+                    }),
+                );
+                expect(mockContext.log.info).toHaveBeenCalledWith(
+                    'Assistant skipped - inappropriate content detected',
+                    expect.objectContaining({
+                        stage: 'content_appropriateness_filter',
+                    }),
+                );
+            });
+        });
+
+        it('should allow appropriate educational content', async () => {
+            mockMessage.content = 'Alia, what is photosynthesis?';
+
+            await assistantResponse(mockMessage as Message, mockContext);
+
+            expect(mockContext.log.info).not.toHaveBeenCalledWith(
+                'Assistant skipped - inappropriate content detected',
+                expect.anything(),
+            );
+        });
+    });
+
+    describe('Classification and Confidence Thresholds', () => {
+        beforeEach(() => {
+            mockMessage.content = 'Alia, what is photosynthesis?';
+        });
+
+        it('should process messages above confidence threshold', async () => {
+            mockClassifierInstance.classify.mockReturnValue({
+                intent: 'general-knowledge',
+                confidence: 0.85,
+                method: 'keyword',
+            });
+
+            const result = await assistantResponse(mockMessage as Message, mockContext);
+
+            expect(result).toBe(true);
+            expect(mockContext.log.info).toHaveBeenCalledWith(
+                'Assistant threshold met, processing intent',
+                expect.objectContaining({
+                    confidence: 0.85,
+                    willProcess: true,
+                }),
+            );
+        });
+
+        it('should skip messages below confidence threshold', async () => {
+            mockClassifierInstance.classify.mockReturnValue({
+                intent: 'general-knowledge',
+                confidence: 0.5,
+                method: 'bayesian',
+            });
+
+            const result = await assistantResponse(mockMessage as Message, mockContext);
+
+            expect(result).toBe(false);
+            expect(mockContext.log.info).toHaveBeenCalledWith(
+                'Assistant confidence below threshold, no response',
+                expect.objectContaining({
+                    confidence: 0.5,
+                    confidenceThreshold: 0.7,
+                    stage: 'confidence_filtered',
+                }),
+            );
+        });
+
+        it('should skip messages with non-response intents', async () => {
+            mockClassifierInstance.classify.mockReturnValue({
+                intent: 'social-chat',
+                confidence: 0.9,
+                method: 'keyword',
+            });
+
+            const result = await assistantResponse(mockMessage as Message, mockContext);
+
+            expect(result).toBe(false);
+            expect(mockContext.log.info).toHaveBeenCalledWith(
+                'Assistant classified message but not as general-knowledge',
+                expect.objectContaining({
+                    intent: 'social-chat',
+                    confidence: 0.9,
+                    stage: 'intent_filtered',
+                }),
+            );
+        });
+
+        const responseIntents = ['general-knowledge', 'real-time-knowledge', 'technical-question'];
+        responseIntents.forEach(intent => {
+            it(`should process ${intent} intent`, async () => {
+                mockClassifierInstance.classify.mockReturnValue({
+                    intent: intent,
+                    confidence: 0.8,
+                    method: 'keyword',
+                });
+
+                const result = await assistantResponse(mockMessage as Message, mockContext);
+
+                expect(result).toBe(true);
+                expect(mockContext.log.info).toHaveBeenCalledWith(
+                    'Assistant threshold met, processing intent',
+                    expect.objectContaining({
+                        intent: intent,
+                        willProcess: true,
+                    }),
+                );
+            });
+        });
+    });
+
+    describe('Debug Mode', () => {
+        beforeEach(() => {
+            mockMessage.content = 'Alia, what is quantum physics?';
+            process.env.ASSISTANT_DEBUG = 'true';
+        });
+
+        afterEach(() => {
+            delete process.env.ASSISTANT_DEBUG;
+        });
+
+        it('should log detailed classification in debug mode', async () => {
+            await assistantResponse(mockMessage as Message, mockContext);
+
+            expect(mockClassifierInstance.getDetailedClassification).toHaveBeenCalledWith('what is quantum physics?');
+            expect(mockContext.log.debug).toHaveBeenCalledWith(
+                'Assistant detailed classification',
+                expect.objectContaining({
+                    allScores: expect.any(Object),
+                    keywordMatches: expect.any(Array),
+                }),
+            );
+        });
+    });
+
+    describe('Response Generation and Sending', () => {
+        beforeEach(() => {
+            mockMessage.content = 'Alia, explain gravity';
+        });
+
+        it('should generate and send successful response', async () => {
+            const result = await assistantResponse(mockMessage as Message, mockContext);
+
+            expect(result).toBe(true);
+            expect(mockGenerateResponse).toHaveBeenCalledWith(
+                'explain gravity',
+                mockContext,
+                {
+                    userId: 'test-user-id',
+                    username: 'testuser',
+                    channelId: 'test-channel-id',
+                },
+            );
+            expect(mockSafelySendToChannel).toHaveBeenCalledWith(
+                mockChannel,
+                'This is a helpful response',
+                mockContext,
+                'assistant response',
+            );
+            expect(mockContext.log.info).toHaveBeenCalledWith(
+                'Assistant response sent successfully',
+                expect.objectContaining({
+                    userId: 'test-user-id',
+                    responseLength: 26,
+                    stage: 'response_sent',
+                    success: true,
+                }),
+            );
+        });
+
+        it('should handle failed response sending', async () => {
+            mockSafelySendToChannel.mockResolvedValue(false);
+
+            const result = await assistantResponse(mockMessage as Message, mockContext);
+
+            expect(result).toBe(false);
+            expect(mockContext.log.error).toHaveBeenCalledWith(
+                'Assistant failed to send response to Discord',
+                expect.objectContaining({
+                    stage: 'discord_send',
+                    success: false,
+                }),
+            );
+        });
+
+        it('should handle empty response from generator', async () => {
+            mockGenerateResponse.mockResolvedValue('');
+
+            const result = await assistantResponse(mockMessage as Message, mockContext);
+
+            expect(result).toBe(false);
+            expect(mockContext.log.warn).toHaveBeenCalledWith(
+                'Assistant generated no response or channel not available',
+                expect.objectContaining({
+                    hasResponse: false,
+                    stage: 'response_validation',
+                    success: false,
+                }),
+            );
+        });
+
+        it('should handle null response from generator', async () => {
+            mockGenerateResponse.mockResolvedValue(null);
+
+            const result = await assistantResponse(mockMessage as Message, mockContext);
+
+            expect(result).toBe(false);
+            expect(mockContext.log.warn).toHaveBeenCalledWith(
+                'Assistant generated no response or channel not available',
+                expect.objectContaining({
+                    hasResponse: false,
+                }),
+            );
+        });
+
+        it('should handle missing channel', async () => {
+            const messageWithNoChannel = {
+                ...mockMessage,
+                channel: null,
+            };
+
+            const result = await assistantResponse(messageWithNoChannel as unknown as Message, mockContext);
+
+            expect(result).toBe(false);
+            expect(mockContext.log.warn).toHaveBeenCalledWith(
+                'Assistant generated no response or channel not available',
+                expect.objectContaining({
+                    hasChannel: false,
+                }),
+            );
+        });
+
+        it('should handle channel without send method', async () => {
+            const messageWithBadChannel = {
+                ...mockMessage,
+                channel: { type: 'DM' } as any,
+            };
+
+            const result = await assistantResponse(messageWithBadChannel as unknown as Message, mockContext);
+
+            expect(result).toBe(false);
+            expect(mockContext.log.warn).toHaveBeenCalledWith(
+                'Assistant generated no response or channel not available',
+                expect.objectContaining({
+                    hasChannel: false,
+                }),
+            );
+        });
+    });
+
+    describe('Error Handling', () => {
+        beforeEach(() => {
+            mockMessage.content = 'Alia, what is machine learning?';
+        });
+
+        it('should handle classification errors', async () => {
+            const classificationError = new Error('Classification failed');
+            mockClassifierInstance.classify.mockImplementation(() => {
+                throw classificationError;
+            });
+
+            const result = await assistantResponse(mockMessage as Message, mockContext);
+
+            expect(result).toBe(false);
+            expect(mockContext.log.error).toHaveBeenCalledWith(
+                'Assistant processing error',
+                expect.objectContaining({
+                    userId: 'test-user-id',
+                    error: classificationError,
+                    stage: 'classification_error',
+                    success: false,
+                }),
+            );
+        });
+
+        it('should handle response generation errors', async () => {
+            const responseError = new Error('OpenAI API failed');
+            mockGenerateResponse.mockRejectedValue(responseError);
+
+            const result = await assistantResponse(mockMessage as Message, mockContext);
+
+            expect(result).toBe(false);
+            expect(mockContext.log.error).toHaveBeenCalledWith(
+                'Assistant processing error',
+                expect.objectContaining({
+                    error: responseError,
+                }),
+            );
+        });
+
+        it('should handle Discord API errors', async () => {
+            const discordError = new Error('Discord rate limited');
+            mockSafelySendToChannel.mockRejectedValue(discordError);
+
+            const result = await assistantResponse(mockMessage as Message, mockContext);
+
+            expect(result).toBe(false);
+            expect(mockContext.log.error).toHaveBeenCalledWith(
+                'Assistant processing error',
+                expect.anything(),
+            );
+        });
+    });
+
+    describe('Logging and Metrics', () => {
+        beforeEach(() => {
+            mockMessage.content = 'Alia, how do computers work?';
+        });
+
+        it('should log classification metrics', async () => {
+            mockClassifierInstance.classify.mockReturnValue({
+                intent: 'technical-question',
+                confidence: 0.892,
+                method: 'bayesian',
+            });
+
+            await assistantResponse(mockMessage as Message, mockContext);
+
+            expect(mockContext.log.info).toHaveBeenCalledWith(
+                'Assistant message classification',
+                expect.objectContaining({
+                    userId: 'test-user-id',
+                    username: 'testuser',
+                    channelId: 'test-channel-id',
+                    intent: 'technical-question',
+                    confidence: 0.892,
+                    method: 'bayesian',
+                    confidenceThreshold: 0.7,
+                    meetsThreshold: true,
+                    timestamp: expect.any(String),
+                }),
+            );
+        });
+
+        it('should round confidence to 3 decimals', async () => {
+            mockClassifierInstance.classify.mockReturnValue({
+                intent: 'general-knowledge',
+                confidence: 0.8567891234,
+                method: 'keyword',
+            });
+
+            await assistantResponse(mockMessage as Message, mockContext);
+
+            expect(mockContext.log.info).toHaveBeenCalledWith(
+                'Assistant message classification',
+                expect.objectContaining({
+                    confidence: 0.857,
+                }),
+            );
+        });
+
+        it('should log processing time on success', async () => {
+            Date.now();
+
+            await assistantResponse(mockMessage as Message, mockContext);
+
+            expect(mockContext.log.info).toHaveBeenCalledWith(
+                'Assistant response sent successfully',
+                expect.objectContaining({
+                    processingTimeMs: expect.any(Number),
+                }),
+            );
+        });
+
+        it('should log processing time on error', async () => {
+            mockGenerateResponse.mockRejectedValue(new Error('Test error'));
+
+            await assistantResponse(mockMessage as Message, mockContext);
+
+            expect(mockContext.log.error).toHaveBeenCalledWith(
+                'Assistant processing error',
+                expect.objectContaining({
+                    processingTimeMs: expect.any(Number),
+                }),
+            );
+        });
     });
 
     describe('Integration Test - Previous Problem Examples', () => {
@@ -155,8 +655,9 @@ describe('Assistant Response Layer Filtering', () => {
             it(`should NOT process problem example ${index + 1}: "${example.substring(0, 30)}..."`, async () => {
                 mockMessage.content = example;
 
-                await assistantResponse(mockMessage as Message, mockContext);
+                const result = await assistantResponse(mockMessage as Message, mockContext);
 
+                expect(result).toBe(false);
                 expect(mockContext.log.debug).toHaveBeenCalledWith(
                     'Assistant skipped - not directly addressed',
                     expect.objectContaining({
@@ -176,15 +677,69 @@ describe('Assistant Response Layer Filtering', () => {
             it(`should process appropriate example ${index + 1}: "${example}"`, async () => {
                 mockMessage.content = example;
 
-                await assistantResponse(mockMessage as Message, mockContext);
+                const result = await assistantResponse(mockMessage as Message, mockContext);
 
+                expect(result).toBe(true);
                 expect(mockContext.log.info).toHaveBeenCalledWith(
                     'Assistant processing directly addressed message',
                     expect.objectContaining({
                         stage: 'direct_addressing_passed',
                     }),
                 );
+                expect(mockGenerateResponse).toHaveBeenCalled();
+                expect(mockSafelySendToChannel).toHaveBeenCalled();
             });
+        });
+    });
+
+    describe('Prefix Handling', () => {
+        it('should handle "Alia," prefix with comma', async () => {
+            mockMessage.content = 'Alia, what is DNA?';
+
+            await assistantResponse(mockMessage as Message, mockContext);
+
+            expect(mockGenerateResponse).toHaveBeenCalledWith(
+                'what is DNA?',
+                mockContext,
+                expect.any(Object),
+            );
+        });
+
+        it('should handle "Alia " prefix without comma', async () => {
+            mockMessage.content = 'Alia what is RNA?';
+
+            await assistantResponse(mockMessage as Message, mockContext);
+
+            expect(mockGenerateResponse).toHaveBeenCalledWith(
+                'what is RNA?',
+                mockContext,
+                expect.any(Object),
+            );
+        });
+
+        it('should be case insensitive for prefix', async () => {
+            mockMessage.content = 'alia, what is ATP?';
+
+            await assistantResponse(mockMessage as Message, mockContext);
+
+            expect(mockGenerateResponse).toHaveBeenCalledWith(
+                'what is ATP?',
+                mockContext,
+                expect.any(Object),
+            );
+        });
+
+        it('should handle mentions without prefix', async () => {
+            mockMessage.content = '@Alia what is mitochondria?';
+            (mockMessage.mentions!.has as jest.Mock).mockReturnValue(true);
+
+            await assistantResponse(mockMessage as Message, mockContext);
+
+            expect(mockGenerateResponse).toHaveBeenCalledWith(
+                '@Alia what is mitochondria?',
+                mockContext,
+                expect.any(Object),
+            );
         });
     });
 });
