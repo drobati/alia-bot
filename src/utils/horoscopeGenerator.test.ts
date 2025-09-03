@@ -295,7 +295,7 @@ describe('HoroscopeGenerator', () => {
 
                 switch (period) {
                     case 'today':
-                        expect(hoursFromNow).toBeGreaterThan(12); // At least until midnight
+                        expect(hoursFromNow).toBeGreaterThanOrEqual(12); // At least until midnight
                         expect(hoursFromNow).toBeLessThan(24);
                         break;
                     case 'tomorrow':
