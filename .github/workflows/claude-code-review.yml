@@ -4,12 +4,12 @@ on:
   workflow_run:
     workflows: ["CI"]
     types: [completed]
-    branches-ignore: ["master"]  # Only run on PR branches
+    # No branches filter - let it trigger for all branches, then filter in job condition
 
 jobs:
   claude-review:
-    # Only run if the CI workflow succeeded
-    if: github.event.workflow_run.conclusion == 'success'
+    # Only run if CI succeeded and not on master branch
+    if: github.event.workflow_run.conclusion == 'success' && github.event.workflow_run.head_branch != 'master'
     runs-on: ubuntu-latest
     permissions:
       contents: read
