@@ -12,12 +12,11 @@ const mockClassifierInstance = {
 };
 
 jest.mock('../utils/hybrid-classifier', () => ({
-    HybridClassifier: jest.fn().mockImplementation(() => mockClassifierInstance)
+    HybridClassifier: jest.fn().mockImplementation(() => mockClassifierInstance),
 }));
 
 import assistantResponse from './assistant';
 import generateResponse from '../utils/assistant';
-import { HybridClassifier } from '../utils/hybrid-classifier';
 import { safelySendToChannel } from '../utils/discordHelpers';
 
 // Mock OpenAI at the module level to prevent instantiation errors
@@ -33,7 +32,6 @@ jest.mock('openai', () => ({
 }));
 
 const mockGenerateResponse = generateResponse as jest.MockedFunction<typeof generateResponse>;
-const MockHybridClassifier = HybridClassifier as jest.MockedClass<typeof HybridClassifier>;
 const mockSafelySendToChannel = safelySendToChannel as jest.MockedFunction<typeof safelySendToChannel>;
 
 describe('Assistant Response System', () => {
@@ -82,7 +80,7 @@ describe('Assistant Response System', () => {
             confidence: 0.8,
             method: 'keyword',
         });
-        
+
         mockClassifierInstance.getDetailedClassification.mockReturnValue({
             allScores: { 'general-knowledge': 0.8 },
             keywordMatches: ['what', 'how'],
@@ -698,7 +696,7 @@ describe('Assistant Response System', () => {
         it('should handle "Alia," prefix with comma', async () => {
             mockMessage.content = 'Alia, what is DNA?';
 
-            const result = await assistantResponse(mockMessage as Message, mockContext);
+            await assistantResponse(mockMessage as Message, mockContext);
 
             expect(mockGenerateResponse).toHaveBeenCalledWith(
                 'what is DNA?',

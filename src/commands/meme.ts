@@ -86,7 +86,7 @@ const memeCommand = {
     async execute(interaction: ChatInputCommandInteraction, context: Context) {
         try {
             const subcommand = interaction.options.getSubcommand();
-            
+
             switch (subcommand) {
                 case 'create':
                     await handleCreateMeme(interaction, context);
