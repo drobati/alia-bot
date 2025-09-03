@@ -10,8 +10,8 @@ export default {
         .addStringOption(option =>
             option
                 .setName('sign')
-                .setDescription('Your zodiac sign or birth date (MM-DD format)')
-                .setRequired(false)
+                .setDescription('Your zodiac sign (e.g., Aries, Cancer, Leo)')
+                .setRequired(true)
                 .setAutocomplete(true))
         .addStringOption(option =>
             option
@@ -73,34 +73,22 @@ export default {
             const period = interaction.options.getString('period') || 'today';
             const isPublic = interaction.options.getBoolean('public') || false;
 
-            // Determine user's zodiac sign
-            let zodiacSign: string;
-            let birthDate: string | undefined;
+            // Validate zodiac sign input
+            const normalizedSign = userInput!.toLowerCase();
+            const zodiacInfo = ZodiacUtil.getZodiacInfo(normalizedSign);
 
-            if (userInput) {
-                const signData = ZodiacUtil.parseSignInput(userInput);
-                zodiacSign = signData.sign;
-                birthDate = signData.birthDate;
-            } else {
-                // Check user preferences
-                const userPrefs = await context.tables.HoroscopeUser.findOne({
-                    where: {
-                        userId: interaction.user.id,
-                        guildId: interaction.guild?.id || null,
-                    },
+            // Check if it's a valid sign by comparing with known signs
+            const validSigns = ZodiacUtil.getAllSigns();
+            if (!validSigns.includes(normalizedSign) &&
+                !validSigns.some(sign => ZodiacUtil.getZodiacInfo(sign).sign.toLowerCase() === normalizedSign)) {
+                const validSignNames = validSigns.map(s => ZodiacUtil.getZodiacInfo(s).sign).join(', ');
+                await interaction.editReply({
+                    content: `❌ "${userInput}" is not a valid zodiac sign. Please choose from: ${validSignNames}`,
                 });
-
-                if (userPrefs) {
-                    zodiacSign = userPrefs.zodiacSign;
-                    birthDate = userPrefs.birthDate;
-                } else {
-                    // First-time user - show sign selection helper
-                    await interaction.editReply({
-                        embeds: [await createSignSelectionEmbed()],
-                    });
-                    return;
-                }
+                return;
             }
+
+            const zodiacSign = zodiacInfo.sign.toLowerCase();
 
             // Generate horoscope
             const horoscopeData = await HoroscopeGenerator.generate({
@@ -112,7 +100,7 @@ export default {
             }, context);
 
             // Update user preferences and stats
-            await updateUserStats(interaction, zodiacSign, birthDate, type, context);
+            await updateUserStats(interaction, zodiacSign, type, context);
 
             // Create response embed
             const embed = await createHoroscopeEmbed(horoscopeData, zodiacSign, type, period);
@@ -148,15 +136,15 @@ export default {
     },
 };
 
-async function createSignSelectionEmbed(): Promise<EmbedBuilder> {
+/* async function createSignSelectionEmbed(): Promise<EmbedBuilder> {
     return new EmbedBuilder()
         .setTitle('🔮 Welcome to Your Personal Horoscope!')
         .setDescription(
-            'To get started, use the command with your zodiac sign or birth date:\n\n' +
+            'Please provide your zodiac sign to get your reading:\n\n' +
             '**Examples:**\n' +
             '• `/horoscope sign:Aries`\n' +
-            '• `/horoscope sign:03-21` (March 21st)\n' +
-            '• `/horoscope sign:cancer type:love`\n\n' +
+            '• `/horoscope sign:cancer type:love`\n' +
+            '• `/horoscope sign:Leo period:tomorrow`\n\n' +
             '**All Zodiac Signs:**\n' +
             '♈ Aries (Mar 21-Apr 19) • ♉ Taurus (Apr 20-May 20)\n' +
             '♊ Gemini (May 21-Jun 20) • ♋ Cancer (Jun 21-Jul 22)\n' +
@@ -167,7 +155,7 @@ async function createSignSelectionEmbed(): Promise<EmbedBuilder> {
         )
         .setColor(0x9966FF)
         .setFooter({ text: 'Your preferences will be saved for future readings!' });
-}
+} */
 
 async function createHoroscopeEmbed(
     horoscopeData: any,
@@ -228,7 +216,6 @@ async function createHoroscopeEmbed(
 async function updateUserStats(
     interaction: ChatInputCommandInteraction,
     sign: string,
-    birthDate: string | undefined,
     type: string,
     context: Context,
 ): Promise<void> {
@@ -241,7 +228,6 @@ async function updateUserStats(
             userId,
             guildId,
             zodiacSign: sign,
-            birthDate,
             preferredType: type,
             lastReadDate: new Date(),
             totalReads: context.sequelize.literal('COALESCE(total_reads, 0) + 1') as any,

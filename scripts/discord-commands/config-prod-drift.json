@@ -1,5 +1,5 @@
 {
-    "note": "Configuration for drift server - use same production bot credentials as config-prod.json",
+    "note": "Configuration for drift server '【ＤＲＩＦＴ-】' - use same production bot credentials as config-prod-cbd.json (cerebral discharge server)",
     "clientId": "555566299086979072",
     "guildId": "1352767815958007879"
 }
