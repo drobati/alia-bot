@@ -28,6 +28,7 @@
     "dependencies": {
         "@discordjs/voice": "^0.19.0",
         "@hapi/hapi": "^21.3.2",
+        "@polygon.io/client-js": "^8.2.0",
         "@sentry/node": "^10.8.0",
         "@sentry/profiling-node": "^10.8.0",
         "@snazzah/davey": "^0.1.6",
