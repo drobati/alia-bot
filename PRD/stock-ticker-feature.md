@@ -84,51 +84,51 @@ CREATE TABLE StockTracking (
 
 ### API Integration
 
-**Selected API: IEX Cloud** *(Updated Selection)*
+**Selected API: Polygon.io** *(Updated Selection)*
 
 **Rationale for Change:**
-Based on projected usage of ~100 queries/day, IEX Cloud provides significantly better free tier coverage:
+IEX Cloud is no longer available. Polygon.io provides excellent free tier coverage for projected usage:
 
-**Free Tier Comparison:**
+**Free Tier Analysis:**
+- **Polygon.io:** 5 calls/minute (7,200/day - 72x requirement) ✅
 - **Alpha Vantage:** 25 requests/day (25% of requirement) ❌
-- **IEX Cloud:** 500,000 messages/month (~16,667/day - 166x requirement) ✅
-- **Finnhub:** 60 calls/minute (sufficient but with rate limiting complexity)
-- **Polygon.io:** 5 calls/minute (sufficient but restrictive)
+- **Yahoo Finance:** Unreliable for production use ❌
 
-**IEX Cloud Benefits:**
-- **Free Tier:** 500,000 messages per month (no daily limits)
-- **U.S. Stock Coverage:** NYSE, NASDAQ, and other major exchanges
-- **Production Ready:** Powers major fintech applications
-- **Developer Friendly:** Clean REST API with comprehensive documentation
-- **No Premium Required:** Free tier exceeds project needs by 166x
+**Polygon.io Benefits:**
+- **Free Tier:** 5 API calls per minute (7,200/day theoretical)
+- **Institutional-Grade Data:** Real-time and historical market data
+- **Comprehensive Coverage:** Stocks, options, forex, crypto
+- **Low Latency:** <20ms response times
+- **Production Ready:** Powers major fintech platforms like Robinhood
+- **Existing API Key:** Already available for immediate use
 
 **API Endpoints:**
-- **Quote:** `/stock/{symbol}/quote` for current price data
-- **Intraday Prices:** `/stock/{symbol}/intraday-prices` for minute data
-- **Historical Prices:** `/stock/{symbol}/chart/{range}` for historical context
-- **Batch Quotes:** `/stock/market/batch` for multiple symbols
+- **Real-time Quote:** `/v2/aggs/ticker/{symbol}/prev` for previous day data
+- **Last Trade:** `/v2/last/trade/{symbol}` for real-time price
+- **Daily Bars:** `/v2/aggs/ticker/{symbol}/range/1/day/{from}/{to}` for historical
+- **Grouped Daily:** `/v2/aggs/grouped/locale/us/market/stocks/{date}` for market overview
 
 **Implementation Details:**
-- **Base URL:** `https://cloud.iexapis.com/stable`
-- **Authentication:** API token via query parameter `?token=YOUR_TOKEN`
+- **Base URL:** `https://api.polygon.io`
+- **Authentication:** API key via query parameter `?apikey=YOUR_API_KEY`
 - **Response Format:** JSON
-- **Rate Limiting:** Built-in throttling, no explicit per-minute limits on free tier
-- **Data Caching:** Cache prices for 1-5 minutes to optimize message usage
+- **Rate Limiting:** 5 calls per minute on free tier
+- **Data Caching:** Cache prices for 1-5 minutes to stay within rate limits
 
 **Sample Request:**
 ```
-https://cloud.iexapis.com/stable/stock/AAPL/quote?token=YOUR_TOKEN
+https://api.polygon.io/v2/aggs/ticker/AAPL/prev?apikey=YOUR_API_KEY
 ```
 
 **Sample Response Fields:**
-- `latestPrice` - Current price
-- `change` - Daily change (absolute)
-- `changePercent` - Daily change (percentage)
-- `volume` - Trading volume
-- `previousClose` - Previous day close
-- `isUSMarketOpen` - Market status
+- `c` - Close price (current/latest)
+- `h` - High price
+- `l` - Low price  
+- `o` - Open price
+- `v` - Volume
+- `vw` - Volume weighted average price
 
-**NPM Package:** `iex-api` or custom HTTP client with axios
+**NPM Package:** `@polygon.io/client-js` or custom HTTP client with axios
 
 ### Command Structure
 ```
@@ -148,10 +148,10 @@ https://cloud.iexapis.com/stable/stock/AAPL/quote?token=YOUR_TOKEN
 ## Dependencies
 
 ### External APIs
-- **IEX Cloud API:** Stock market data provider *(Updated from Alpha Vantage)*
-- **API Token:** Required environment variable `IEX_CLOUD_API_TOKEN`
-- **Rate limiting considerations:** 500,000 messages/month on free tier
-- **Pricing tier:** Free tier sufficient for projected 100 queries/day (~3,000/month)
+- **Polygon.io API:** Stock market data provider *(Updated from IEX Cloud)*
+- **API Key:** Required environment variable `POLYGON_API_KEY`
+- **Rate limiting considerations:** 5 calls per minute on free tier
+- **Pricing tier:** Free tier sufficient for projected 100 queries/day with caching
 
 ### Internal Dependencies
 - Database migration for StockTracking table
@@ -159,7 +159,7 @@ https://cloud.iexapis.com/stable/stock/AAPL/quote?token=YOUR_TOKEN
 - Discord permissions for DM sending
 
 ### NPM Packages (Estimated)
-- `iex-api` - Official IEX Cloud API client *(Updated from alphavantage)*
+- `@polygon.io/client-js` - Official Polygon.io API client *(Updated from iex-api)*
 - `axios` - HTTP client for API requests (if not using official client)
 - `node-cron` or `bull` queue for scheduled tasks
 - Price formatting utilities (potentially custom)
@@ -196,7 +196,7 @@ https://cloud.iexapis.com/stable/stock/AAPL/quote?token=YOUR_TOKEN
 
 ## Open Questions
 
-1. ~~**API Provider:** Which stock data API offers best price/feature ratio?~~ **RESOLVED:** IEX Cloud selected for superior free tier (500,000 messages/month vs Alpha Vantage's 25 requests/day)
+1. ~~**API Provider:** Which stock data API offers best price/feature ratio?~~ **RESOLVED:** Polygon.io selected for institutional-grade data and generous free tier (5 calls/minute vs Alpha Vantage's 25 requests/day)
 2. **Real-time vs Delayed:** Is 15-minute delayed data acceptable, or do we need real-time?
 3. **Supported Markets:** Start with US only, or include international exchanges?
 4. **User Limits:** How many stocks can a single user track simultaneously?
@@ -205,9 +205,9 @@ https://cloud.iexapis.com/stable/stock/AAPL/quote?token=YOUR_TOKEN
 ## Implementation Approach - Granular Phases
 
 ### Phase 1A: Core API Integration (2-3 days)
-- Create IEX Cloud API utility service
-- Implement basic stock data fetching function
-- Add environment variable for API token
+- Create Polygon.io API utility service
+- Implement basic stock data fetching function with rate limiting
+- Add environment variable for API key (`POLYGON_API_KEY`)
 - Unit tests for API service
 
 ### Phase 1B: Basic Stock Command (2-3 days)  
