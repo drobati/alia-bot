@@ -1,4 +1,4 @@
-import { PolygonService, StockQuote } from './polygon-service';
+import { PolygonService } from './polygon-service';
 import { BotLogger } from './logger';
 
 // Mock the @polygon.io/client-js module
@@ -6,9 +6,9 @@ const mockPreviousClose = jest.fn();
 jest.mock('@polygon.io/client-js', () => ({
     restClient: jest.fn().mockImplementation(() => ({
         stocks: {
-            previousClose: mockPreviousClose
-        }
-    }))
+            previousClose: mockPreviousClose,
+        },
+    })),
 }), { virtual: true });
 
 // Mock logger
@@ -38,18 +38,18 @@ describe('PolygonService', () => {
     describe('constructor', () => {
         it('should throw error if POLYGON_API_KEY is not set', () => {
             delete process.env.POLYGON_API_KEY;
-            
+
             expect(() => new PolygonService(mockLogger)).toThrow(
-                'POLYGON_API_KEY environment variable is required'
+                'POLYGON_API_KEY environment variable is required',
             );
         });
 
         it('should initialize successfully with API key', () => {
             process.env.POLYGON_API_KEY = 'valid-key';
-            
+
             expect(() => new PolygonService(mockLogger)).not.toThrow();
             expect(mockLogger.info).toHaveBeenCalledWith(
-                'PolygonService initialized with rate limiting'
+                'PolygonService initialized with rate limiting',
             );
         });
     });
@@ -69,10 +69,10 @@ describe('PolygonService', () => {
                 h: 153.00,  // high
                 l: 149.50,  // low
                 t: 1672531200000, // timestamp
-                n: 12345    // number of transactions
+                n: 12345,    // number of transactions
             }],
             status: 'OK',
-            request_id: 'test-id'
+            request_id: 'test-id',
         };
 
         it('should fetch and return stock quote successfully', async () => {
@@ -91,12 +91,12 @@ describe('PolygonService', () => {
                 open: 150.00,
                 previousClose: 150.00,
                 timestamp: 1672531200000,
-                isMarketOpen: expect.any(Boolean)
+                isMarketOpen: expect.any(Boolean),
             });
 
             expect(mockPreviousClose).toHaveBeenCalledWith('AAPL');
             expect(mockLogger.info).toHaveBeenCalledWith(
-                'Fetching stock quote for AAPL from Polygon.io API'
+                'Fetching stock quote for AAPL from Polygon.io API',
             );
         });
 
@@ -111,14 +111,14 @@ describe('PolygonService', () => {
         it('should return null for invalid symbol', async () => {
             mockPreviousClose.mockResolvedValue({
                 ...mockApiResponse,
-                results: []
+                results: [],
             });
 
             const result = await service.getStockQuote('INVALID');
 
             expect(result).toBeNull();
             expect(mockLogger.warn).toHaveBeenCalledWith(
-                'No stock data found for symbol: INVALID'
+                'No stock data found for symbol: INVALID',
             );
         });
 
@@ -132,8 +132,8 @@ describe('PolygonService', () => {
                 'Error fetching stock quote from Polygon.io',
                 expect.objectContaining({
                     symbol: 'AAPL',
-                    error: 'API Error'
-                })
+                    error: 'API Error',
+                }),
             );
         });
 
@@ -157,10 +157,10 @@ describe('PolygonService', () => {
                 results: [{
                     ...mockApiResponse.results[0],
                     o: 0,  // open price is 0
-                    c: 100 // close price
-                }]
+                    c: 100, // close price
+                }],
             };
-            
+
             mockPreviousClose.mockResolvedValue(responseWithZeroOpen);
 
             const result = await service.getStockQuote('TEST');
@@ -172,7 +172,7 @@ describe('PolygonService', () => {
     describe('rate limiting', () => {
         it('should track rate limit status', () => {
             const status = service.getRateLimitStatus();
-            
+
             expect(status).toHaveProperty('remaining');
             expect(typeof status.remaining).toBe('number');
             expect(status.remaining).toBeLessThanOrEqual(5);
@@ -193,19 +193,19 @@ describe('PolygonService', () => {
                     h: 100,
                     l: 100,
                     t: Date.now(),
-                    n: 100
+                    n: 100,
                 }],
                 status: 'OK',
-                request_id: 'test'
+                request_id: 'test',
             });
 
             // Make 5 requests quickly (at the rate limit)
-            const promises = Array(5).fill(0).map((_, i) => 
-                service.getStockQuote(`TEST${i}`)
+            const promises = Array(5).fill(0).map((_, i) =>
+                service.getStockQuote(`TEST${i}`),
             );
 
             await Promise.all(promises);
-            
+
             // Check that remaining requests is 0
             const status = service.getRateLimitStatus();
             expect(status.remaining).toBe(0);
@@ -215,7 +215,7 @@ describe('PolygonService', () => {
     describe('cache management', () => {
         it('should clear cache', () => {
             service.clearCache();
-            
+
             expect(mockLogger.info).toHaveBeenCalledWith('Stock quote cache cleared');
         });
 
@@ -234,14 +234,14 @@ describe('PolygonService', () => {
                     h: 150,
                     l: 150,
                     t: Date.now(),
-                    n: 100
+                    n: 100,
                 }],
                 status: 'OK',
-                request_id: 'test'
+                request_id: 'test',
             });
 
             await service.getStockQuote('AAPL');
-            
+
             const stats = service.getCacheStats();
             expect(stats.size).toBe(1);
             expect(stats.entries).toContain('AAPL');
@@ -264,14 +264,14 @@ describe('PolygonService', () => {
                     h: 150,
                     l: 150,
                     t: Date.now(),
-                    n: 100
+                    n: 100,
                 }],
                 status: 'OK',
-                request_id: 'test'
+                request_id: 'test',
             });
 
             const result = await service.getStockQuote('AAPL');
-            
+
             expect(result).toHaveProperty('isMarketOpen');
             expect(typeof result?.isMarketOpen).toBe('boolean');
         });

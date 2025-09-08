@@ -51,21 +51,21 @@ class RateLimiter {
 
     async waitForSlot(): Promise<void> {
         const now = Date.now();
-        
+
         // Remove old requests outside the time window
         this.requests = this.requests.filter(time => now - time < this.timeWindow);
-        
+
         if (this.requests.length >= this.maxRequests) {
             const oldestRequest = Math.min(...this.requests);
             const waitTime = this.timeWindow - (now - oldestRequest) + 100; // Add 100ms buffer
-            
+
             this.logger.info(`Rate limit reached, waiting ${waitTime}ms before next API call`);
             await new Promise(resolve => setTimeout(resolve, waitTime));
-            
+
             // Recursively check again after waiting
             return this.waitForSlot();
         }
-        
+
         this.requests.push(now);
     }
 
@@ -85,7 +85,7 @@ export class PolygonService {
 
     constructor(logger: BotLogger) {
         const apiKey = process.env.POLYGON_API_KEY;
-        
+
         if (!apiKey) {
             throw new Error('POLYGON_API_KEY environment variable is required');
         }
@@ -102,7 +102,7 @@ export class PolygonService {
      */
     async getStockQuote(symbol: string): Promise<StockQuote | null> {
         const normalizedSymbol = symbol.toUpperCase();
-        
+
         // Check cache first
         const cached = this.getCachedQuote(normalizedSymbol);
         if (cached) {
@@ -113,23 +113,23 @@ export class PolygonService {
         try {
             // Wait for rate limit slot
             await this.rateLimiter.waitForSlot();
-            
+
             this.logger.info(`Fetching stock quote for ${normalizedSymbol} from Polygon.io API`);
-            
+
             // Get previous day's data (most reliable endpoint for free tier)
             const response = await this.client.stocks.previousClose(normalizedSymbol) as PolygonPreviousDayResponse;
-            
+
             if (!response.results || response.results.length === 0) {
                 this.logger.warn(`No stock data found for symbol: ${normalizedSymbol}`);
                 return null;
             }
 
             const result = response.results[0];
-            
+
             // Calculate change from previous day
             const change = result.c - result.o;
             const changePercent = result.o !== 0 ? (change / result.o) * 100 : 0;
-            
+
             const stockQuote: StockQuote = {
                 symbol: normalizedSymbol,
                 price: result.c,
@@ -141,13 +141,13 @@ export class PolygonService {
                 open: result.o,
                 previousClose: result.o, // For previous day data, open is the previous close
                 timestamp: result.t,
-                isMarketOpen: this.isMarketOpen() // Simple market hours check
+                isMarketOpen: this.isMarketOpen(), // Simple market hours check
             };
 
             // Cache the result
             this.cache.set(normalizedSymbol, {
                 data: stockQuote,
-                timestamp: Date.now()
+                timestamp: Date.now(),
             });
 
             this.logger.info(`Successfully fetched stock quote for ${normalizedSymbol}: $${result.c}`);
@@ -157,7 +157,7 @@ export class PolygonService {
             this.logger.error('Error fetching stock quote from Polygon.io', {
                 symbol: normalizedSymbol,
                 error: error instanceof Error ? error.message : 'Unknown error',
-                remainingRequests: this.rateLimiter.getRemainingRequests()
+                remainingRequests: this.rateLimiter.getRemainingRequests(),
             });
             return null;
         }
@@ -168,7 +168,7 @@ export class PolygonService {
      */
     private getCachedQuote(symbol: string): StockQuote | null {
         const cached = this.cache.get(symbol);
-        
+
         if (!cached) {
             return null;
         }
@@ -188,8 +188,8 @@ export class PolygonService {
      */
     private isMarketOpen(): boolean {
         const now = new Date();
-        const et = new Date(now.toLocaleString("en-US", {timeZone: "America/New_York"}));
-        
+        const et = new Date(now.toLocaleString("en-US", { timeZone: "America/New_York" }));
+
         const day = et.getDay(); // 0 = Sunday, 6 = Saturday
         if (day === 0 || day === 6) {
             return false; // Weekend
@@ -198,10 +198,10 @@ export class PolygonService {
         const hour = et.getHours();
         const minute = et.getMinutes();
         const timeInMinutes = hour * 60 + minute;
-        
+
         const marketOpen = 9 * 60 + 30; // 9:30 AM
         const marketClose = 16 * 60; // 4:00 PM
-        
+
         return timeInMinutes >= marketOpen && timeInMinutes < marketClose;
     }
 
@@ -210,7 +210,7 @@ export class PolygonService {
      */
     getRateLimitStatus(): { remaining: number; resetTime?: Date } {
         return {
-            remaining: this.rateLimiter.getRemainingRequests()
+            remaining: this.rateLimiter.getRemainingRequests(),
         };
     }
 
@@ -228,7 +228,7 @@ export class PolygonService {
     getCacheStats(): { size: number; entries: string[] } {
         return {
             size: this.cache.size,
-            entries: Array.from(this.cache.keys())
+            entries: Array.from(this.cache.keys()),
         };
     }
 }

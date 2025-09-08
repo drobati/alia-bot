@@ -268,3 +268,125 @@ https://api.polygon.io/v2/aggs/ticker/AAPL/prev?apikey=YOUR_API_KEY
 - Easier to debug and maintain
 - Can reprioritize between phases if needed
 - Reduces risk of large feature failures
+
+## Deployment Plan
+
+### Phase 1C Early Release Deployment
+
+**Prerequisites:**
+- [x] Phase 1C implementation complete with all tests passing
+- [x] ESLint validation passing 
+- [x] Code committed to feature branch
+
+**Deployment Steps:**
+
+#### 1. **Environment Configuration**
+- [ ] Add `POLYGON_API_KEY` to AWS Systems Manager Parameter Store
+  ```bash
+  aws ssm put-parameter \
+    --name "/alia-bot/production/POLYGON_API_KEY" \
+    --value "your-polygon-api-key" \
+    --type "SecureString" \
+    --description "Polygon.io API key for stock data"
+  ```
+- [ ] Update production environment to load from Parameter Store
+- [ ] Verify environment variable is accessible in production
+
+#### 2. **Code Deployment**
+- [ ] Merge feature branch to master via Pull Request
+- [ ] Deploy updated code to production environment (ECS/Docker)
+- [ ] Verify bot startup and connection to Discord
+- [ ] Check logs for any initialization errors
+
+#### 3. **Discord Command Registration**
+- [ ] Run slash command registration script in production
+  ```bash
+  # Deploy global commands (if not done automatically)
+  npm run deploy-commands
+  # OR manual registration via Discord API if needed
+  ```
+- [ ] Verify `/stock` command appears in Discord with autocomplete
+- [ ] Test command execution with a simple ticker (e.g., `AAPL`)
+
+#### 4. **Production Testing**
+- [ ] **Basic Functionality Test:**
+  - Execute `/stock get AAPL` 
+  - Verify proper embed display with real data
+  - Confirm rate limiting warnings work
+  
+- [ ] **Error Handling Test:**
+  - Test invalid ticker (`/stock get INVALID123`)
+  - Test rate limit exceeded (make 6+ rapid requests)
+  - Verify error messages are user-friendly
+
+- [ ] **Autocomplete Test:**
+  - Type `/stock get` and verify stock suggestions appear
+  - Test filtering by typing "AA" or "apple"
+  - Confirm 25-item limit and proper filtering
+
+#### 5. **Monitoring & Rollback Plan**
+- [ ] Monitor Sentry for any new errors after deployment
+- [ ] Check CloudWatch logs for API call patterns
+- [ ] Monitor Polygon.io API usage to ensure staying within limits
+- [ ] **Rollback Plan:** Keep previous deployment ready for quick revert if issues arise
+
+#### 6. **User Communication**
+- [ ] Announce new `/stock get` command in Discord
+- [ ] Provide basic usage examples
+- [ ] Set expectations about rate limits (5 requests/minute)
+
+### Missing Considerations Checklist
+
+**Security:**
+- [ ] Ensure Polygon API key is stored securely (Parameter Store/SecureString) ✓
+- [ ] Verify no API keys in committed code ✓
+- [ ] Rate limiting protects against abuse ✓
+
+**Performance:**
+- [ ] API response caching implemented (5-minute cache) ✓
+- [ ] Rate limiting prevents API quota exhaustion ✓
+- [ ] Error handling prevents infinite loops ✓
+
+**Monitoring:**
+- [ ] Error logging via Sentry ✓
+- [ ] API call logging for debugging ✓
+- [ ] Rate limit status tracking ✓
+
+**Documentation:**
+- [ ] Update CHANGELOG.md with new feature
+- [ ] Update COMMANDS.md with `/stock get` usage
+- [ ] Internal documentation for troubleshooting
+
+**Discord Bot Permissions:**
+- [ ] Verify bot has `Send Messages` permission
+- [ ] Verify bot has `Use Slash Commands` permission
+- [ ] Verify bot has `Embed Links` permission for rich embeds
+
+**API Quotas:**
+- [ ] Confirm Polygon.io free tier limits (5 requests/minute) ✓
+- [ ] Monitor actual usage vs quotas
+- [ ] Plan for potential upgrade if usage grows
+
+### Post-Deployment Monitoring (First 48 Hours)
+
+1. **Usage Metrics:**
+   - Track number of stock requests
+   - Monitor most requested tickers
+   - Watch for rate limiting frequency
+
+2. **Error Monitoring:**
+   - API failures and causes
+   - Invalid ticker requests
+   - Network/timeout errors
+
+3. **Performance:**
+   - Response time metrics
+   - Cache hit rates
+   - Memory usage patterns
+
+### Future Deployment Considerations
+
+**Phase 2A+ Deployments:**
+- Database migrations will require careful coordination
+- Background jobs will need separate deployment considerations
+- Notification systems will require additional permissions
