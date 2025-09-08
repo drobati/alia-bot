@@ -52,7 +52,9 @@ for (const file of commandFiles) {
             console.warn(`⚠️ Skipping ${file} - missing data property`);
         }
     } catch (error) {
-        console.error(`❌ Error loading ${file}:`, error.message);
+        // Skip commands that fail to load due to import issues but continue processing others
+        console.warn(`⚠️ Skipping ${file} due to import error: ${error.message}`);
+        continue;
     }
 }
 
