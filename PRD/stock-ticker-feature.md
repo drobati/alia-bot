@@ -87,7 +87,7 @@ CREATE TABLE StockTracking (
 **Selected API: Polygon.io** *(Updated Selection)*
 
 **Rationale for Change:**
-IEX Cloud is no longer available. Polygon.io provides excellent free tier coverage for projected usage:
+**Selected API Provider:** Polygon.io provides excellent free tier coverage for projected usage:
 
 **Free Tier Analysis:**
 - **Polygon.io:** 5 calls/minute (7,200/day - 72x requirement) ✅
@@ -113,7 +113,9 @@ IEX Cloud is no longer available. Polygon.io provides excellent free tier covera
 - **Authentication:** API key via query parameter `?apikey=YOUR_API_KEY`
 - **Response Format:** JSON
 - **Rate Limiting:** 5 calls per minute on free tier
-- **Data Caching:** Cache prices for 1-5 minutes to stay within rate limits
+- **Data Caching:** Cache prices for 5 minutes to stay within rate limits
+  - *Note: Consider shorter cache (2-3 minutes) for active trading hours based on user feedback*
+  - Implement configurable cache duration for different market conditions
 
 **Sample Request:**
 ```
@@ -128,7 +130,7 @@ https://api.polygon.io/v2/aggs/ticker/AAPL/prev?apikey=YOUR_API_KEY
 - `v` - Volume
 - `vw` - Volume weighted average price
 
-**NPM Package:** `@polygon.io/client-js` or custom HTTP client with axios
+**NPM Package:** `@polygon.io/client-js` (official client library)
 
 ### Command Structure
 ```
@@ -148,7 +150,7 @@ https://api.polygon.io/v2/aggs/ticker/AAPL/prev?apikey=YOUR_API_KEY
 ## Dependencies
 
 ### External APIs
-- **Polygon.io API:** Stock market data provider *(Updated from IEX Cloud)*
+- **Polygon.io API:** Stock market data provider
 - **API Key:** Required environment variable `POLYGON_API_KEY`
 - **Rate limiting considerations:** 5 calls per minute on free tier
 - **Pricing tier:** Free tier sufficient for projected 100 queries/day with caching
@@ -159,10 +161,94 @@ https://api.polygon.io/v2/aggs/ticker/AAPL/prev?apikey=YOUR_API_KEY
 - Discord permissions for DM sending
 
 ### NPM Packages (Estimated)
-- `@polygon.io/client-js` - Official Polygon.io API client *(Updated from iex-api)*
-- `axios` - HTTP client for API requests (if not using official client)
+- `@polygon.io/client-js` - Official Polygon.io API client with TypeScript support
 - `node-cron` or `bull` queue for scheduled tasks
 - Price formatting utilities (potentially custom)
+
+## Testing Strategy
+
+### Unit Testing Requirements
+**Coverage Target:** >90% for all stock-related modules
+
+**Core Components to Test:**
+- `PolygonService` class with API integration mocking
+- Rate limiting logic (`RateLimiter` class)  
+- Cache management and expiration
+- Market hours detection logic
+- Error handling for all failure scenarios
+
+**Test Scenarios:**
+```typescript
+// API Integration Tests
+- Valid ticker responses (AAPL, TSLA, MSFT)
+- Invalid ticker handling (404, invalid format)
+- API rate limit exceeded (429 responses) 
+- Network timeout and connection failures
+- Malformed API responses
+
+// Rate Limiting Tests
+- Rapid request sequences (exceed 5/minute)
+- Rate limiter queue management
+- Cache hit/miss scenarios
+- Concurrent request handling
+
+// Command Integration Tests
+- Discord slash command validation
+- Autocomplete functionality with popular stocks
+- Error message formatting and user guidance
+- Permission and rate limit warnings
+```
+
+### Integration Testing
+**API Provider Testing:**
+- Live Polygon.io API integration (limited calls)
+- Mock server responses for comprehensive error testing
+- Network resilience testing (intermittent failures)
+- Response time validation (<3 seconds target)
+
+**Database Integration:**
+- User tracking persistence and retrieval
+- Channel ID association for notifications
+- Data migration testing for schema changes
+
+### Performance Testing
+**Load Testing:**
+- Concurrent user requests (simulate Discord server usage)
+- Memory usage monitoring with background jobs
+- Cache efficiency under load
+- Database query performance (<100ms target)
+
+**Monitoring Setup:**
+```bash
+# Add to Phase 1C implementation:
+- API response time metrics (Sentry performance monitoring)
+- Error rate tracking by error type
+- Cache hit ratio monitoring  
+- Rate limit approach warnings (track users near limits)
+```
+
+### Security Testing
+**API Key Security:**
+- Startup validation: Verify API key format and permissions
+- Log sanitization: Ensure API keys never appear in logs/errors
+- Parameter Store integration: Secure retrieval and caching
+- Request monitoring: Log suspicious usage patterns
+
+**Rate Limiting Security:**
+- Per-user rate limiting to prevent abuse
+- Global bot rate limiting protection  
+- Circuit breaker testing for API failure scenarios
+
+### Test Environment Setup
+```bash
+# Test configuration
+POLYGON_API_KEY=test-key-limited-calls
+NODE_ENV=test
+DATABASE_URL=sqlite://test.db
+
+# Mock server for comprehensive testing
+npm install --save-dev nock  # HTTP request mocking
+```
 
 ## Success Metrics
 
@@ -185,9 +271,27 @@ https://api.polygon.io/v2/aggs/ticker/AAPL/prev?apikey=YOUR_API_KEY
 
 ### Technical Risks
 - **API Rate Limits:** Stock APIs have strict rate limits; need robust queuing
-- **API Cost:** Some stock APIs charge per request; monitor usage carefully
+- **API Reliability:** Third-party API outages could break stock functionality
+- **API Cost:** Some stock APIs charge per request; monitor usage carefully  
 - **Market Hours:** Handle pre/post-market data and market closures
 - **Data Accuracy:** Ensure real-time vs delayed data expectations are clear
+- **Cache Memory Usage:** Long-running cache could consume excessive memory
+
+### Risk Mitigation Strategies
+**API Reliability:**
+- Implement circuit breaker pattern (fail fast after 3+ consecutive failures)
+- Graceful degradation: Show cached data with timestamps when API unavailable
+- API provider migration strategy: Abstract API calls through service layer
+
+**Performance & Scalability:**
+- Monitor memory usage with periodic cache cleanup
+- Implement request deduplication for concurrent same-ticker requests  
+- Add exponential backoff for API retries
+
+**Future Migration Planning:**
+- Service abstraction layer to enable API provider switching
+- Database schema designed to support multiple data sources
+- Configuration-driven API selection (fallback providers)
 
 ### User Experience Risks
 - **Notification Fatigue:** Aggressive tracking could annoy users
@@ -207,20 +311,24 @@ https://api.polygon.io/v2/aggs/ticker/AAPL/prev?apikey=YOUR_API_KEY
 ### Phase 1A: Core API Integration (2-3 days)
 - Create Polygon.io API utility service
 - Implement basic stock data fetching function with rate limiting
-- Add environment variable for API key (`POLYGON_API_KEY`)
-- Unit tests for API service
+- Add environment variable for API key (`POLYGON_API_KEY`) with startup validation
+- Unit tests for API service with comprehensive mocking
+- Integration tests for API reliability and error scenarios
 
 ### Phase 1B: Basic Stock Command (2-3 days)  
 - Create `/stock get <ticker>` slash command structure
 - Implement command handler with API integration
 - Create Discord embed for stock data display
-- Basic error handling for invalid tickers
+- Comprehensive error handling for invalid tickers, API failures, and network timeouts
+- API key validation on service initialization
+- Circuit breaker pattern for API reliability
 
 ### Phase 1C: Command Polish & Testing (1-2 days)
-- Add comprehensive error messages
-- Implement rate limiting protection
-- Add command validation and autocomplete
-- Integration testing
+- Add comprehensive error messages with user guidance
+- Implement proactive rate limiting protection (warn at 2 requests remaining)
+- Add command validation and autocomplete with popular stock symbols
+- Integration testing with API mocking
+- Test coverage target: >90% for stock-related modules
 
 **Phase 1 Total:** 5-8 days
 
