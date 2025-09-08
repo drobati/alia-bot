@@ -330,7 +330,80 @@ npm install --save-dev nock  # HTTP request mocking
 - Integration testing with API mocking
 - Test coverage target: >90% for stock-related modules
 
-**Phase 1 Total:** 5-8 days
+**Phase 1 Total:** 6-9 days (including deployment)
+
+### Phase 1D: Production Deployment (1 day)
+**Goal:** Deploy Phase 1 stock ticker feature to production
+
+**Requirements:**
+- Deploy completed Phase 1C code to production environment
+- Configure Polygon.io API key in AWS Parameter Store  
+- Register Discord slash commands globally
+- Monitor initial production usage
+
+**Prerequisites:**
+- [x] Phase 1C implementation complete with all tests passing
+- [x] ESLint validation passing 
+- [x] Code committed to feature branch
+
+**Deployment Steps:**
+
+#### 1. **Environment Configuration**
+- [ ] Add `POLYGON_API_KEY` to AWS Systems Manager Parameter Store
+  ```bash
+  aws ssm put-parameter \
+    --name "/alia-bot/prod/POLYGON_API_KEY" \
+    --value "your-polygon-api-key" \
+    --type "SecureString" \
+    --description "Polygon.io API key for stock data"
+  ```
+- [ ] Add to ECS task definition secrets (if using ECS):
+  ```json
+  {
+    "name": "POLYGON_API_KEY", 
+    "valueFrom": "arn:aws:ssm:us-east-1:319709948884:parameter/alia-bot/prod/POLYGON_API_KEY"
+  }
+  ```
+- [ ] Update production environment to load from Parameter Store  
+- [ ] Verify environment variable is accessible in production
+
+#### 2. **Code Deployment**
+- [ ] Merge **PR #214** (`feature/stock-ticker-prd` → `master`)
+- [ ] Run production deployment script: `scripts/deploy.sh`
+- [ ] Verify bot startup and connection to Discord
+- [ ] Check logs for any initialization errors
+
+#### 3. **Discord Command Registration**
+- [ ] Build TypeScript commands: `npm run build`
+- [ ] Deploy slash commands globally: `node scripts/deploy-commands.js`
+- [ ] Verify `/stock` command appears in Discord with autocomplete
+- [ ] Test command execution with a simple ticker (e.g., `AAPL`)
+
+#### 4. **Production Testing**
+- [ ] Test valid ticker (`/stock get AAPL`)
+- [ ] Test invalid ticker (`/stock get INVALID123`)
+- [ ] Test rate limit protection (make 6+ rapid requests)
+- [ ] Verify error messages are user-friendly
+- [ ] Test autocomplete functionality
+
+#### 5. **Monitoring & Validation**
+- [ ] Monitor Sentry for any new errors after deployment
+- [ ] Check CloudWatch logs for API call patterns
+- [ ] Monitor Polygon.io API usage to ensure staying within limits
+- [ ] Validate response times are <3 seconds
+- [ ] **Rollback Plan:** Keep previous deployment ready for quick revert
+
+#### 6. **User Communication**
+- [ ] Announce new `/stock get` command in Discord
+- [ ] Share basic usage instructions with server members
+- [ ] Monitor initial user feedback and usage patterns
+
+**Acceptance Criteria:**
+- `/stock get <ticker>` command available in production Discord server
+- API integration working with live Polygon.io API key
+- No errors in production logs during initial testing
+- Rate limiting and error handling working as expected
+- Command success rate >95% for valid tickers
 
 ### Phase 2A: Database Setup (1-2 days)
 - Create StockTracking migration
@@ -368,7 +441,7 @@ npm install --save-dev nock  # HTTP request mocking
 
 ## Timeline Summary
 
-**Total Implementation:** 16-25 days (3-5 weeks) broken into **9 smaller phases**
+**Total Implementation:** 17-26 days (3-5 weeks) broken into **10 smaller phases**
 
 **Benefits of Granular Approach:**
 - Each phase is 1-3 days of focused work
@@ -377,9 +450,24 @@ npm install --save-dev nock  # HTTP request mocking
 - Can reprioritize between phases if needed
 - Reduces risk of large feature failures
 
-## Deployment Plan
+## Current Status & Next Steps
 
-### Phase 1C Early Release Deployment
+**Current Status:** ✅ **Phase 1C Complete - Ready for Phase 1D Deployment**
+
+- ✅ All implementation work finished (Phase 1A, 1B, 1C) 
+- ✅ PR #214 ready to merge with all CI checks passing
+- ✅ Code review completed with feedback addressed
+- ➡️ **Next Step:** Execute Phase 1D deployment (see above)
+
+**Ready for Production Deployment:**
+- All stock ticker functionality implemented and tested
+- Comprehensive error handling and rate limiting in place  
+- GitHub Actions workflow consolidated and working
+- PRD updated based on Claude Code Review feedback
+
+## Deployment Plan (Phase 1D Details)
+
+### Production Deployment Steps (Phase 1D)
 
 **Prerequisites:**
 - [x] Phase 1C implementation complete with all tests passing
