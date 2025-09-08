@@ -71,56 +71,40 @@ describe('Horoscope Command', () => {
         };
 
         // Set up default mock return values - will be overridden in individual tests
-        mockZodiacUtil.parseSignInput.mockImplementation((input: string) => {
-            if (input === 'leo') {
-                return { sign: 'leo' };
-            }
-            if (input === '03-21') {
-                return { sign: 'aries', birthDate: '03-21' };
-            }
-            if (input === 'cancer') {
-                return { sign: 'cancer' };
-            }
-            if (input === 'libra') {
-                return { sign: 'libra' };
-            }
-            if (input === 'scorpio') {
-                return { sign: 'scorpio' };
-            }
-            if (input === 'virgo') {
-                return { sign: 'virgo', birthDate: '09-15' };
-            }
-            if (input === 'gemini') {
-                return { sign: 'gemini' };
-            }
-            if (input === 'taurus') {
-                return { sign: 'taurus' };
-            }
-            if (input === 'sagittarius') {
-                return { sign: 'sagittarius' };
-            }
-            if (input === 'capricorn') {
-                return { sign: 'capricorn' };
-            }
-            if (input === 'pisces') {
-                return { sign: 'pisces' };
-            }
-            if (input === 'aquarius') {
-                return { sign: 'aquarius' };
-            }
-            return { sign: 'aries' }; // default
-        });
-        mockZodiacUtil.getZodiacInfo.mockReturnValue({
-            sign: 'Aries',
-            emoji: '♈',
-            element: 'Fire',
-            planet: 'Mars',
-            colors: [0xFF4500],
-            traits: ['courageous', 'determined'],
-            compatibility: ['Leo', 'Sagittarius'],
-            dateRange: 'Mar 21 - Apr 19',
-            startDate: { month: 3, day: 21 },
-            endDate: { month: 4, day: 19 },
+        mockZodiacUtil.getAllSigns.mockReturnValue([
+            'aries', 'taurus', 'gemini', 'cancer', 'leo', 'virgo',
+            'libra', 'scorpio', 'sagittarius', 'capricorn', 'aquarius', 'pisces',
+        ]);
+
+        // Set up dynamic zodiac info mocking
+        mockZodiacUtil.getZodiacInfo.mockImplementation((sign: string) => {
+            const signData: { [key: string]: any } = {
+                'aries': {
+                    sign: 'Aries', emoji: '♈', element: 'Fire', planet: 'Mars',
+                    colors: [0xFF4500], traits: ['courageous'], compatibility: ['Leo'], dateRange: 'Mar 21 - Apr 19',
+                },
+                'leo': {
+                    sign: 'Leo', emoji: '♌', element: 'Fire', planet: 'Sun',
+                    colors: [0xFFD700], traits: ['confident'], compatibility: ['Aries'], dateRange: 'Jul 23 - Aug 22',
+                },
+                'cancer': {
+                    sign: 'Cancer', emoji: '♋', element: 'Water', planet: 'Moon',
+                    colors: [0x87CEEB], traits: ['nurturing'], compatibility: ['Scorpio'], dateRange: 'Jun 21 - Jul 22',
+                },
+                'scorpio': {
+                    sign: 'Scorpio', emoji: '♏', element: 'Water', planet: 'Pluto',
+                    colors: [0x8B0000], traits: ['intense'], compatibility: ['Cancer'], dateRange: 'Oct 23 - Nov 21',
+                },
+                'virgo': {
+                    sign: 'Virgo', emoji: '♍', element: 'Earth', planet: 'Mercury',
+                    colors: [0x9ACD32], traits: ['analytical'], compatibility: ['Taurus'], dateRange: 'Aug 23 - Sep 22',
+                },
+                'aquarius': {
+                    sign: 'Aquarius', emoji: '♒', element: 'Air', planet: 'Uranus',
+                    colors: [0x00FFFF], traits: ['innovative'], compatibility: ['Gemini'], dateRange: 'Jan 20 - Feb 18',
+                },
+            };
+            return signData[sign.toLowerCase()] || signData['aries'];
         });
 
         mockHoroscopeGenerator.generate.mockResolvedValue({
@@ -207,45 +191,62 @@ describe('Horoscope Command', () => {
         });
     });
 
-    describe('First Time User Flow', () => {
-        test('should show sign selection embed for new users', async () => {
+    describe('Sign Validation', () => {
+        test('should reject invalid zodiac sign', async () => {
             mockInteraction.options.getString.mockImplementation((param: string) => {
-                if (param === 'sign') {return null;}
+                if (param === 'sign') {return 'invalidSign';}
                 if (param === 'type') {return null;}
                 if (param === 'period') {return null;}
                 return null;
             });
 
+            mockZodiacUtil.getZodiacInfo.mockReturnValue({
+                sign: 'Aries', // Default fallback
+                emoji: '♈',
+                element: 'Fire',
+                planet: 'Mars',
+                colors: [0xFF4500],
+                traits: ['courageous'],
+                compatibility: ['Leo'],
+                dateRange: 'Mar 21 - Apr 19',
+                startDate: { month: 3, day: 21 },
+                endDate: { month: 4, day: 19 },
+            });
+
             await horoscopeCommand.execute(mockInteraction, mockContext);
 
             expect(mockInteraction.deferReply).toHaveBeenCalledWith({ ephemeral: true });
-            expect(mockContext.tables.HoroscopeUser.findOne).toHaveBeenCalledWith({
-                where: {
-                    userId: 'test-user-id',
-                    guildId: 'test-guild-id',
-                },
-            });
             expect(mockInteraction.editReply).toHaveBeenCalledWith({
-                embeds: [expect.objectContaining({
-                    data: expect.objectContaining({
-                        title: '🔮 Welcome to Your Personal Horoscope!',
-                    }),
-                })],
+                content: expect.stringContaining('❌ "invalidSign" is not a valid zodiac sign'),
             });
         });
 
-        test('should use saved preferences for returning users', async () => {
+        test('should accept case insensitive zodiac sign input', async () => {
             mockInteraction.options.getString.mockImplementation((param: string) => {
-                if (param === 'sign') {return null;}
+                if (param === 'sign') {return 'LEO';}
                 if (param === 'type') {return 'love';}
                 if (param === 'period') {return 'today';}
                 return null;
             });
 
-            (mockContext.tables.HoroscopeUser.findOne as jest.Mock).mockResolvedValue({
-                zodiacSign: 'leo',
-                birthDate: '08-15',
-                preferredType: 'daily',
+            mockZodiacUtil.getZodiacInfo.mockReturnValue({
+                sign: 'Leo',
+                emoji: '♌',
+                element: 'Fire',
+                planet: 'Sun',
+                colors: [0xFFD700],
+                traits: ['confident', 'generous'],
+                compatibility: ['Aries', 'Sagittarius'],
+                dateRange: 'Jul 23 - Aug 22',
+                startDate: { month: 7, day: 23 },
+                endDate: { month: 8, day: 22 },
+            });
+
+            mockHoroscopeGenerator.generate.mockResolvedValue({
+                content: 'Test horoscope content',
+                luckyNumbers: '7, 14, 21',
+                luckyColor: 'Golden Amber 🧡',
+                mood: 'Passionate 🔥',
             });
 
             await horoscopeCommand.execute(mockInteraction, mockContext);
@@ -260,50 +261,39 @@ describe('Horoscope Command', () => {
         });
     });
 
-    describe('Sign Input Processing', () => {
-        test('should handle zodiac sign input', async () => {
+    describe('Zodiac Sign Processing', () => {
+        test('should process valid zodiac sign names', async () => {
             mockInteraction.options.getString.mockImplementation((param: string) => {
-                if (param === 'sign') {return 'leo';}
+                if (param === 'sign') {return 'cancer';}
                 if (param === 'type') {return 'daily';}
                 if (param === 'period') {return 'today';}
                 return null;
             });
 
-            mockZodiacUtil.parseSignInput.mockReturnValue({
-                sign: 'leo',
-                birthDate: undefined,
+            mockZodiacUtil.getZodiacInfo.mockReturnValue({
+                sign: 'Cancer',
+                emoji: '♋',
+                element: 'Water',
+                planet: 'Moon',
+                colors: [0x87CEEB],
+                traits: ['nurturing', 'intuitive'],
+                compatibility: ['Scorpio', 'Pisces'],
+                dateRange: 'Jun 21 - Jul 22',
+                startDate: { month: 6, day: 21 },
+                endDate: { month: 7, day: 22 },
+            });
+
+            mockHoroscopeGenerator.generate.mockResolvedValue({
+                content: 'Test horoscope content',
+                luckyNumbers: '7, 14, 21',
+                luckyColor: 'Moonlit Silver 🌙',
+                mood: 'Intuitive 🔮',
             });
 
             await horoscopeCommand.execute(mockInteraction, mockContext);
 
-            expect(mockZodiacUtil.parseSignInput).toHaveBeenCalledWith('leo');
             expect(mockHoroscopeGenerator.generate).toHaveBeenCalledWith({
-                sign: 'leo',
-                type: 'daily',
-                period: 'today',
-                userId: 'test-user-id',
-                guildId: 'test-guild-id',
-            }, mockContext);
-        });
-
-        test('should handle birth date input', async () => {
-            mockInteraction.options.getString.mockImplementation((param: string) => {
-                if (param === 'sign') {return '03-21';}
-                if (param === 'type') {return 'daily';}
-                if (param === 'period') {return 'today';}
-                return null;
-            });
-
-            mockZodiacUtil.parseSignInput.mockReturnValue({
-                sign: 'aries',
-                birthDate: '03-21',
-            });
-
-            await horoscopeCommand.execute(mockInteraction, mockContext);
-
-            expect(mockZodiacUtil.parseSignInput).toHaveBeenCalledWith('03-21');
-            expect(mockHoroscopeGenerator.generate).toHaveBeenCalledWith({
-                sign: 'aries',
+                sign: 'cancer',
                 type: 'daily',
                 period: 'today',
                 userId: 'test-user-id',
@@ -416,18 +406,12 @@ describe('Horoscope Command', () => {
                 return null;
             });
 
-            mockZodiacUtil.parseSignInput.mockReturnValue({
-                sign: 'virgo',
-                birthDate: '09-15',
-            });
-
             await horoscopeCommand.execute(mockInteraction, mockContext);
 
             expect(mockContext.tables.HoroscopeUser.upsert).toHaveBeenCalledWith({
                 userId: 'test-user-id',
                 guildId: 'test-guild-id',
                 zodiacSign: 'virgo',
-                birthDate: '09-15',
                 preferredType: 'career',
                 lastReadDate: expect.any(Date),
                 totalReads: 'MOCK_LITERAL',
@@ -598,26 +582,29 @@ describe('Horoscope Command', () => {
         test('should handle missing guild context', async () => {
             mockInteraction.guild = null;
             mockInteraction.options.getString.mockImplementation((param: string) => {
-                if (param === 'sign') {return null;} // No sign provided, force user prefs lookup
+                if (param === 'sign') {return 'aries';}
                 if (param === 'type') {return 'daily';}
                 if (param === 'period') {return 'today';}
                 return null;
             });
 
-            // Mock existing user preferences
-            (mockContext.tables.HoroscopeUser.findOne as jest.Mock).mockResolvedValue({
-                zodiacSign: 'aries',
-                birthDate: '03-21',
-                preferredType: 'daily',
+            mockHoroscopeGenerator.generate.mockResolvedValue({
+                content: 'Test horoscope content for Aries today.',
+                luckyNumbers: '7, 14, 21, 28, 35',
+                luckyColor: 'Stellar Gold ⭐',
+                mood: 'Radiant ✨',
             });
 
             await horoscopeCommand.execute(mockInteraction, mockContext);
 
-            expect(mockContext.tables.HoroscopeUser.findOne).toHaveBeenCalledWith({
-                where: {
-                    userId: 'test-user-id',
-                    guildId: null,
-                },
+            // Should update user stats with null guild
+            expect(mockContext.tables.HoroscopeUser.upsert).toHaveBeenCalledWith({
+                userId: 'test-user-id',
+                guildId: null,
+                zodiacSign: 'aries',
+                preferredType: 'daily',
+                lastReadDate: expect.any(Date),
+                totalReads: 'MOCK_LITERAL',
             });
 
             expect(mockHoroscopeGenerator.generate).toHaveBeenCalledWith({
