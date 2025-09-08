@@ -284,26 +284,56 @@ https://api.polygon.io/v2/aggs/ticker/AAPL/prev?apikey=YOUR_API_KEY
 - [ ] Add `POLYGON_API_KEY` to AWS Systems Manager Parameter Store
   ```bash
   aws ssm put-parameter \
-    --name "/alia-bot/production/POLYGON_API_KEY" \
+    --name "/alia-bot/prod/POLYGON_API_KEY" \
     --value "your-polygon-api-key" \
     --type "SecureString" \
     --description "Polygon.io API key for stock data"
   ```
-- [ ] Update production environment to load from Parameter Store
-- [ ] Verify environment variable is accessible in production
+- [ ] Add to ECS task definition secrets (if using ECS):
+  ```json
+  {
+    "name": "POLYGON_API_KEY", 
+    "valueFrom": "arn:aws:ssm:us-east-1:319709948884:parameter/alia-bot/prod/POLYGON_API_KEY"
+  }
+  ```
+  ```bash
+  # Update ECS task definition (example)
+  aws ecs describe-task-definition --task-definition alia-bot-prod --query taskDefinition > task-def.json
+  # Edit task-def.json to add the secret above to the "secrets" array
+  aws ecs register-task-definition --cli-input-json file://task-def.json
+  # Update ECS service to use new task definition revision
+  ```
+- [ ] Update production environment to load from Parameter Store  
+- [ ] Verify environment variable is accessible in production:
+  ```bash
+  # Test parameter retrieval
+  aws ssm get-parameter --name "/alia-bot/prod/POLYGON_API_KEY" --with-decryption
+  
+  # In production environment, verify bot can access it
+  # Check bot logs for successful Polygon service initialization
+  ```
 
 #### 2. **Code Deployment**
-- [ ] Merge feature branch to master via Pull Request
-- [ ] Deploy updated code to production environment (ECS/Docker)
+- [ ] Merge **PR #214** (`feature/stock-ticker-prd` → `master`)
+- [ ] Run production deployment script: `scripts/deploy.sh`
+  ```bash
+  # Production deployment process:
+  # 1. Pull latest master branch
+  # 2. Install dependencies (npm ci)
+  # 3. Build TypeScript (npm run build)
+  # 4. Restart bot with forever
+  ```
 - [ ] Verify bot startup and connection to Discord
 - [ ] Check logs for any initialization errors
 
 #### 3. **Discord Command Registration**
-- [ ] Run slash command registration script in production
+- [ ] Build TypeScript commands: `npm run build`
+- [ ] Deploy slash commands globally: `node scripts/deploy-commands.js`
   ```bash
-  # Deploy global commands (if not done automatically)
-  npm run deploy-commands
-  # OR manual registration via Discord API if needed
+  # This script will:
+  # 1. Load all commands from dist/src/commands/
+  # 2. Register them globally with Discord API
+  # 3. Confirm successful deployment
   ```
 - [ ] Verify `/stock` command appears in Discord with autocomplete
 - [ ] Test command execution with a simple ticker (e.g., `AAPL`)
