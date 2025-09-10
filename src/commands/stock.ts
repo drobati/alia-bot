@@ -8,8 +8,8 @@ async function getPolygonService(context: Context): Promise<any> {
     if (!polygonService) {
         const apiKey = process.env.POLYGON_API_KEY;
 
-        // Use mock service for placeholder API key
-        if (apiKey === 'placeholder-key-for-testing') {
+        // Use mock service for placeholder API keys
+        if (apiKey === 'placeholder-key-for-testing' || apiKey === 'YOUR_POLYGON_API_KEY_HERE') {
             context.log.info('Using mock stock service for placeholder API key');
             polygonService = new MockPolygonService(context.log);
             return polygonService;
