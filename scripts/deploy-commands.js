@@ -12,6 +12,7 @@ require('dotenv').config();
 
 const BOT_TOKEN = process.env.BOT_TOKEN;
 const CLIENT_ID = process.env.CLIENT_ID || '1174823897842061465'; // Alia bot's client ID
+const GUILD_ID = process.env.GUILD_ID; // Optional guild ID for immediate deployment
 
 if (!BOT_TOKEN) {
     console.error('❌ BOT_TOKEN not found in environment variables');
@@ -65,15 +66,25 @@ const rest = new REST({ version: '10' }).setToken(BOT_TOKEN);
 
 (async () => {
     try {
-        console.log('\n🚀 Starting deployment of application (/) commands...');
+        let data;
         
-        // Deploy globally (to all servers the bot is in)
-        const data = await rest.put(
-            Routes.applicationCommands(CLIENT_ID),
-            { body: commands },
-        );
-
-        console.log(`✅ Successfully deployed ${data.length} application commands globally!`);
+        if (GUILD_ID) {
+            console.log(`\n🚀 Starting deployment of commands to guild ${GUILD_ID}...`);
+            // Deploy to specific guild (immediate update)
+            data = await rest.put(
+                Routes.applicationGuildCommands(CLIENT_ID, GUILD_ID),
+                { body: commands },
+            );
+            console.log(`✅ Successfully deployed ${data.length} application commands to guild!`);
+        } else {
+            console.log('\n🚀 Starting deployment of application (/) commands...');
+            // Deploy globally (to all servers the bot is in)
+            data = await rest.put(
+                Routes.applicationCommands(CLIENT_ID),
+                { body: commands },
+            );
+            console.log(`✅ Successfully deployed ${data.length} application commands globally!`);
+        }
         
         // Show deployed commands
         console.log('\n📋 Deployed commands:');
