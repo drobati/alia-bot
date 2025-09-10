@@ -1,19 +1,103 @@
 import { SlashCommandBuilder, EmbedBuilder, CommandInteraction } from 'discord.js';
 import { Context } from '../utils/types';
-import { PolygonService } from '../utils/polygon-service';
 
 // Initialize Polygon service - will be done once per import
-let polygonService: PolygonService | null = null;
+let polygonService: any = null;
 
-function getPolygonService(context: Context): PolygonService {
+async function getPolygonService(context: Context): Promise<any> {
     if (!polygonService) {
-        polygonService = new PolygonService(context.log);
+        const apiKey = process.env.POLYGON_API_KEY;
+        
+        // Use mock service for placeholder API key
+        if (apiKey === 'placeholder-key-for-testing') {
+            context.log.info('Using mock stock service for placeholder API key');
+            polygonService = new MockPolygonService(context.log);
+            return polygonService;
+        }
+        
+        try {
+            // Use require instead of dynamic import to avoid module resolution issues
+            const { PolygonService } = require('../utils/polygon-service');
+            polygonService = new PolygonService(context.log);
+        } catch (error) {
+            context.log.error('Failed to load PolygonService', { error: error instanceof Error ? error.message : 'Unknown error' });
+            throw new Error('Stock data service is not available. Please contact support.');
+        }
     }
     return polygonService;
 }
 
+// Mock service that bypasses the problematic polygon.io import entirely
+class MockPolygonService {
+    private logger: any;
+
+    constructor(logger: any) {
+        this.logger = logger;
+        logger.info('MockPolygonService initialized for local testing');
+    }
+
+    async getStockQuote(symbol: string) {
+        const normalizedSymbol = symbol.toUpperCase();
+        this.logger.info(`Returning mock data for ${normalizedSymbol}`);
+        
+        // Mock data for common symbols
+        const mockPrices: { [key: string]: number } = {
+            'AAPL': 175.50,
+            'MSFT': 415.25,
+            'GOOGL': 2850.75,
+            'TSLA': 225.30,
+            'AMZN': 3420.85,
+            'NVDA': 875.40,
+            'META': 298.65,
+            'NFLX': 450.20,
+        };
+
+        const basePrice = mockPrices[normalizedSymbol] || 100.00;
+        const change = (Math.random() - 0.5) * 10; // Random change between -5 and +5
+        const changePercent = (change / basePrice) * 100;
+        const volume = Math.floor(Math.random() * 50000000) + 1000000; // Random volume
+        
+        return {
+            symbol: normalizedSymbol,
+            price: basePrice + change,
+            change: change,
+            changePercent: changePercent,
+            volume: volume,
+            high: basePrice + Math.abs(change) + Math.random() * 5,
+            low: basePrice - Math.abs(change) - Math.random() * 5,
+            open: basePrice + (Math.random() - 0.5) * 2,
+            previousClose: basePrice,
+            timestamp: Date.now(),
+            isMarketOpen: this.isMarketOpen(),
+        };
+    }
+
+    getRateLimitStatus() {
+        return { remaining: 5 };
+    }
+
+    private isMarketOpen(): boolean {
+        const now = new Date();
+        const et = new Date(now.toLocaleString("en-US", { timeZone: "America/New_York" }));
+        const day = et.getDay(); // 0 = Sunday, 6 = Saturday
+        
+        if (day === 0 || day === 6) {
+            return false; // Weekend
+        }
+
+        const hour = et.getHours();
+        const minute = et.getMinutes();
+        const timeInMinutes = hour * 60 + minute;
+
+        const marketOpen = 9 * 60 + 30; // 9:30 AM
+        const marketClose = 16 * 60; // 4:00 PM
+
+        return timeInMinutes >= marketOpen && timeInMinutes < marketClose;
+    }
+}
+
 // Helper function to create stock embed
-function createStockEmbed(stockData: any, service: PolygonService): EmbedBuilder {
+function createStockEmbed(stockData: any, service: any): EmbedBuilder {
     const embed = new EmbedBuilder()
         .setTitle(`📈 ${stockData.symbol} Stock Quote`)
         .setColor(stockData.change >= 0 ? 0x00ff00 : 0xff0000) // Green for positive, red for negative
@@ -136,7 +220,8 @@ async function handleStockError(
 
     // Check if we're near rate limit and add warning
     try {
-        const rateLimitStatus = getPolygonService(context).getRateLimitStatus();
+        const service = await getPolygonService(context);
+        const rateLimitStatus = service.getRateLimitStatus();
         if (rateLimitStatus.remaining <= 2) {
             errorMessage += `\n\n⚠️ **Rate limit warning:** Only ` +
                            `${rateLimitStatus.remaining} requests remaining this minute.`;
@@ -213,7 +298,7 @@ export default {
         log.info(`Stock command executed by ${interaction.user.username} for ticker: ${ticker.toUpperCase()}`);
 
         // Get Polygon service and check rate limits before proceeding
-        const service = getPolygonService(context);
+        const service = await getPolygonService(context);
         const rateLimitStatus = service.getRateLimitStatus();
 
         // Check if we're at the rate limit

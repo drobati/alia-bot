@@ -1,4 +1,4 @@
-import { restClient } from '@polygon.io/client-js';
+import { polygonClient } from 'polygon.io';
 import { BotLogger } from './logger';
 
 // Types for Polygon.io API responses
@@ -90,7 +90,7 @@ export class PolygonService {
             throw new Error('POLYGON_API_KEY environment variable is required');
         }
 
-        this.client = restClient(apiKey);
+        this.client = polygonClient(apiKey);
         this.rateLimiter = new RateLimiter(5, 1, logger); // 5 requests per minute
         this.logger = logger;
 
@@ -110,6 +110,12 @@ export class PolygonService {
             return cached;
         }
 
+        // Return mock data for testing when using placeholder API key
+        const apiKey = process.env.POLYGON_API_KEY;
+        if (apiKey === 'placeholder-key-for-testing') {
+            return this.getMockStockData(normalizedSymbol);
+        }
+
         try {
             // Wait for rate limit slot
             await this.rateLimiter.waitForSlot();
@@ -117,7 +123,7 @@ export class PolygonService {
             this.logger.info(`Fetching stock quote for ${normalizedSymbol} from Polygon.io API`);
 
             // Get previous day's data (most reliable endpoint for free tier)
-            const response = await this.client.stocks.previousClose(normalizedSymbol) as PolygonPreviousDayResponse;
+            const response = await this.client.rest.stocks.previousClose(normalizedSymbol) as PolygonPreviousDayResponse;
 
             if (!response.results || response.results.length === 0) {
                 this.logger.warn(`No stock data found for symbol: ${normalizedSymbol}`);
@@ -230,5 +236,51 @@ export class PolygonService {
             size: this.cache.size,
             entries: Array.from(this.cache.keys()),
         };
+    }
+
+    /**
+     * Generate mock stock data for testing purposes
+     */
+    private getMockStockData(symbol: string): StockQuote {
+        this.logger.info(`Returning mock data for ${symbol} (using placeholder API key)`);
+        
+        // Mock data for common symbols
+        const mockPrices: { [key: string]: number } = {
+            'AAPL': 175.50,
+            'MSFT': 415.25,
+            'GOOGL': 2850.75,
+            'TSLA': 225.30,
+            'AMZN': 3420.85,
+            'NVDA': 875.40,
+            'META': 298.65,
+            'NFLX': 450.20,
+        };
+
+        const basePrice = mockPrices[symbol] || 100.00;
+        const change = (Math.random() - 0.5) * 10; // Random change between -5 and +5
+        const changePercent = (change / basePrice) * 100;
+        const volume = Math.floor(Math.random() * 50000000) + 1000000; // Random volume
+        
+        const mockData: StockQuote = {
+            symbol,
+            price: basePrice + change,
+            change: change,
+            changePercent: changePercent,
+            volume: volume,
+            high: basePrice + Math.abs(change) + Math.random() * 5,
+            low: basePrice - Math.abs(change) - Math.random() * 5,
+            open: basePrice + (Math.random() - 0.5) * 2,
+            previousClose: basePrice,
+            timestamp: Date.now(),
+            isMarketOpen: this.isMarketOpen(),
+        };
+
+        // Cache the mock data
+        this.cache.set(symbol, {
+            data: mockData,
+            timestamp: Date.now(),
+        });
+
+        return mockData;
     }
 }

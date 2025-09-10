@@ -92,6 +92,21 @@ async function loadFiles<T>(directory: string, extension: string, handleFile: (m
 }
 
 function handleCommandFile(command: BotCommand, fullPath: string) {
+    log.info(`Attempting to load command from: ${fullPath}`);
+    
+    // Check if command exists and has the expected structure
+    if (!command) {
+        log.error(`Command is null/undefined from: ${fullPath}`);
+        return;
+    }
+    
+    if (!command.data) {
+        log.error(`Command is missing data property from: ${fullPath}`);
+        return;
+    }
+    
+    log.info(`Command data found: ${command.data.name} from ${fullPath}`);
+    
     // Filter out development-only commands in production
     if (command.developmentOnly && process.env.NODE_ENV === 'production') {
         log.info(`Skipping development-only command: ${command.data?.name || 'unknown'}`);
@@ -100,6 +115,7 @@ function handleCommandFile(command: BotCommand, fullPath: string) {
 
     if (command.data) {
         client.commands.set(command.data.name, command);
+        log.info(`Successfully loaded command: ${command.data.name}`);
     } else {
         log.warn(`The command at ${fullPath} is missing a required "data" property.`);
     }
@@ -114,8 +130,13 @@ function handleEventFile(event: BotEvent) {
 }
 
 async function startBot() {
+    log.info('Starting command loading...');
     await loadFiles<BotCommand>('src/commands', '.js', handleCommandFile, 'test.js');
+    log.info(`Command loading complete. Total commands loaded: ${client.commands.size}`);
+    
+    log.info('Starting event loading...');
     await loadFiles<BotEvent>('events', '.js', handleEventFile, 'test.js');
+    log.info('Event loading complete.');
 
     await client.login(process.env.BOT_TOKEN);
     log.info({
