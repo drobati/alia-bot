@@ -7,20 +7,23 @@ let polygonService: any = null;
 async function getPolygonService(context: Context): Promise<any> {
     if (!polygonService) {
         const apiKey = process.env.POLYGON_API_KEY;
-        
+
         // Use mock service for placeholder API key
         if (apiKey === 'placeholder-key-for-testing') {
             context.log.info('Using mock stock service for placeholder API key');
             polygonService = new MockPolygonService(context.log);
             return polygonService;
         }
-        
+
         try {
-            // Use require instead of dynamic import to avoid module resolution issues
-            const { PolygonService } = require('../utils/polygon-service');
+            // Dynamic import to avoid module resolution issues
+            const polygonModule = await import('../utils/polygon-service');
+            const { PolygonService } = polygonModule;
             polygonService = new PolygonService(context.log);
         } catch (error) {
-            context.log.error('Failed to load PolygonService', { error: error instanceof Error ? error.message : 'Unknown error' });
+            context.log.error('Failed to load PolygonService', {
+                error: error instanceof Error ? error.message : 'Unknown error',
+            });
             throw new Error('Stock data service is not available. Please contact support.');
         }
     }
@@ -39,7 +42,7 @@ class MockPolygonService {
     async getStockQuote(symbol: string) {
         const normalizedSymbol = symbol.toUpperCase();
         this.logger.info(`Returning mock data for ${normalizedSymbol}`);
-        
+
         // Mock data for common symbols
         const mockPrices: { [key: string]: number } = {
             'AAPL': 175.50,
@@ -56,7 +59,7 @@ class MockPolygonService {
         const change = (Math.random() - 0.5) * 10; // Random change between -5 and +5
         const changePercent = (change / basePrice) * 100;
         const volume = Math.floor(Math.random() * 50000000) + 1000000; // Random volume
-        
+
         return {
             symbol: normalizedSymbol,
             price: basePrice + change,
@@ -80,7 +83,7 @@ class MockPolygonService {
         const now = new Date();
         const et = new Date(now.toLocaleString("en-US", { timeZone: "America/New_York" }));
         const day = et.getDay(); // 0 = Sunday, 6 = Saturday
-        
+
         if (day === 0 || day === 6) {
             return false; // Weekend
         }

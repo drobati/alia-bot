@@ -123,7 +123,8 @@ export class PolygonService {
             this.logger.info(`Fetching stock quote for ${normalizedSymbol} from Polygon.io API`);
 
             // Get previous day's data (most reliable endpoint for free tier)
-            const response = await this.client.rest.stocks.previousClose(normalizedSymbol) as PolygonPreviousDayResponse;
+            const response = await this.client.rest.stocks.previousClose(normalizedSymbol) as
+                PolygonPreviousDayResponse;
 
             if (!response.results || response.results.length === 0) {
                 this.logger.warn(`No stock data found for symbol: ${normalizedSymbol}`);
@@ -243,7 +244,7 @@ export class PolygonService {
      */
     private getMockStockData(symbol: string): StockQuote {
         this.logger.info(`Returning mock data for ${symbol} (using placeholder API key)`);
-        
+
         // Mock data for common symbols
         const mockPrices: { [key: string]: number } = {
             'AAPL': 175.50,
@@ -260,7 +261,7 @@ export class PolygonService {
         const change = (Math.random() - 0.5) * 10; // Random change between -5 and +5
         const changePercent = (change / basePrice) * 100;
         const volume = Math.floor(Math.random() * 50000000) + 1000000; // Random volume
-        
+
         const mockData: StockQuote = {
             symbol,
             price: basePrice + change,
