@@ -73,13 +73,13 @@ export default {
         .setDescription('Receive a fortune cookie message')
         .addBooleanOption(option =>
             option
-                .setName('public')
-                .setDescription('Share your fortune with the channel (default: private)')
+                .setName('private')
+                .setDescription('Keep your fortune private (default: public)')
                 .setRequired(false)),
 
     async execute(interaction: any, context: Context) {
         const { log } = context;
-        const isPublic = interaction.options.getBoolean('public') || false;
+        const isPrivate = interaction.options.getBoolean('private') || false;
 
         try {
             // Select a random fortune
@@ -96,14 +96,14 @@ export default {
 
             await interaction.reply({
                 content: fortuneMessage,
-                ephemeral: !isPublic,
+                ephemeral: isPrivate,
             });
 
             log.info('Fortune command executed', {
                 userId: interaction.user.id,
                 username: interaction.user.username,
                 guildId: interaction.guild?.id,
-                isPublic: isPublic,
+                isPrivate: isPrivate,
                 fortune: fortune.substring(0, 50) + '...', // Log partial fortune
             });
 
