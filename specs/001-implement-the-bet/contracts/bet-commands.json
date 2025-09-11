@@ -1,0 +1,387 @@
+{
+  "openapi": "3.0.0",
+  "info": {
+    "title": "Discord Betting System Commands",
+    "version": "1.0.0",
+    "description": "Slash command contracts for Discord bot betting system"
+  },
+  "components": {
+    "schemas": {
+      "BetStatement": {
+        "type": "string",
+        "maxLength": 200,
+        "minLength": 10,
+        "description": "The betting question or statement"
+      },
+      "SparkAmount": {
+        "type": "integer",
+        "minimum": 1,
+        "maximum": 1000,
+        "description": "Amount of Sparks to wager"
+      },
+      "BetId": {
+        "type": "string",
+        "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$",
+        "description": "UUID identifier for a bet"
+      },
+      "BetSide": {
+        "type": "string",
+        "enum": ["for", "against"],
+        "description": "Which side of the bet to join"
+      },
+      "BetOutcome": {
+        "type": "string",
+        "enum": ["for", "against", "void"],
+        "description": "Final settlement result"
+      },
+      "TimeInput": {
+        "type": "string",
+        "description": "Relative time (1h, 2d) or ISO timestamp"
+      },
+      "OddsRatio": {
+        "type": "string",
+        "pattern": "^[1-9]:[1-9]$",
+        "description": "Odds ratio format like 2:1 or 3:2"
+      }
+    }
+  },
+  "paths": {
+    "/bet/open": {
+      "post": {
+        "summary": "Create a new betting market",
+        "operationId": "createBet",
+        "parameters": [
+          {
+            "name": "amount",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/SparkAmount"
+            },
+            "description": "Initial wager amount"
+          },
+          {
+            "name": "statement", 
+            "in": "query",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/BetStatement"
+            },
+            "description": "The betting question"
+          },
+          {
+            "name": "ends",
+            "in": "query", 
+            "required": false,
+            "schema": {
+              "$ref": "#/components/schemas/TimeInput"
+            },
+            "description": "When betting closes (default: 24h)"
+          },
+          {
+            "name": "odds",
+            "in": "query",
+            "required": false, 
+            "schema": {
+              "$ref": "#/components/schemas/OddsRatio"
+            },
+            "description": "Payout odds (default: 1:1)"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Bet created successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "bet_id": {"$ref": "#/components/schemas/BetId"},
+                    "statement": {"type": "string"},
+                    "closes_at": {"type": "string", "format": "date-time"},
+                    "odds": {"type": "string"},
+                    "escrow_amount": {"type": "integer"}
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid input parameters"
+          },
+          "402": {
+            "description": "Insufficient Sparks balance"
+          }
+        }
+      }
+    },
+    "/bet/join": {
+      "post": {
+        "summary": "Join an existing bet",
+        "operationId": "joinBet",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/BetId"
+            },
+            "description": "Bet to join"
+          },
+          {
+            "name": "amount",
+            "in": "query", 
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/SparkAmount"
+            },
+            "description": "Wager amount"
+          },
+          {
+            "name": "side",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "$ref": "#/components/schemas/BetSide"
+            },
+            "description": "Which side to bet on (default: for)"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successfully joined bet",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "bet_id": {"$ref": "#/components/schemas/BetId"},
+                    "side": {"$ref": "#/components/schemas/BetSide"},
+                    "amount": {"type": "integer"},
+                    "potential_payout": {"type": "integer"}
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid bet ID or parameters"
+          },
+          "402": {
+            "description": "Insufficient balance"
+          },
+          "409": {
+            "description": "Bet closed or already joined"
+          }
+        }
+      }
+    },
+    "/bet/list": {
+      "get": {
+        "summary": "Browse available bets",
+        "operationId": "listBets",
+        "parameters": [
+          {
+            "name": "filter",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "enum": ["open", "my", "recent"]
+            },
+            "description": "Filter type (default: open)"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "List of bets matching filter",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "bets": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "bet_id": {"$ref": "#/components/schemas/BetId"},
+                          "statement": {"type": "string"},
+                          "status": {"type": "string"},
+                          "total_pot": {"type": "integer"},
+                          "participants": {"type": "integer"},
+                          "closes_at": {"type": "string", "format": "date-time"}
+                        }
+                      }
+                    },
+                    "total_count": {"type": "integer"},
+                    "page": {"type": "integer"}
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/bet/settle": {
+      "post": {
+        "summary": "Settle a bet (moderator only)",
+        "operationId": "settleBet",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/BetId"
+            },
+            "description": "Bet to settle"
+          },
+          {
+            "name": "outcome",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/BetOutcome" 
+            },
+            "description": "Settlement result"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Bet settled successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "bet_id": {"$ref": "#/components/schemas/BetId"},
+                    "outcome": {"$ref": "#/components/schemas/BetOutcome"},
+                    "total_payout": {"type": "integer"},
+                    "winner_count": {"type": "integer"},
+                    "settled_by": {"type": "string"}
+                  }
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Insufficient permissions"
+          },
+          "404": {
+            "description": "Bet not found"
+          },
+          "409": {
+            "description": "Bet already settled"
+          }
+        }
+      }
+    },
+    "/balance": {
+      "get": {
+        "summary": "Check user balance and transaction history",
+        "operationId": "getBalance",
+        "parameters": [
+          {
+            "name": "user",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "description": "Discord user mention"
+            },
+            "description": "Check another user's balance (moderator only)"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "User balance information",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "current_balance": {"type": "integer"},
+                    "escrow_balance": {"type": "integer"},
+                    "lifetime_earned": {"type": "integer"},
+                    "lifetime_spent": {"type": "integer"},
+                    "recent_transactions": {
+                      "type": "array",
+                      "maxItems": 5,
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "type": {"type": "string"},
+                          "amount": {"type": "integer"},
+                          "timestamp": {"type": "string", "format": "date-time"},
+                          "reference": {"type": "string"}
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Cannot access other user's balance"
+          }
+        }
+      }
+    },
+    "/lastseen": {
+      "get": {
+        "summary": "Check when a user was last active",
+        "operationId": "getLastSeen",
+        "parameters": [
+          {
+            "name": "user",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "description": "Discord user mention"
+            },
+            "description": "User to check"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Last seen information",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "user": {"type": "string"},
+                    "last_seen": {
+                      "oneOf": [
+                        {
+                          "type": "object",
+                          "properties": {
+                            "timestamp": {"type": "string", "format": "date-time"},
+                            "channel": {"type": "string"},
+                            "relative_time": {"type": "string"}
+                          }
+                        },
+                        {
+                          "type": "string",
+                          "enum": ["unavailable"]
+                        }
+                      ]
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "User not found"
+          }
+        }
+      }
+    }
+  }
+}
