@@ -152,8 +152,8 @@ describe('Horoscope Command', () => {
                 expect(choices.some((c: any) => c.value === 'today')).toBe(true);
             }
 
-            const publicOption = options.find((opt: any) => opt.name === 'public');
-            expect(publicOption).toBeDefined();
+            const privateOption = options.find((opt: any) => opt.name === 'private');
+            expect(privateOption).toBeDefined();
         });
     });
 
@@ -215,7 +215,7 @@ describe('Horoscope Command', () => {
 
             await horoscopeCommand.execute(mockInteraction, mockContext);
 
-            expect(mockInteraction.deferReply).toHaveBeenCalledWith({ ephemeral: true });
+            expect(mockInteraction.deferReply).toHaveBeenCalledWith({ ephemeral: false });
             expect(mockInteraction.editReply).toHaveBeenCalledWith({
                 content: expect.stringContaining('❌ "invalidSign" is not a valid zodiac sign'),
             });
@@ -453,22 +453,22 @@ describe('Horoscope Command', () => {
     });
 
     describe('Public vs Private Display', () => {
-        test('should default to private display', async () => {
+        test('should default to public display', async () => {
             mockInteraction.options.getString.mockReturnValue('aries');
             mockInteraction.options.getBoolean.mockReturnValue(false);
 
             await horoscopeCommand.execute(mockInteraction, mockContext);
 
-            expect(mockInteraction.deferReply).toHaveBeenCalledWith({ ephemeral: true });
+            expect(mockInteraction.deferReply).toHaveBeenCalledWith({ ephemeral: false });
         });
 
-        test('should support public display when requested', async () => {
+        test('should support private display when requested', async () => {
             mockInteraction.options.getString.mockReturnValue('taurus');
             mockInteraction.options.getBoolean.mockReturnValue(true);
 
             await horoscopeCommand.execute(mockInteraction, mockContext);
 
-            expect(mockInteraction.deferReply).toHaveBeenCalledWith({ ephemeral: false });
+            expect(mockInteraction.deferReply).toHaveBeenCalledWith({ ephemeral: true });
         });
     });
 
@@ -553,7 +553,7 @@ describe('Horoscope Command', () => {
                 sign: 'aquarius',
                 type: 'weekly',
                 period: 'this-week',
-                isPublic: true,
+                isPrivate: true,
             });
         });
     });

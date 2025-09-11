@@ -38,14 +38,14 @@ describe('fortune command', () => {
         expect(fortuneCommand.data.description).toBe('Receive a fortune cookie message');
     });
 
-    it('should send private fortune by default', async () => {
+    it('should send public fortune by default', async () => {
         mockInteraction.options.getBoolean.mockReturnValue(false);
 
         await fortuneCommand.execute(mockInteraction, mockContext);
 
         expect(mockInteraction.reply).toHaveBeenCalledWith({
             content: expect.stringContaining('🥠 **Your Fortune Cookie** 🥠'),
-            ephemeral: true,
+            ephemeral: false,
         });
 
         // Verify the fortune message structure
@@ -55,14 +55,14 @@ describe('fortune command', () => {
         expect(replyCall.content).toContain('Fortune Level:');
     });
 
-    it('should send public fortune when requested', async () => {
+    it('should send private fortune when requested', async () => {
         mockInteraction.options.getBoolean.mockReturnValue(true);
 
         await fortuneCommand.execute(mockInteraction, mockContext);
 
         expect(mockInteraction.reply).toHaveBeenCalledWith({
             content: expect.stringContaining('🥠 **Your Fortune Cookie** 🥠'),
-            ephemeral: false,
+            ephemeral: true,
         });
     });
 
@@ -121,7 +121,7 @@ describe('fortune command', () => {
                 userId: 'test-user-id',
                 username: 'testuser',
                 guildId: 'test-guild-id',
-                isPublic: true,
+                isPrivate: true,
                 fortune: expect.any(String),
             }),
         );
@@ -156,7 +156,7 @@ describe('fortune command', () => {
 
         expect(mockInteraction.reply).toHaveBeenCalledWith({
             content: expect.stringContaining('🥠 **Your Fortune Cookie** 🥠'),
-            ephemeral: true,
+            ephemeral: false,
         });
 
         expect(mockContext.log.info).toHaveBeenCalledWith(
