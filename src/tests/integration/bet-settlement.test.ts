@@ -157,7 +157,7 @@ describe('Bet Settlement & Payouts Integration', () => {
             mockBetUsers.findOne.mockResolvedValue(settlingUser);
             mockBetUsers.findOrCreate.mockResolvedValue([settlingUser, false]);
 
-            // Update bet to include opener_id - make settler the opener  
+            // Update bet to include opener_id - make settler the opener
             (bet as any).opener_id = 1;
 
             // Act: Settle bet
@@ -182,7 +182,7 @@ describe('Bet Settlement & Payouts Integration', () => {
                 expect.any(Object),
             );
 
-            // User B: Gets 15 stake + (15 * 1 odds) = 30 total payout  
+            // User B: Gets 15 stake + (15 * 1 odds) = 30 total payout
             expect(userBBalance.update).toHaveBeenCalledWith(
                 expect.objectContaining({
                     available_balance: 65, // 35 + 30
@@ -198,7 +198,7 @@ describe('Bet Settlement & Payouts Integration', () => {
                 expect.any(Object),
             );
 
-            // Assert: Ledger entries created for payouts  
+            // Assert: Ledger entries created for payouts
             expect(mockBetLedger.create).toHaveBeenCalledWith(
                 expect.objectContaining({
                     user_id: 1,
@@ -258,7 +258,7 @@ describe('Bet Settlement & Payouts Integration', () => {
             const settlingUser = { id: 1, discord_id: 'moderator-id' };
             mockBetUsers.findOne.mockResolvedValue(settlingUser);
             mockBetUsers.findOrCreate.mockResolvedValue([settlingUser, false]);
-            
+
             mockBetWagers.findByPk.mockResolvedValue(bet);
             mockBetParticipants.findAll.mockResolvedValue(participants);
             mockBetBalances.findOne.mockImplementation(({ where }: any) => {

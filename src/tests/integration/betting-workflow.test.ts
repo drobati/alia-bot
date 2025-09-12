@@ -206,7 +206,7 @@ describe('Creating and Joining Bets Workflow Integration', () => {
                 side: 'for',
                 amount: 15,
             });
-            
+
             // Reset mocks for user B
             mockBetUsers.findOrCreate.mockResolvedValue([userB, false]);
             mockBetBalances.findOrCreate.mockResolvedValue([userBBalance, false]);
