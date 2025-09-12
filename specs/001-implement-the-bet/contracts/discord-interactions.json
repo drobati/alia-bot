@@ -1,0 +1,348 @@
+{
+  "openapi": "3.0.0", 
+  "info": {
+    "title": "Discord Interaction Contracts",
+    "version": "1.0.0",
+    "description": "Button and modal interaction patterns for betting system"
+  },
+  "components": {
+    "schemas": {
+      "ButtonInteraction": {
+        "type": "object",
+        "properties": {
+          "custom_id": {"type": "string"},
+          "component_type": {"type": "integer", "enum": [2]},
+          "user": {
+            "type": "object", 
+            "properties": {
+              "id": {"type": "string"},
+              "username": {"type": "string"}
+            }
+          }
+        }
+      },
+      "ModalSubmission": {
+        "type": "object",
+        "properties": {
+          "custom_id": {"type": "string"},
+          "components": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "type": {"type": "integer", "enum": [1]},
+                "components": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "custom_id": {"type": "string"},
+                      "value": {"type": "string"}
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "paths": {
+    "/interactions/bet-join-for": {
+      "post": {
+        "summary": "User clicks 'Join For' button on bet embed",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ButtonInteraction"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Show bet join modal",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "type": {"type": "integer", "enum": [9]},
+                    "data": {
+                      "type": "object",
+                      "properties": {
+                        "title": {"type": "string", "example": "Join Bet - For Side"},
+                        "custom_id": {"type": "string"},
+                        "components": {
+                          "type": "array",
+                          "items": {
+                            "type": "object",
+                            "properties": {
+                              "type": {"type": "integer", "enum": [1]},
+                              "components": {
+                                "type": "array",
+                                "items": {
+                                  "type": "object",
+                                  "properties": {
+                                    "type": {"type": "integer", "enum": [4]},
+                                    "custom_id": {"type": "string"},
+                                    "label": {"type": "string"},
+                                    "placeholder": {"type": "string"},
+                                    "min_length": {"type": "integer"},
+                                    "max_length": {"type": "integer"}
+                                  }
+                                }
+                              }
+                            }
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/interactions/bet-join-against": {
+      "post": {
+        "summary": "User clicks 'Join Against' button on bet embed",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ButtonInteraction"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Show bet join modal for against side",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "type": {"type": "integer", "enum": [9]},
+                    "data": {
+                      "type": "object",
+                      "properties": {
+                        "title": {"type": "string", "example": "Join Bet - Against Side"},
+                        "custom_id": {"type": "string"}
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/interactions/bet-view-details": {
+      "post": {
+        "summary": "User clicks 'View Details' button",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ButtonInteraction"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Show detailed bet information embed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "type": {"type": "integer", "enum": [4]},
+                    "data": {
+                      "type": "object",
+                      "properties": {
+                        "embeds": {
+                          "type": "array",
+                          "items": {
+                            "type": "object",
+                            "properties": {
+                              "title": {"type": "string"},
+                              "description": {"type": "string"},
+                              "fields": {
+                                "type": "array",
+                                "items": {
+                                  "type": "object", 
+                                  "properties": {
+                                    "name": {"type": "string"},
+                                    "value": {"type": "string"},
+                                    "inline": {"type": "boolean"}
+                                  }
+                                }
+                              },
+                              "footer": {
+                                "type": "object",
+                                "properties": {
+                                  "text": {"type": "string"}
+                                }
+                              }
+                            }
+                          }
+                        },
+                        "flags": {"type": "integer", "enum": [64]}
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/interactions/bet-join-modal": {
+      "post": {
+        "summary": "User submits bet join modal form",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ModalSubmission"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Process bet join and update embed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "type": {"type": "integer", "enum": [7]},
+                    "data": {
+                      "type": "object",
+                      "properties": {
+                        "embeds": {
+                          "type": "array",
+                          "items": {
+                            "type": "object",
+                            "properties": {
+                              "title": {"type": "string"},
+                              "color": {"type": "integer"},
+                              "fields": {
+                                "type": "array",
+                                "items": {
+                                  "type": "object",
+                                  "properties": {
+                                    "name": {"type": "string"},
+                                    "value": {"type": "string"},
+                                    "inline": {"type": "boolean"}
+                                  }
+                                }
+                              }
+                            }
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid form data or insufficient balance"
+          }
+        }
+      }
+    },
+    "/interactions/bet-pagination": {
+      "post": {
+        "summary": "User clicks pagination buttons on bet lists",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ButtonInteraction"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Update embed with new page",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "type": {"type": "integer", "enum": [7]},
+                    "data": {
+                      "type": "object",
+                      "properties": {
+                        "embeds": {
+                          "type": "array",
+                          "maxItems": 1,
+                          "items": {
+                            "type": "object",
+                            "properties": {
+                              "title": {"type": "string"},
+                              "description": {"type": "string"},
+                              "fields": {
+                                "type": "array",
+                                "maxItems": 10,
+                                "items": {
+                                  "type": "object",
+                                  "properties": {
+                                    "name": {"type": "string"},
+                                    "value": {"type": "string"},
+                                    "inline": {"type": "boolean"}
+                                  }
+                                }
+                              }
+                            }
+                          }
+                        },
+                        "components": {
+                          "type": "array",
+                          "items": {
+                            "type": "object",
+                            "properties": {
+                              "type": {"type": "integer", "enum": [1]},
+                              "components": {
+                                "type": "array",
+                                "maxItems": 5,
+                                "items": {
+                                  "type": "object",
+                                  "properties": {
+                                    "type": {"type": "integer", "enum": [2]},
+                                    "custom_id": {"type": "string"},
+                                    "label": {"type": "string"},
+                                    "style": {"type": "integer"},
+                                    "disabled": {"type": "boolean"}
+                                  }
+                                }
+                              }
+                            }
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}
