@@ -7,36 +7,34 @@ describe('lastseen command', () => {
     let mockContext: Context;
     let mockBetUsers: any;
     let mockBetEngagementStats: any;
+    let mockBetBalances: any;
 
     beforeEach(() => {
         jest.clearAllMocks();
 
         mockBetUsers = {
             findOne: jest.fn(),
+            create: jest.fn(),
+            update: jest.fn(),
         };
 
         mockBetEngagementStats = {
             findOne: jest.fn(),
+            create: jest.fn(),
+        };
+
+        mockBetBalances = {
+            create: jest.fn(),
         };
 
         mockInteraction = {
             user: { id: 'requester-id', username: 'requester' },
-            guild: {
-                id: 'test-guild-id',
-                members: {
-                    cache: {
-                        get: jest.fn(),
-                    },
-                },
-                channels: {
-                    cache: {
-                        get: jest.fn(),
-                    },
-                },
-            },
+            guild: { id: 'test-guild-id' },
             reply: jest.fn(),
             options: {
+                getSubcommand: jest.fn(),
                 getUser: jest.fn(),
+                getBoolean: jest.fn(),
             },
         };
 
@@ -49,6 +47,7 @@ describe('lastseen command', () => {
             tables: {
                 BetUsers: mockBetUsers,
                 BetEngagementStats: mockBetEngagementStats,
+                BetBalances: mockBetBalances,
             },
         } as any;
     });
@@ -57,27 +56,23 @@ describe('lastseen command', () => {
         it('should have correct command name and description', () => {
             expect(lastseenCommand.data).toBeInstanceOf(SlashCommandBuilder);
             expect(lastseenCommand.data.name).toBe('lastseen');
-            expect(lastseenCommand.data.description).toContain('Check when a user was last seen');
+            expect(lastseenCommand.data.description).toContain('Check when someone was last seen');
         });
 
-        it('should have required user parameter', () => {
+        it('should have required subcommands', () => {
             const commandData = lastseenCommand.data.toJSON();
-            const userOption = commandData.options?.find(opt => opt.name === 'user');
-            expect(userOption).toBeDefined();
-            expect(userOption?.required).toBe(true);
+            const subcommands = commandData.options?.filter(opt => opt.type === 1) || [];
+            const subcommandNames = subcommands.map(sub => sub.name);
+            expect(subcommandNames).toContain('check');
+            expect(subcommandNames).toContain('privacy');
         });
     });
 
-    describe('successful last seen check', () => {
+    describe('check subcommand', () => {
         beforeEach(() => {
+            mockInteraction.options.getSubcommand.mockReturnValue('check');
             const targetUser = { id: 'target-user-id', username: 'targetuser' };
             mockInteraction.options.getUser.mockReturnValue(targetUser);
-
-            const mockGuildMember = {
-                user: targetUser,
-                displayName: 'Target User',
-            };
-            mockInteraction.guild.members.cache.get.mockReturnValue(mockGuildMember);
         });
 
         it('should show last seen information when available', async () => {
@@ -90,16 +85,12 @@ describe('lastseen command', () => {
             const mockEngagementStats = {
                 last_message_at: lastMessageTime,
                 last_message_channel_id: 'channel-123',
-            };
-
-            const mockChannel = {
-                name: 'general',
-                toString: () => '<#channel-123>',
+                message_count: 42,
+                daily_earn_count: 5,
             };
 
             mockBetUsers.findOne.mockResolvedValue(mockUser);
             mockBetEngagementStats.findOne.mockResolvedValue(mockEngagementStats);
-            mockInteraction.guild.channels.cache.get.mockReturnValue(mockChannel);
 
             await lastseenCommand.execute(mockInteraction, mockContext);
 
@@ -108,21 +99,22 @@ describe('lastseen command', () => {
                     embeds: expect.arrayContaining([
                         expect.objectContaining({
                             data: expect.objectContaining({
-                                title: expect.stringContaining('Last Seen'),
-                                description: expect.stringContaining('Target User'),
+                                title: expect.stringContaining('Last Seen: targetuser'),
+                                description: expect.stringContaining('<#channel-123>'),
                                 fields: expect.arrayContaining([
                                     expect.objectContaining({
-                                        name: 'Last Active',
-                                        value: expect.stringContaining('<#channel-123>'),
+                                        name: 'Message Count',
+                                        value: '42',
                                     }),
                                     expect.objectContaining({
-                                        name: 'Time',
-                                        value: expect.stringMatching(/.*ago.*/),
+                                        name: 'Daily Earns',
+                                        value: '5',
                                     }),
                                 ]),
                             }),
                         }),
                     ]),
+                    ephemeral: true,
                 }),
             );
         });
@@ -140,7 +132,7 @@ describe('lastseen command', () => {
 
             expect(mockInteraction.reply).toHaveBeenCalledWith(
                 expect.objectContaining({
-                    content: expect.stringContaining('privacy settings'),
+                    content: expect.stringContaining('chosen to keep their last seen time private'),
                     ephemeral: true,
                 }),
             );
@@ -160,17 +152,10 @@ describe('lastseen command', () => {
 
             expect(mockInteraction.reply).toHaveBeenCalledWith(
                 expect.objectContaining({
-                    content: expect.stringContaining('never been active'),
+                    content: expect.stringContaining('No activity recorded'),
                     ephemeral: true,
                 }),
             );
-        });
-    });
-
-    describe('error handling', () => {
-        beforeEach(() => {
-            const targetUser = { id: 'target-user-id', username: 'targetuser' };
-            mockInteraction.options.getUser.mockReturnValue(targetUser);
         });
 
         it('should handle user not in betting system', async () => {
@@ -180,42 +165,10 @@ describe('lastseen command', () => {
 
             expect(mockInteraction.reply).toHaveBeenCalledWith(
                 expect.objectContaining({
-                    content: expect.stringContaining('not found'),
+                    content: expect.stringContaining('not registered in the betting system'),
                     ephemeral: true,
                 }),
             );
-        });
-
-        it('should handle user not in guild', async () => {
-            const targetUser = { id: 'target-user-id', username: 'targetuser' };
-            mockInteraction.options.getUser.mockReturnValue(targetUser);
-            mockInteraction.guild.members.cache.get.mockReturnValue(null);
-
-            await lastseenCommand.execute(mockInteraction, mockContext);
-
-            expect(mockInteraction.reply).toHaveBeenCalledWith(
-                expect.objectContaining({
-                    content: expect.stringContaining('not a member'),
-                    ephemeral: true,
-                }),
-            );
-        });
-
-        it('should handle database errors', async () => {
-            const targetUser = { id: 'target-user-id', username: 'targetuser' };
-            mockInteraction.options.getUser.mockReturnValue(targetUser);
-            mockInteraction.guild.members.cache.get.mockReturnValue({ user: targetUser });
-            mockBetUsers.findOne.mockRejectedValue(new Error('Database error'));
-
-            await lastseenCommand.execute(mockInteraction, mockContext);
-
-            expect(mockInteraction.reply).toHaveBeenCalledWith(
-                expect.objectContaining({
-                    content: expect.stringContaining('error'),
-                    ephemeral: true,
-                }),
-            );
-            expect(mockContext.log.error).toHaveBeenCalled();
         });
 
         it('should prevent checking own last seen', async () => {
@@ -226,7 +179,114 @@ describe('lastseen command', () => {
 
             expect(mockInteraction.reply).toHaveBeenCalledWith(
                 expect.objectContaining({
-                    content: expect.stringContaining('check your own'),
+                    content: expect.stringContaining('You\'re... you\'re right here'),
+                    ephemeral: true,
+                }),
+            );
+        });
+
+        it('should handle database errors', async () => {
+            mockBetUsers.findOne.mockRejectedValue(new Error('Database error'));
+
+            await lastseenCommand.execute(mockInteraction, mockContext);
+
+            expect(mockInteraction.reply).toHaveBeenCalledWith(
+                expect.objectContaining({
+                    content: expect.stringContaining('Database error'),
+                    ephemeral: true,
+                }),
+            );
+            expect(mockContext.log.error).toHaveBeenCalled();
+        });
+    });
+
+    describe('privacy subcommand', () => {
+        beforeEach(() => {
+            mockInteraction.options.getSubcommand.mockReturnValue('privacy');
+        });
+
+        it('should create new user with privacy setting when user does not exist', async () => {
+            mockInteraction.options.getBoolean.mockReturnValue(true); // Hide = true
+            mockBetUsers.findOne.mockResolvedValue(null);
+
+            const mockUser = { id: 1, discord_id: 'requester-id' };
+            mockBetUsers.create.mockResolvedValue(mockUser);
+
+            await lastseenCommand.execute(mockInteraction, mockContext);
+
+            expect(mockBetUsers.create).toHaveBeenCalledWith(
+                expect.objectContaining({
+                    discord_id: 'requester-id',
+                    handle: null,
+                    hide_last_seen: true,
+                }),
+            );
+
+            expect(mockBetBalances.create).toHaveBeenCalledWith(
+                expect.objectContaining({
+                    user_id: 1,
+                    available_balance: 100,
+                    escrowed_balance: 0,
+                }),
+            );
+
+            expect(mockBetEngagementStats.create).toHaveBeenCalledWith(
+                expect.objectContaining({
+                    user_id: 1,
+                    message_count: 0,
+                    daily_earn_count: 0,
+                }),
+            );
+
+            expect(mockInteraction.reply).toHaveBeenCalledWith(
+                expect.objectContaining({
+                    content: expect.stringContaining('Welcome to the betting system'),
+                    ephemeral: true,
+                }),
+            );
+        });
+
+        it('should update existing user privacy setting', async () => {
+            mockInteraction.options.getBoolean.mockReturnValue(false); // Hide = false
+
+            const mockUser = {
+                id: 1,
+                discord_id: 'requester-id',
+                hide_last_seen: true,
+                update: jest.fn(),
+            };
+            mockBetUsers.findOne.mockResolvedValue(mockUser);
+
+            await lastseenCommand.execute(mockInteraction, mockContext);
+
+            expect(mockUser.update).toHaveBeenCalledWith({ hide_last_seen: false });
+
+            expect(mockInteraction.reply).toHaveBeenCalledWith(
+                expect.objectContaining({
+                    content: expect.stringContaining('👀 Your last seen status is now **visible**'),
+                    ephemeral: true,
+                }),
+            );
+        });
+
+        it('should show correct message when hiding last seen', async () => {
+            mockInteraction.options.getBoolean.mockReturnValue(true); // Hide = true
+
+            const mockUser = {
+                id: 1,
+                discord_id: 'requester-id',
+                hide_last_seen: false,
+                update: jest.fn(),
+            };
+            mockBetUsers.findOne.mockResolvedValue(mockUser);
+
+            await lastseenCommand.execute(mockInteraction, mockContext);
+
+            expect(mockUser.update).toHaveBeenCalledWith({ hide_last_seen: true });
+
+            expect(mockInteraction.reply).toHaveBeenCalledWith(
+                expect.objectContaining({
+                    content: expect.stringContaining('🔒 Your last seen status is now **hidden**'),
                     ephemeral: true,
                 }),
             );
@@ -235,12 +295,9 @@ describe('lastseen command', () => {
 
     describe('time formatting', () => {
         beforeEach(() => {
+            mockInteraction.options.getSubcommand.mockReturnValue('check');
             const targetUser = { id: 'target-user-id', username: 'targetuser' };
             mockInteraction.options.getUser.mockReturnValue(targetUser);
-            mockInteraction.guild.members.cache.get.mockReturnValue({
-                user: targetUser,
-                displayName: 'Target User',
-            });
 
             const mockUser = {
                 id: 1,
@@ -255,17 +312,15 @@ describe('lastseen command', () => {
             mockBetEngagementStats.findOne.mockResolvedValue({
                 last_message_at: twoMinutesAgo,
                 last_message_channel_id: 'channel-123',
-            });
-            mockInteraction.guild.channels.cache.get.mockReturnValue({
-                name: 'general',
-                toString: () => '<#channel-123>',
+                message_count: 10,
+                daily_earn_count: 2,
             });
 
             await lastseenCommand.execute(mockInteraction, mockContext);
 
             const embedCall = mockInteraction.reply.mock.calls[0][0];
-            const timeField = embedCall.embeds[0].data.fields.find((f: any) => f.name === 'Time');
-            expect(timeField?.value).toMatch(/2 minutes ago/);
+            const description = embedCall.embeds[0].data.description;
+            expect(description).toMatch(/2 minutes ago/);
         });
 
         it('should format old times correctly', async () => {
@@ -273,17 +328,48 @@ describe('lastseen command', () => {
             mockBetEngagementStats.findOne.mockResolvedValue({
                 last_message_at: threeDaysAgo,
                 last_message_channel_id: 'channel-123',
-            });
-            mockInteraction.guild.channels.cache.get.mockReturnValue({
-                name: 'general',
-                toString: () => '<#channel-123>',
+                message_count: 50,
+                daily_earn_count: 8,
             });
 
             await lastseenCommand.execute(mockInteraction, mockContext);
 
             const embedCall = mockInteraction.reply.mock.calls[0][0];
-            const timeField = embedCall.embeds[0].data.fields.find((f: any) => f.name === 'Time');
-            expect(timeField?.value).toMatch(/3 days ago/);
+            const description = embedCall.embeds[0].data.description;
+            expect(description).toMatch(/3 days ago/);
+        });
+
+        it('should handle engagement stats without last_message_at', async () => {
+            mockBetEngagementStats.findOne.mockResolvedValue({
+                last_message_at: null,
+                last_message_channel_id: null,
+                message_count: 0,
+                daily_earn_count: 0,
+            });
+
+            await lastseenCommand.execute(mockInteraction, mockContext);
+
+            expect(mockInteraction.reply).toHaveBeenCalledWith(
+                expect.objectContaining({
+                    content: expect.stringContaining('No activity recorded'),
+                    ephemeral: true,
+                }),
+            );
+        });
+    });
+
+    describe('invalid subcommand', () => {
+        it('should handle invalid subcommand', async () => {
+            mockInteraction.options.getSubcommand.mockReturnValue('invalid');
+
+            await lastseenCommand.execute(mockInteraction, mockContext);
+
+            expect(mockInteraction.reply).toHaveBeenCalledWith(
+                expect.objectContaining({
+                    content: 'Invalid subcommand.',
+                    ephemeral: true,
+                }),
+            );
         });
     });
 });

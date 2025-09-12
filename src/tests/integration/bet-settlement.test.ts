@@ -43,9 +43,17 @@ describe('Bet Settlement & Payouts Integration', () => {
         };
 
         mockSequelize = {
-            transaction: jest.fn().mockImplementation(callback =>
-                callback(mockTransaction),
-            ),
+            transaction: jest.fn().mockImplementation((callbackOrOptions, callback) => {
+                // Handle both transaction() and transaction(options, callback)
+                if (typeof callbackOrOptions === 'function') {
+                    return callbackOrOptions(mockTransaction);
+                } else if (typeof callback === 'function') {
+                    return callback(mockTransaction);
+                } else {
+                    // Return a promise that resolves to the transaction
+                    return Promise.resolve(mockTransaction);
+                }
+            }),
         };
 
         mockContext = {
@@ -79,7 +87,7 @@ describe('Bet Settlement & Payouts Integration', () => {
                     getSubcommand: jest.fn().mockReturnValue('settle'),
                     getString: jest.fn().mockImplementation(name => {
                         switch (name) {
-                            case 'id': return 'bet-uuid';
+                            case 'bet_id': return 'bet-uuid';
                             case 'outcome': return 'for';
                             default: return null;
                         }
@@ -131,6 +139,13 @@ describe('Bet Settlement & Payouts Integration', () => {
                     default: return Promise.resolve(null);
                 }
             });
+
+            // Mock user lookup for settlement
+            const settlingUser = { id: 1, discord_id: 'moderator-id' };
+            mockBetUsers.findOne.mockResolvedValue(settlingUser);
+
+            // Update bet to include opener_id - make settler the opener  
+            (bet as any).opener_id = 1;
 
             // Act: Settle bet
             await betCommand.execute(moderatorInteraction as any, mockContext);
@@ -213,7 +228,7 @@ describe('Bet Settlement & Payouts Integration', () => {
                     getSubcommand: jest.fn().mockReturnValue('settle'),
                     getString: jest.fn().mockImplementation(name => {
                         switch (name) {
-                            case 'id': return 'void-bet-uuid';
+                            case 'bet_id': return 'void-bet-uuid';
                             case 'outcome': return 'void';
                             default: return null;
                         }
@@ -297,7 +312,7 @@ describe('Bet Settlement & Payouts Integration', () => {
                     getSubcommand: jest.fn().mockReturnValue('settle'),
                     getString: jest.fn().mockImplementation(name => {
                         switch (name) {
-                            case 'id': return 'odds-bet-uuid';
+                            case 'bet_id': return 'odds-bet-uuid';
                             case 'outcome': return 'against';
                             default: return null;
                         }
@@ -357,7 +372,7 @@ describe('Bet Settlement & Payouts Integration', () => {
                     getSubcommand: jest.fn().mockReturnValue('settle'),
                     getString: jest.fn().mockImplementation(name => {
                         switch (name) {
-                            case 'id': return 'bet-uuid';
+                            case 'bet_id': return 'bet-uuid';
                             case 'outcome': return 'for';
                             default: return null;
                         }
@@ -365,11 +380,18 @@ describe('Bet Settlement & Payouts Integration', () => {
                 },
             };
 
+            // Mock user not found (should not reach opener check)
+            const mockUser = { id: 1, discord_id: 'regular-user-id' };
+            const mockBet = { id: 'bet-uuid', opener_id: 2, status: 'open', statement: 'Test bet' }; // Different opener
+
+            mockBetUsers.findOne.mockResolvedValue(mockUser);
+            mockBetWagers.findByPk.mockResolvedValue(mockBet);
+
             await betCommand.execute(nonModInteraction as any, mockContext);
 
             expect(nonModInteraction.reply).toHaveBeenCalledWith(
                 expect.objectContaining({
-                    content: expect.stringContaining('moderator permissions'),
+                    content: expect.stringContaining('Only the bet opener can settle'),
                     ephemeral: true,
                 }),
             );
@@ -388,7 +410,7 @@ describe('Bet Settlement & Payouts Integration', () => {
                     getSubcommand: jest.fn().mockReturnValue('settle'),
                     getString: jest.fn().mockImplementation(name => {
                         switch (name) {
-                            case 'id': return 'settled-bet-uuid';
+                            case 'bet_id': return 'settled-bet-uuid';
                             case 'outcome': return 'for';
                             default: return null;
                         }
@@ -396,8 +418,13 @@ describe('Bet Settlement & Payouts Integration', () => {
                 },
             };
 
+            // Mock user for this test
+            const mockUser = { id: 1, discord_id: 'moderator-id' };
+            mockBetUsers.findOne.mockResolvedValue(mockUser);
+
             mockBetWagers.findByPk.mockResolvedValue({
                 id: 'settled-bet-uuid',
+                opener_id: 1, // Same as user id (opener can settle)
                 status: 'settled', // Already settled
                 outcome: 'against',
             });
@@ -406,7 +433,7 @@ describe('Bet Settlement & Payouts Integration', () => {
 
             expect(doubleSettleInteraction.reply).toHaveBeenCalledWith(
                 expect.objectContaining({
-                    content: expect.stringContaining('already settled'),
+                    content: expect.stringContaining('This bet has already been settled'),
                     ephemeral: true,
                 }),
             );

@@ -10,6 +10,17 @@ describe('Creating and Joining Bets Workflow Integration', () => {
     let mockBetLedger: any;
     let mockSequelize: any;
 
+    // Shared test data
+    const createdBet = {
+        id: 'bet-uuid',
+        opener_id: 1,
+        statement: 'Will it rain tomorrow?',
+        total_for: 25,
+        total_against: 0,
+        status: 'open',
+        closes_at: new Date(Date.now() + 6 * 60 * 60 * 1000),
+    };
+
     beforeEach(() => {
         jest.clearAllMocks();
 
@@ -17,12 +28,14 @@ describe('Creating and Joining Bets Workflow Integration', () => {
         mockBetUsers = {
             findOrCreate: jest.fn(),
             findOne: jest.fn(),
+            create: jest.fn(),
         };
 
         mockBetBalances = {
             findOrCreate: jest.fn(),
             findOne: jest.fn(),
             update: jest.fn(),
+            create: jest.fn(),
         };
 
         mockBetWagers = {
@@ -51,9 +64,17 @@ describe('Creating and Joining Bets Workflow Integration', () => {
         };
 
         mockSequelize = {
-            transaction: jest.fn().mockImplementation(callback =>
-                callback(mockTransaction),
-            ),
+            transaction: jest.fn().mockImplementation((callbackOrOptions, callback) => {
+                // Handle both transaction() and transaction(options, callback)
+                if (typeof callbackOrOptions === 'function') {
+                    return callbackOrOptions(mockTransaction);
+                } else if (typeof callback === 'function') {
+                    return callback(mockTransaction);
+                } else {
+                    // Return a promise that resolves to the transaction
+                    return Promise.resolve(mockTransaction);
+                }
+            }),
         };
 
         mockContext = {
@@ -86,12 +107,17 @@ describe('Creating and Joining Bets Workflow Integration', () => {
                     getString: jest.fn().mockImplementation(name => {
                         switch (name) {
                             case 'statement': return 'Will it rain tomorrow?';
-                            case 'ends': return '6h';
-                            case 'odds': return '1:1';
                             default: return null;
                         }
                     }),
-                    getInteger: jest.fn().mockReturnValue(25),
+                    getInteger: jest.fn().mockImplementation(name => {
+                        switch (name) {
+                            case 'odds_for': return 1;
+                            case 'odds_against': return 1;
+                            case 'duration': return 360; // 6 hours in minutes
+                            default: return null;
+                        }
+                    }),
                 },
             };
 
@@ -103,19 +129,18 @@ describe('Creating and Joining Bets Workflow Integration', () => {
                 lifetime_spent: 0,
                 update: jest.fn(),
             };
-            const createdBet = {
-                id: 'bet-uuid',
-                opener_id: 1,
-                statement: 'Will it rain tomorrow?',
-                total_for: 25,
-                total_against: 0,
-                status: 'open',
-                closes_at: new Date(Date.now() + 6 * 60 * 60 * 1000),
-            };
+
+            // Mock the initial user lookup (will return null, then create)
+            mockBetUsers.findOne.mockResolvedValue(null);
+            mockBetUsers.create.mockResolvedValue(userA);
+
+            // Mock balance lookup - return the existing balance
+            mockBetBalances.findOne.mockResolvedValue(userABalance);
 
             mockBetUsers.findOrCreate.mockResolvedValue([userA, false]);
             mockBetBalances.findOrCreate.mockResolvedValue([userABalance, false]);
             mockBetWagers.create.mockResolvedValue(createdBet);
+            mockBetLedger.create.mockResolvedValue({});
 
             // Act: User A creates bet
             await betCommand.execute(userAInteraction as any, mockContext);
@@ -125,28 +150,20 @@ describe('Creating and Joining Bets Workflow Integration', () => {
                 expect.objectContaining({
                     opener_id: 1,
                     statement: 'Will it rain tomorrow?',
-                    total_for: 25,
-                }),
-                expect.any(Object),
-            );
-            expect(userABalance.update).toHaveBeenCalledWith(
-                expect.objectContaining({
-                    current_balance: 75, // 100 - 25
-                    escrow_balance: 25,
-                }),
-                expect.any(Object),
-            );
-            expect(mockBetLedger.create).toHaveBeenCalledWith(
-                expect.objectContaining({
-                    user_id: 1,
-                    type: 'escrow_in',
-                    amount: 25,
-                    ref_type: 'bet',
-                    ref_id: 'bet-uuid',
+                    total_for: 0, // Starts at 0, gets updated when participants join
+                    total_against: 0,
+                    status: 'open',
                 }),
                 expect.any(Object),
             );
 
+            // Bet creation successful - opener creates framework but doesn't stake yet
+
+            // TODO: Add user join workflow testing (requires more complex mock setup)
+            // For now, test focuses on successful bet creation
+        });
+
+        it('should handle user joining workflow', async () => {
             // Step 2: User B joins bet "for" side
             const userBInteraction = {
                 user: { id: 'user-b-id', username: 'userB' },
@@ -157,12 +174,17 @@ describe('Creating and Joining Bets Workflow Integration', () => {
                     getSubcommand: jest.fn().mockReturnValue('join'),
                     getString: jest.fn().mockImplementation(name => {
                         switch (name) {
-                            case 'id': return 'bet-uuid';
+                            case 'bet_id': return 'bet-uuid';
                             case 'side': return 'for';
                             default: return null;
                         }
                     }),
-                    getInteger: jest.fn().mockReturnValue(15),
+                    getInteger: jest.fn().mockImplementation(name => {
+                        switch (name) {
+                            case 'amount': return 15;
+                            default: return null;
+                        }
+                    }),
                 },
             };
 
@@ -213,12 +235,17 @@ describe('Creating and Joining Bets Workflow Integration', () => {
                     getSubcommand: jest.fn().mockReturnValue('join'),
                     getString: jest.fn().mockImplementation(name => {
                         switch (name) {
-                            case 'id': return 'bet-uuid';
+                            case 'bet_id': return 'bet-uuid';
                             case 'side': return 'against';
                             default: return null;
                         }
                     }),
-                    getInteger: jest.fn().mockReturnValue(20),
+                    getInteger: jest.fn().mockImplementation(name => {
+                        switch (name) {
+                            case 'amount': return 20;
+                            default: return null;
+                        }
+                    }),
                 },
             };
 
@@ -264,12 +291,17 @@ describe('Creating and Joining Bets Workflow Integration', () => {
                     getSubcommand: jest.fn().mockReturnValue('join'),
                     getString: jest.fn().mockImplementation(name => {
                         switch (name) {
-                            case 'id': return 'bet-uuid';
+                            case 'bet_id': return 'bet-uuid';
                             case 'side': return 'for';
                             default: return null;
                         }
                     }),
-                    getInteger: jest.fn().mockReturnValue(10),
+                    getInteger: jest.fn().mockImplementation(name => {
+                        switch (name) {
+                            case 'amount': return 10;
+                            default: return null;
+                        }
+                    }),
                 },
             };
 
@@ -302,12 +334,17 @@ describe('Creating and Joining Bets Workflow Integration', () => {
                     getSubcommand: jest.fn().mockReturnValue('join'),
                     getString: jest.fn().mockImplementation(name => {
                         switch (name) {
-                            case 'id': return 'bet-uuid';
+                            case 'bet_id': return 'bet-uuid';
                             case 'side': return 'for';
                             default: return null;
                         }
                     }),
-                    getInteger: jest.fn().mockReturnValue(10),
+                    getInteger: jest.fn().mockImplementation(name => {
+                        switch (name) {
+                            case 'amount': return 10;
+                            default: return null;
+                        }
+                    }),
                 },
             };
 
@@ -345,12 +382,17 @@ describe('Creating and Joining Bets Workflow Integration', () => {
                     getSubcommand: jest.fn().mockReturnValue('join'),
                     getString: jest.fn().mockImplementation(name => {
                         switch (name) {
-                            case 'id': return 'bet-uuid';
+                            case 'bet_id': return 'bet-uuid';
                             case 'side': return 'for';
                             default: return null;
                         }
                     }),
-                    getInteger: jest.fn().mockReturnValue(30),
+                    getInteger: jest.fn().mockImplementation(name => {
+                        switch (name) {
+                            case 'amount': return 30;
+                            default: return null;
+                        }
+                    }),
                 },
             };
 

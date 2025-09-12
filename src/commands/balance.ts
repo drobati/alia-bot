@@ -1,9 +1,19 @@
-import { SlashCommandBuilder, SlashCommandSubcommandsOnlyBuilder, ChatInputCommandInteraction, EmbedBuilder } from 'discord.js';
+import {
+    SlashCommandBuilder,
+    SlashCommandSubcommandsOnlyBuilder,
+    ChatInputCommandInteraction,
+    EmbedBuilder,
+} from 'discord.js';
 import { Context } from '../utils/types';
 
 interface BalanceSlashCommand {
     data: SlashCommandBuilder | SlashCommandSubcommandsOnlyBuilder;
-    execute(interaction: ChatInputCommandInteraction, context: Context): Promise<void>;
+    execute(
+        // eslint-disable-next-line @typescript-eslint/no-unused-vars, no-unused-vars
+        _interaction: ChatInputCommandInteraction,
+        // eslint-disable-next-line @typescript-eslint/no-unused-vars, no-unused-vars
+        _context: Context,
+    ): Promise<void>;
 }
 
 const balanceCommand: BalanceSlashCommand = {
