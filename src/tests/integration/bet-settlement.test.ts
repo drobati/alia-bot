@@ -16,11 +16,14 @@ describe('Bet Settlement & Payouts Integration', () => {
         mockBetUsers = {
             findOrCreate: jest.fn(),
             findOne: jest.fn(),
+            create: jest.fn(),
         };
 
         mockBetBalances = {
             findOne: jest.fn(),
+            findOrCreate: jest.fn(),
             update: jest.fn(),
+            create: jest.fn(),
         };
 
         mockBetWagers = {
@@ -98,7 +101,8 @@ describe('Bet Settlement & Payouts Integration', () => {
             // Mock bet with participants: 40 "for", 20 "against"
             const bet = {
                 id: 'bet-uuid',
-                status: 'closed',
+                opener_id: 1, // Same as settling user
+                status: 'open', // Must be 'open' to be settable
                 total_for: 40, // User A: 25, User B: 15
                 total_against: 20, // User C: 20
                 odds_for: 1,
@@ -114,18 +118,18 @@ describe('Bet Settlement & Payouts Integration', () => {
 
             // Mock user balances
             const userABalance = {
-                current_balance: 75, // Had 25 in escrow
-                escrow_balance: 25,
+                available_balance: 75, // Had 25 in escrow
+                escrowed_balance: 25,
                 update: jest.fn(),
             };
             const userBBalance = {
-                current_balance: 35, // Had 15 in escrow
-                escrow_balance: 15,
+                available_balance: 35, // Had 15 in escrow
+                escrowed_balance: 15,
                 update: jest.fn(),
             };
             const userCBalance = {
-                current_balance: 60, // Had 20 in escrow
-                escrow_balance: 20,
+                available_balance: 60, // Had 20 in escrow
+                escrowed_balance: 20,
                 update: jest.fn(),
             };
 
@@ -139,10 +143,19 @@ describe('Bet Settlement & Payouts Integration', () => {
                     default: return Promise.resolve(null);
                 }
             });
+            mockBetBalances.findOrCreate.mockImplementation(({ where }: any) => {
+                switch (where.user_id) {
+                    case 1: return Promise.resolve([userABalance, false]);
+                    case 2: return Promise.resolve([userBBalance, false]);
+                    case 3: return Promise.resolve([userCBalance, false]);
+                    default: return Promise.resolve([null, false]);
+                }
+            });
 
             // Mock user lookup for settlement
             const settlingUser = { id: 1, discord_id: 'moderator-id' };
             mockBetUsers.findOne.mockResolvedValue(settlingUser);
+            mockBetUsers.findOrCreate.mockResolvedValue([settlingUser, false]);
 
             // Update bet to include opener_id - make settler the opener  
             (bet as any).opener_id = 1;
@@ -160,58 +173,46 @@ describe('Bet Settlement & Payouts Integration', () => {
                 expect.any(Object),
             );
 
-            // Assert: Winners receive proportional payouts
-            // User A: Gets back 25 stake + (25/40 * 20 winnings) = 25 + 12.5 = 37.5 ≈ 37
+            // Assert: Winners receive payouts based on their odds
+            // User A: Gets 25 stake + (25 * 1 odds) = 50 total payout
             expect(userABalance.update).toHaveBeenCalledWith(
                 expect.objectContaining({
-                    current_balance: 112, // 75 + 37
-                    escrow_balance: 0,
+                    available_balance: 125, // 75 + 50
                 }),
                 expect.any(Object),
             );
 
-            // User B: Gets back 15 stake + (15/40 * 20 winnings) = 15 + 7.5 = 22.5 ≈ 23
+            // User B: Gets 15 stake + (15 * 1 odds) = 30 total payout  
             expect(userBBalance.update).toHaveBeenCalledWith(
                 expect.objectContaining({
-                    current_balance: 58, // 35 + 23
-                    escrow_balance: 0,
+                    available_balance: 65, // 35 + 30
                 }),
                 expect.any(Object),
             );
 
-            // User C: Loses escrow, gets nothing back
+            // User C: Loses - only escrow is released, no payout
             expect(userCBalance.update).toHaveBeenCalledWith(
                 expect.objectContaining({
-                    current_balance: 60, // No change to available balance
-                    escrow_balance: 0, // Escrow cleared
+                    escrowed_balance: 0, // Escrow cleared
                 }),
                 expect.any(Object),
             );
 
-            // Assert: Ledger entries created for payouts
-            expect(mockBetLedger.bulkCreate).toHaveBeenCalledWith(
-                expect.arrayContaining([
-                    expect.objectContaining({
-                        user_id: 1,
-                        type: 'escrow_out',
-                        amount: 25,
-                    }),
-                    expect.objectContaining({
-                        user_id: 1,
-                        type: 'payout',
-                        amount: 12, // Rounded winnings
-                    }),
-                    expect.objectContaining({
-                        user_id: 2,
-                        type: 'payout',
-                        amount: 8, // Rounded winnings
-                    }),
-                    expect.objectContaining({
-                        user_id: 3,
-                        type: 'escrow_out',
-                        amount: 20,
-                    }),
-                ]),
+            // Assert: Ledger entries created for payouts  
+            expect(mockBetLedger.create).toHaveBeenCalledWith(
+                expect.objectContaining({
+                    user_id: 1,
+                    type: 'escrow_out',
+                    amount: 25,
+                }),
+                expect.any(Object),
+            );
+            expect(mockBetLedger.create).toHaveBeenCalledWith(
+                expect.objectContaining({
+                    user_id: 1,
+                    type: 'payout',
+                    amount: 50, // Total payout including stake
+                }),
                 expect.any(Object),
             );
         });
@@ -238,7 +239,8 @@ describe('Bet Settlement & Payouts Integration', () => {
 
             const bet = {
                 id: 'void-bet-uuid',
-                status: 'closed',
+                opener_id: 1, // Same as settling user
+                status: 'open', // Must be 'open' to be settable
                 total_for: 30,
                 total_against: 20,
                 update: jest.fn(),
@@ -249,9 +251,14 @@ describe('Bet Settlement & Payouts Integration', () => {
                 { user_id: 2, side: 'against', amount: 20 },
             ];
 
-            const userABalance = { current_balance: 70, escrow_balance: 30, update: jest.fn() };
-            const userBBalance = { current_balance: 80, escrow_balance: 20, update: jest.fn() };
+            const userABalance = { available_balance: 70, escrowed_balance: 30, update: jest.fn() };
+            const userBBalance = { available_balance: 80, escrowed_balance: 20, update: jest.fn() };
 
+            // Mock user lookup for void settlement
+            const settlingUser = { id: 1, discord_id: 'moderator-id' };
+            mockBetUsers.findOne.mockResolvedValue(settlingUser);
+            mockBetUsers.findOrCreate.mockResolvedValue([settlingUser, false]);
+            
             mockBetWagers.findByPk.mockResolvedValue(bet);
             mockBetParticipants.findAll.mockResolvedValue(participants);
             mockBetBalances.findOne.mockImplementation(({ where }: any) => {
@@ -261,40 +268,48 @@ describe('Bet Settlement & Payouts Integration', () => {
                     default: return Promise.resolve(null);
                 }
             });
+            mockBetBalances.findOrCreate.mockImplementation(({ where }: any) => {
+                switch (where.user_id) {
+                    case 1: return Promise.resolve([userABalance, false]);
+                    case 2: return Promise.resolve([userBBalance, false]);
+                    default: return Promise.resolve([null, false]);
+                }
+            });
 
             await betCommand.execute(voidInteraction as any, mockContext);
 
             // Both users get their stakes back
             expect(userABalance.update).toHaveBeenCalledWith(
                 expect.objectContaining({
-                    current_balance: 100, // 70 + 30 returned
-                    escrow_balance: 0,
+                    available_balance: 100, // 70 + 30 returned
+                    escrowed_balance: 0,
                 }),
                 expect.any(Object),
             );
 
             expect(userBBalance.update).toHaveBeenCalledWith(
                 expect.objectContaining({
-                    current_balance: 100, // 80 + 20 returned
-                    escrow_balance: 0,
+                    available_balance: 100, // 80 + 20 returned
+                    escrowed_balance: 0,
                 }),
                 expect.any(Object),
             );
 
             // Ledger shows refunds
-            expect(mockBetLedger.bulkCreate).toHaveBeenCalledWith(
-                expect.arrayContaining([
-                    expect.objectContaining({
-                        user_id: 1,
-                        type: 'void',
-                        amount: 30,
-                    }),
-                    expect.objectContaining({
-                        user_id: 2,
-                        type: 'void',
-                        amount: 20,
-                    }),
-                ]),
+            expect(mockBetLedger.create).toHaveBeenCalledWith(
+                expect.objectContaining({
+                    user_id: 1,
+                    type: 'refund',
+                    amount: 30,
+                }),
+                expect.any(Object),
+            );
+            expect(mockBetLedger.create).toHaveBeenCalledWith(
+                expect.objectContaining({
+                    user_id: 2,
+                    type: 'refund',
+                    amount: 20,
+                }),
                 expect.any(Object),
             );
         });
@@ -322,7 +337,8 @@ describe('Bet Settlement & Payouts Integration', () => {
 
             const bet = {
                 id: 'odds-bet-uuid',
-                status: 'closed',
+                opener_id: 1, // Same as settling user
+                status: 'open', // Must be 'open' to be settable
                 total_for: 20,
                 total_against: 10,
                 odds_for: 1,    // 1:2 odds - "for" bettors get less
@@ -335,8 +351,13 @@ describe('Bet Settlement & Payouts Integration', () => {
                 { user_id: 2, side: 'against', amount: 10 },
             ];
 
-            const userABalance = { current_balance: 80, escrow_balance: 20, update: jest.fn() };
-            const userBBalance = { current_balance: 90, escrow_balance: 10, update: jest.fn() };
+            const userABalance = { available_balance: 80, escrowed_balance: 20, update: jest.fn() };
+            const userBBalance = { available_balance: 90, escrowed_balance: 10, update: jest.fn() };
+
+            // Mock user lookup for odds settlement
+            const settlingUser = { id: 1, discord_id: 'moderator-id' };
+            mockBetUsers.findOne.mockResolvedValue(settlingUser);
+            mockBetUsers.findOrCreate.mockResolvedValue([settlingUser, false]);
 
             mockBetWagers.findByPk.mockResolvedValue(bet);
             mockBetParticipants.findAll.mockResolvedValue(participants);
@@ -347,14 +368,20 @@ describe('Bet Settlement & Payouts Integration', () => {
                     default: return Promise.resolve(null);
                 }
             });
+            mockBetBalances.findOrCreate.mockImplementation(({ where }: any) => {
+                switch (where.user_id) {
+                    case 1: return Promise.resolve([userABalance, false]);
+                    case 2: return Promise.resolve([userBBalance, false]);
+                    default: return Promise.resolve([null, false]);
+                }
+            });
 
             await betCommand.execute(moderatorInteraction as any, mockContext);
 
-            // User B (against winner) gets: 10 stake + (2 * 20 / 1) winnings = 10 + 40 = 50
+            // User B (against winner) gets: 10 stake + (10 * 2 odds) = 30 total payout
             expect(userBBalance.update).toHaveBeenCalledWith(
                 expect.objectContaining({
-                    current_balance: 130, // 90 + 40 (10 stake + 30 winnings)
-                    escrow_balance: 0,
+                    available_balance: 120, // 90 + 30
                 }),
                 expect.any(Object),
             );

@@ -48,6 +48,7 @@ describe('Creating and Joining Bets Workflow Integration', () => {
         mockBetParticipants = {
             create: jest.fn(),
             findAll: jest.fn(),
+            findOne: jest.fn(),
             sum: jest.fn(),
             count: jest.fn(),
         };
@@ -190,11 +191,22 @@ describe('Creating and Joining Bets Workflow Integration', () => {
 
             const userB = { id: 2, discord_id: 'user-b-id' };
             const userBBalance = {
-                current_balance: 50,
-                escrow_balance: 0,
+                available_balance: 50,
+                escrowed_balance: 0,
                 update: jest.fn(),
             };
 
+            // Mock database calls for join operation
+            mockBetUsers.findOne.mockResolvedValue(userB);
+            mockBetBalances.findOne.mockResolvedValue(userBBalance);
+            mockBetParticipants.findOne = jest.fn().mockResolvedValue(null); // User hasn't joined yet
+            mockBetParticipants.create.mockResolvedValue({
+                bet_id: 'bet-uuid',
+                user_id: 2,
+                side: 'for',
+                amount: 15,
+            });
+            
             // Reset mocks for user B
             mockBetUsers.findOrCreate.mockResolvedValue([userB, false]);
             mockBetBalances.findOrCreate.mockResolvedValue([userBBalance, false]);
@@ -219,8 +231,8 @@ describe('Creating and Joining Bets Workflow Integration', () => {
             );
             expect(userBBalance.update).toHaveBeenCalledWith(
                 expect.objectContaining({
-                    current_balance: 35, // 50 - 15
-                    escrow_balance: 15,
+                    available_balance: 35, // 50 - 15
+                    escrowed_balance: 15,
                 }),
                 expect.any(Object),
             );
@@ -251,13 +263,22 @@ describe('Creating and Joining Bets Workflow Integration', () => {
 
             const userC = { id: 3, discord_id: 'user-c-id' };
             const userCBalance = {
-                current_balance: 80,
-                escrow_balance: 0,
+                available_balance: 80,
+                escrowed_balance: 0,
                 update: jest.fn(),
             };
 
+            // Mock database calls for User C joining
+            mockBetUsers.findOne.mockResolvedValue(userC);
+            mockBetBalances.findOne.mockResolvedValue(userCBalance);
             mockBetUsers.findOrCreate.mockResolvedValue([userC, false]);
             mockBetBalances.findOrCreate.mockResolvedValue([userCBalance, false]);
+            mockBetParticipants.create.mockResolvedValue({
+                bet_id: 'bet-uuid',
+                user_id: 3,
+                side: 'against',
+                amount: 20,
+            });
 
             // Act: User C joins bet
             await betCommand.execute(userCInteraction as any, mockContext);
@@ -274,8 +295,8 @@ describe('Creating and Joining Bets Workflow Integration', () => {
             );
             expect(userCBalance.update).toHaveBeenCalledWith(
                 expect.objectContaining({
-                    current_balance: 60, // 80 - 20
-                    escrow_balance: 20,
+                    available_balance: 60, // 80 - 20
+                    escrowed_balance: 20,
                 }),
                 expect.any(Object),
             );
@@ -304,6 +325,14 @@ describe('Creating and Joining Bets Workflow Integration', () => {
                     }),
                 },
             };
+
+            // Mock user for late join test
+            const lateUser = { id: 4, discord_id: 'late-user-id' };
+            const lateUserBalance = { available_balance: 50, escrowed_balance: 0, update: jest.fn() };
+            mockBetUsers.findOne.mockResolvedValue(lateUser);
+            mockBetBalances.findOne.mockResolvedValue(lateUserBalance);
+            mockBetUsers.findOrCreate.mockResolvedValue([lateUser, false]);
+            mockBetBalances.findOrCreate.mockResolvedValue([lateUserBalance, false]);
 
             // Mock closed bet
             mockBetWagers.findByPk.mockResolvedValue({
@@ -349,17 +378,23 @@ describe('Creating and Joining Bets Workflow Integration', () => {
             };
 
             const user = { id: 4, discord_id: 'double-user-id' };
+            const userBalance = { available_balance: 50, escrowed_balance: 0, update: jest.fn() };
+            mockBetUsers.findOne.mockResolvedValue(user);
+            mockBetBalances.findOne.mockResolvedValue(userBalance);
             mockBetUsers.findOrCreate.mockResolvedValue([user, false]);
+            mockBetBalances.findOrCreate.mockResolvedValue([userBalance, false]);
             mockBetWagers.findByPk.mockResolvedValue({
                 id: 'bet-uuid',
                 status: 'open',
                 closes_at: new Date(Date.now() + 3600000),
             });
 
-            // Mock existing participation
-            mockBetParticipants.create.mockRejectedValue({
-                name: 'SequelizeUniqueConstraintError',
-                message: 'Unique constraint error',
+            // Mock existing participation - user already joined
+            mockBetParticipants.findOne.mockResolvedValue({
+                bet_id: 'bet-uuid',
+                user_id: 4,
+                side: 'for',
+                amount: 5,
             });
 
             await betCommand.execute(doubleJoinInteraction as any, mockContext);
@@ -397,7 +432,7 @@ describe('Creating and Joining Bets Workflow Integration', () => {
             };
 
             const user = { id: 5, discord_id: 'joiner-id' };
-            const userBalance = { current_balance: 50, update: jest.fn() };
+            const userBalance = { available_balance: 50, escrowed_balance: 0, update: jest.fn() };
             const bet = {
                 id: 'bet-uuid',
                 status: 'open',
@@ -405,8 +440,11 @@ describe('Creating and Joining Bets Workflow Integration', () => {
                 total_against: 10,
                 closes_at: new Date(Date.now() + 3600000),
                 update: jest.fn(),
+                save: jest.fn(),
             };
 
+            mockBetUsers.findOne.mockResolvedValue(user);
+            mockBetBalances.findOne.mockResolvedValue(userBalance);
             mockBetUsers.findOrCreate.mockResolvedValue([user, false]);
             mockBetBalances.findOrCreate.mockResolvedValue([userBalance, false]);
             mockBetWagers.findByPk.mockResolvedValue(bet);
@@ -414,12 +452,13 @@ describe('Creating and Joining Bets Workflow Integration', () => {
             await betCommand.execute(joinInteraction as any, mockContext);
 
             // Should update bet totals
-            expect(bet.update).toHaveBeenCalledWith(
+            expect(bet.save).toHaveBeenCalledWith(
                 expect.objectContaining({
-                    total_for: 55, // 25 + 30
+                    transaction: expect.any(Object),
                 }),
-                expect.any(Object),
             );
+            // Check that total_for was incremented
+            expect(bet.total_for).toBe(55); // 25 + 30
         });
     });
 });
