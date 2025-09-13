@@ -1,0 +1,537 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Bet System Database Schema",
+  "description": "JSON schema definitions for the Discord bot betting system",
+  "type": "object",
+  "definitions": {
+    "BetUser": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "integer",
+          "description": "Auto-incrementing primary key"
+        },
+        "discord_id": {
+          "type": "string",
+          "pattern": "^[0-9]{17,20}$",
+          "description": "Discord user ID"
+        },
+        "guild_id": {
+          "type": "string", 
+          "pattern": "^[0-9]{17,20}$",
+          "description": "Discord guild ID"
+        },
+        "username": {
+          "type": "string",
+          "maxLength": 255,
+          "description": "Discord username"
+        },
+        "discriminator": {
+          "type": "string",
+          "pattern": "^[0-9]{4}$",
+          "description": "Discord discriminator (deprecated in new usernames)"
+        },
+        "hide_last_seen": {
+          "type": "boolean",
+          "default": false,
+          "description": "User privacy setting for /lastseen command"
+        },
+        "privacy_level": {
+          "type": "string",
+          "enum": ["open", "friends", "private"],
+          "default": "open",
+          "description": "User's privacy level for bet information"
+        },
+        "created_at": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "updated_at": {
+          "type": "string", 
+          "format": "date-time"
+        }
+      },
+      "required": ["discord_id", "guild_id"],
+      "additionalProperties": false
+    },
+    
+    "BetBalance": {
+      "type": "object",
+      "properties": {
+        "user_id": {
+          "type": "integer",
+          "description": "Reference to bet_users.id"
+        },
+        "current_balance": {
+          "type": "integer",
+          "minimum": 0,
+          "default": 100,
+          "description": "Available Sparks for betting"
+        },
+        "escrow_balance": {
+          "type": "integer",
+          "minimum": 0,
+          "default": 0,
+          "description": "Sparks currently in escrow for active bets"
+        },
+        "lifetime_earned": {
+          "type": "integer",
+          "minimum": 0,
+          "default": 100,
+          "description": "Total Sparks earned since account creation"
+        },
+        "lifetime_spent": {
+          "type": "integer",
+          "minimum": 0,
+          "default": 0,
+          "description": "Total Sparks spent on bets"
+        },
+        "total_bets_created": {
+          "type": "integer",
+          "minimum": 0,
+          "default": 0
+        },
+        "total_bets_joined": {
+          "type": "integer",
+          "minimum": 0,
+          "default": 0
+        },
+        "total_winnings": {
+          "type": "integer",
+          "minimum": 0,
+          "default": 0
+        },
+        "total_losses": {
+          "type": "integer",
+          "minimum": 0,
+          "default": 0
+        },
+        "updated_at": {
+          "type": "string",
+          "format": "date-time"
+        }
+      },
+      "required": ["user_id"],
+      "additionalProperties": false
+    },
+    
+    "BetLedgerEntry": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "integer",
+          "description": "Auto-incrementing primary key"
+        },
+        "user_id": {
+          "type": "integer",
+          "description": "Reference to bet_users.id"
+        },
+        "transaction_type": {
+          "type": "string",
+          "enum": [
+            "initial_grant",
+            "earn_message", 
+            "earn_participation",
+            "earn_thread",
+            "earn_reaction",
+            "bet_escrow_in",
+            "bet_escrow_out", 
+            "bet_payout",
+            "bet_refund",
+            "admin_adjustment",
+            "penalty"
+          ],
+          "description": "Type of transaction"
+        },
+        "amount": {
+          "type": "integer",
+          "description": "Amount changed (positive for credits, negative for debits)"
+        },
+        "running_balance": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "User's balance after this transaction"
+        },
+        "reference_type": {
+          "type": "string",
+          "maxLength": 50,
+          "description": "Type of entity referenced (bet, message, etc.)"
+        },
+        "reference_id": {
+          "type": "string",
+          "maxLength": 255,
+          "description": "ID of referenced entity"
+        },
+        "metadata": {
+          "type": "object",
+          "description": "Additional context as JSON",
+          "properties": {
+            "channel_id": {"type": "string"},
+            "message_content_preview": {"type": "string", "maxLength": 100},
+            "bet_statement": {"type": "string"},
+            "bet_side": {"type": "string", "enum": ["for", "against"]},
+            "admin_reason": {"type": "string"}
+          },
+          "additionalProperties": true
+        },
+        "created_at": {
+          "type": "string",
+          "format": "date-time"
+        }
+      },
+      "required": ["user_id", "transaction_type", "amount", "running_balance"],
+      "additionalProperties": false
+    },
+    
+    "BetEngagementStats": {
+      "type": "object",
+      "properties": {
+        "user_id": {
+          "type": "integer",
+          "description": "Reference to bet_users.id"
+        },
+        "guild_id": {
+          "type": "string",
+          "pattern": "^[0-9]{17,20}$"
+        },
+        "message_count": {
+          "type": "integer",
+          "minimum": 0,
+          "default": 0
+        },
+        "qualifying_message_count": {
+          "type": "integer", 
+          "minimum": 0,
+          "default": 0
+        },
+        "last_message_at": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "last_message_channel_id": {
+          "type": "string",
+          "pattern": "^[0-9]{17,20}$"
+        },
+        "daily_earn_count": {
+          "type": "integer",
+          "minimum": 0,
+          "default": 0
+        },
+        "daily_earn_amount": {
+          "type": "integer",
+          "minimum": 0,
+          "default": 0
+        },
+        "last_earn_at": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "last_earn_reset": {
+          "type": "string",
+          "format": "date",
+          "description": "Date when daily counters were last reset"
+        },
+        "consecutive_days": {
+          "type": "integer",
+          "minimum": 0,
+          "default": 0,
+          "description": "Current streak of consecutive days with activity"
+        },
+        "longest_streak": {
+          "type": "integer",
+          "minimum": 0, 
+          "default": 0,
+          "description": "Longest streak of consecutive days"
+        },
+        "spam_score": {
+          "type": "integer",
+          "minimum": 0,
+          "default": 0,
+          "description": "Anti-abuse score for spam detection"
+        },
+        "spam_reset_at": {
+          "type": "string",
+          "format": "date-time",
+          "description": "When spam suppression will be lifted"
+        },
+        "created_at": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "updated_at": {
+          "type": "string",
+          "format": "date-time"
+        }
+      },
+      "required": ["user_id", "guild_id"],
+      "additionalProperties": false
+    },
+    
+    "BetWager": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "format": "uuid",
+          "description": "UUID primary key"
+        },
+        "guild_id": {
+          "type": "string",
+          "pattern": "^[0-9]{17,20}$"
+        },
+        "channel_id": {
+          "type": "string",
+          "pattern": "^[0-9]{17,20}$"
+        },
+        "message_id": {
+          "type": "string",
+          "pattern": "^[0-9]{17,20}$",
+          "description": "Discord message ID for the bet embed"
+        },
+        "opener_id": {
+          "type": "integer",
+          "description": "Reference to bet_users.id"
+        },
+        "statement": {
+          "type": "string",
+          "minLength": 10,
+          "maxLength": 500,
+          "description": "What is being bet on"
+        },
+        "description": {
+          "type": "string",
+          "maxLength": 1000,
+          "description": "Optional longer description"
+        },
+        "odds_for": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 10,
+          "default": 1,
+          "description": "Odds numerator for FOR side"
+        },
+        "odds_against": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 10,
+          "default": 1,
+          "description": "Odds numerator for AGAINST side"
+        },
+        "opener_amount": {
+          "type": "integer",
+          "minimum": 1,
+          "description": "Amount bet by opener"
+        },
+        "total_for_amount": {
+          "type": "integer",
+          "minimum": 0,
+          "default": 0,
+          "description": "Total amount bet on FOR side"
+        },
+        "total_against_amount": {
+          "type": "integer",
+          "minimum": 0,
+          "default": 0,
+          "description": "Total amount bet on AGAINST side"
+        },
+        "status": {
+          "type": "string",
+          "enum": ["open", "closed", "settled", "voided", "cancelled"],
+          "default": "open"
+        },
+        "opens_at": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "closes_at": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "settled_at": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "outcome": {
+          "type": "string",
+          "enum": ["for", "against", "void"],
+          "description": "Final outcome (only set when settled)"
+        },
+        "category": {
+          "type": "string",
+          "enum": ["sports", "weather", "entertainment", "community", "markets", "gaming", "science", "other"],
+          "maxLength": 50
+        },
+        "tags": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "maxLength": 50
+          },
+          "maxItems": 10,
+          "description": "Searchable tags"
+        },
+        "created_at": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "updated_at": {
+          "type": "string",
+          "format": "date-time"
+        }
+      },
+      "required": ["guild_id", "channel_id", "opener_id", "statement", "opener_amount", "closes_at"],
+      "additionalProperties": false
+    },
+    
+    "BetParticipant": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "integer",
+          "description": "Auto-incrementing primary key"
+        },
+        "bet_id": {
+          "type": "string",
+          "format": "uuid",
+          "description": "Reference to bet_wagers.id"
+        },
+        "user_id": {
+          "type": "integer",
+          "description": "Reference to bet_users.id"
+        },
+        "side": {
+          "type": "string",
+          "enum": ["for", "against"],
+          "description": "Which side the participant joined"
+        },
+        "amount": {
+          "type": "integer",
+          "minimum": 1,
+          "description": "Amount bet by participant"
+        },
+        "potential_payout": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "Calculated potential payout based on odds at join time"
+        },
+        "actual_payout": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "Actual payout received (set when bet settles)"
+        },
+        "joined_at": {
+          "type": "string",
+          "format": "date-time"
+        }
+      },
+      "required": ["bet_id", "user_id", "side", "amount"],
+      "additionalProperties": false
+    },
+    
+    "SystemConfig": {
+      "type": "object",
+      "properties": {
+        "key": {
+          "type": "string",
+          "maxLength": 255,
+          "description": "Configuration key"
+        },
+        "value": {
+          "type": "string",
+          "description": "Configuration value (stored as string, parsed by type)"
+        },
+        "value_type": {
+          "type": "string",
+          "enum": ["string", "integer", "boolean", "json"],
+          "default": "string"
+        },
+        "description": {
+          "type": "string",
+          "description": "Human-readable description"
+        },
+        "category": {
+          "type": "string",
+          "maxLength": 50,
+          "default": "general"
+        },
+        "is_guild_specific": {
+          "type": "boolean",
+          "default": false,
+          "description": "Whether this setting can be overridden per guild"
+        },
+        "created_at": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "updated_at": {
+          "type": "string",
+          "format": "date-time"
+        }
+      },
+      "required": ["key", "value"],
+      "additionalProperties": false
+    },
+    
+    "GuildConfig": {
+      "type": "object",
+      "properties": {
+        "guild_id": {
+          "type": "string",
+          "pattern": "^[0-9]{17,20}$"
+        },
+        "config_key": {
+          "type": "string",
+          "maxLength": 255
+        },
+        "value": {
+          "type": "string"
+        },
+        "created_at": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "updated_at": {
+          "type": "string",
+          "format": "date-time"
+        }
+      },
+      "required": ["guild_id", "config_key", "value"],
+      "additionalProperties": false
+    }
+  },
+  
+  "properties": {
+    "bet_users": {
+      "type": "array",
+      "items": {"$ref": "#/definitions/BetUser"}
+    },
+    "bet_balances": {
+      "type": "array", 
+      "items": {"$ref": "#/definitions/BetBalance"}
+    },
+    "bet_ledger": {
+      "type": "array",
+      "items": {"$ref": "#/definitions/BetLedgerEntry"}
+    },
+    "bet_engagement_stats": {
+      "type": "array",
+      "items": {"$ref": "#/definitions/BetEngagementStats"}
+    },
+    "bet_wagers": {
+      "type": "array",
+      "items": {"$ref": "#/definitions/BetWager"}
+    },
+    "bet_participants": {
+      "type": "array",
+      "items": {"$ref": "#/definitions/BetParticipant"}
+    },
+    "bet_system_config": {
+      "type": "array",
+      "items": {"$ref": "#/definitions/SystemConfig"}
+    },
+    "bet_guild_config": {
+      "type": "array",
+      "items": {"$ref": "#/definitions/GuildConfig"}
+    }
+  }
+}
