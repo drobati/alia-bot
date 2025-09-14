@@ -4,6 +4,7 @@ import server from '../src/lib/server';
 import { stripIndent } from 'common-tags';
 import config from 'config';
 import { safelyFindChannel, safelySendToChannel, isTextChannel } from '../src/utils/discordHelpers';
+import { BetExpirationService } from '../src/services/betExpiration';
 
 const clientReadyEvent: BotEvent = {
     name: Events.ClientReady,
@@ -171,6 +172,29 @@ const clientReadyEvent: BotEvent = {
             }
         } else {
             log.error("Failed to find 'general' channel - server webhooks may not work properly");
+        }
+
+        // Initialize BetExpirationService
+        try {
+            const betExpirationService = new BetExpirationService(context);
+            betExpirationService.start();
+            log.info('✅ BetExpirationService started successfully');
+
+            await safelySendToChannel(
+                devChannel,
+                '✅ BetExpirationService started - automatic bet cleanup enabled',
+                context,
+                'bet expiration service start',
+            );
+        } catch (error) {
+            log.error('❌ Failed to start BetExpirationService:', error);
+            const errorMsg = error instanceof Error ? error.message : String(error);
+            await safelySendToChannel(
+                devChannel,
+                `❌ BetExpirationService failed to start: ${errorMsg}`,
+                context,
+                'bet expiration service error',
+            );
         }
     },
 };

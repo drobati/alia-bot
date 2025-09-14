@@ -126,8 +126,8 @@ async function handleCheckBalance(interaction: ChatInputCommandInteraction, cont
         // Create initial balance
         await tables.BetBalances.create({
             user_id: user.id,
-            available_balance: 100, // Starting balance
-            escrowed_balance: 0,
+            current_balance: 100, // Starting balance
+            escrow_balance: 0,
         });
     }
 
@@ -140,24 +140,24 @@ async function handleCheckBalance(interaction: ChatInputCommandInteraction, cont
         // Create balance if it doesn't exist
         balance = await tables.BetBalances.create({
             user_id: user.id,
-            available_balance: 100, // Starting balance
-            escrowed_balance: 0,
+            current_balance: 100, // Starting balance
+            escrow_balance: 0,
         });
     }
 
-    const totalBalance = balance.available_balance + balance.escrowed_balance;
+    const totalBalance = balance.current_balance + balance.escrow_balance;
 
     const embed = new EmbedBuilder()
         .setTitle(`💰 ${displayName}'s Sparks Balance`)
         .addFields(
-            { name: 'Available', value: `${balance.available_balance} Sparks`, inline: true },
-            { name: 'In Escrow', value: `${balance.escrowed_balance} Sparks`, inline: true },
+            { name: 'Available', value: `${balance.current_balance} Sparks`, inline: true },
+            { name: 'In Escrow', value: `${balance.escrow_balance} Sparks`, inline: true },
             { name: 'Total', value: `${totalBalance} Sparks`, inline: true },
         )
         .setColor('#00ff00')
         .setTimestamp();
 
-    if (balance.escrowed_balance > 0) {
+    if (balance.escrow_balance > 0) {
         embed.setFooter({ text: 'Escrow: Sparks locked in active bets' });
     }
 

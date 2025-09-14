@@ -1,6 +1,6 @@
 import { DataTypes, Model, Sequelize, InferAttributes, InferCreationAttributes } from "sequelize";
 
-type TransactionType = 'earn' | 'spend' | 'escrow_in' | 'escrow_out' | 'refund' | 'payout' | 'void';
+type TransactionType = 'earn' | 'spend' | 'escrow_in' | 'escrow_out' | 'refund' | 'payout' | 'void' | 'admin_credit';
 
 interface BetLedgerModel extends Model<InferAttributes<BetLedgerModel>, InferCreationAttributes<BetLedgerModel>> {
     id: number;
@@ -41,6 +41,7 @@ export default (sequelize: Sequelize) => ({
                 'refund',
                 'payout',
                 'void',
+                'admin_credit',
             ),
             allowNull: false,
         },
