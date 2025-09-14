@@ -3,4 +3,4 @@ level: debug
 database:
   user: aliabot
   options:
-    port: 3306
+    port: 3307

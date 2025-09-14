@@ -4,7 +4,9 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-Alia-bot is a Discord bot built with Discord.js v14, TypeScript, and MySQL/Sequelize. The bot serves the "Arrakis Discord" guild and features both slash commands and message-based responses including an OpenAI integration for general knowledge questions.
+Alia-bot is a Discord bot built with Discord.js v14, TypeScript, and MySQL/Sequelize. The bot serves the "Arrakis Discord" guild and features both slash commands and message-based responses including an OpenAI integration for general knowledge questions. 
+
+**NEW FEATURE (001-implement-the-bet)**: The bot now includes a comprehensive betting system with "Sparks" engagement currency. Users earn Sparks through Discord participation and can wager them on community prediction markets with interactive Discord embeds and button-based interfaces.
 
 ## Development Commands
 
