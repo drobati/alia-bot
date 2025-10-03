@@ -40,8 +40,8 @@ export default {
                 ))
         .addBooleanOption(option =>
             option
-                .setName('public')
-                .setDescription('Share your horoscope with the channel (default: private)')
+                .setName('private')
+                .setDescription('Keep your horoscope private (default: public)')
                 .setRequired(false)),
 
     async autocomplete(interaction: any, context: Context) {
@@ -65,13 +65,13 @@ export default {
 
         try {
             await interaction.deferReply({
-                ephemeral: !interaction.options.getBoolean('public'),
+                ephemeral: interaction.options.getBoolean('private') || false,
             });
 
             const userInput = interaction.options.getString('sign');
             const type = interaction.options.getString('type') || 'daily';
             const period = interaction.options.getString('period') || 'today';
-            const isPublic = interaction.options.getBoolean('public') || false;
+            const isPrivate = interaction.options.getBoolean('private') || false;
 
             // Validate zodiac sign input
             const normalizedSign = userInput!.toLowerCase();
@@ -116,7 +116,7 @@ export default {
                 sign: zodiacSign,
                 type,
                 period,
-                isPublic,
+                isPrivate,
             });
 
         } catch (error) {
