@@ -2,7 +2,9 @@ import { SlashCommandBuilder, ChatInputCommandInteraction, ChannelType } from 'd
 import { Context } from '../types';
 import { DndGameAttributes } from '../types/database';
 
-const DEFAULT_SYSTEM_PROMPT = "You are running a MUD-like D&D campaign for my friends and I. We'll type in responses and you will use your context to respond with engaging, immersive storytelling. Keep responses under 2000 characters to fit Discord message limits.";
+const DEFAULT_SYSTEM_PROMPT = "You are running a MUD-like D&D campaign for my friends and I. " +
+    "We'll type in responses and you will use your context to respond with engaging, immersive " +
+    "storytelling. Keep responses under 2000 characters to fit Discord message limits.";
 
 const dndCommand = {
     data: new SlashCommandBuilder()
@@ -200,7 +202,10 @@ async function handleListGames(interaction: ChatInputCommandInteraction, context
         }) as unknown as DndGameAttributes[];
 
         if (games.length === 0) {
-            await interaction.reply({ content: 'No D&D games found. Use `/dnd create` to create one.', ephemeral: true });
+            await interaction.reply({
+                content: 'No D&D games found. Use `/dnd create` to create one.',
+                ephemeral: true,
+            });
             return;
         }
 
@@ -261,8 +266,12 @@ async function handleSwitchGame(interaction: ChatInputCommandInteraction, contex
             { where: { guildId, name } },
         );
 
+        const channelInfo = game.channelId
+            ? `\nListening in <#${game.channelId}>`
+            : '\nUse `/dnd config` to set a channel.';
+
         await interaction.reply({
-            content: `✅ Switched to game: **${name}**${game.channelId ? `\nListening in <#${game.channelId}>` : '\nUse `/dnd config` to set a channel.'}`,
+            content: `✅ Switched to game: **${name}**${channelInfo}`,
             ephemeral: true,
         });
     } catch (error) {
