@@ -47,6 +47,7 @@ const context: Context = {
     log,
     VERSION,
     motivationalScheduler: undefined, // Will be set after initialization
+    client: client, // Discord client for sending messages
 };
 
 let motivationalScheduler: MotivationalScheduler;
