@@ -2,6 +2,7 @@ import { Message } from 'discord.js';
 import { Context } from '../utils/types';
 import { DndGameAttributes } from '../types/database';
 import { safelySendToChannel } from '../utils/discordHelpers';
+import type { ChatCompletionMessageParam } from 'openai/resources/chat/completions';
 
 // Track message collection timers per game
 const messageTimers = new Map<number, NodeJS.Timeout>();
@@ -123,10 +124,10 @@ async function processCollectedMessages(gameId: number, context: Context) {
             apiKey: process.env.OPENAI_API_KEY || '',
         });
 
-        const messages = [
-            { role: 'system' as const, content: game.systemPrompt },
-            ...(game.conversationHistory || []),
-            { role: 'user' as const, content: userPrompt },
+        const messages: ChatCompletionMessageParam[] = [
+            { role: 'system', content: game.systemPrompt },
+            ...(game.conversationHistory as ChatCompletionMessageParam[] || []),
+            { role: 'user', content: userPrompt },
         ];
 
         context.log.info('Sending D&D prompt to OpenAI', {

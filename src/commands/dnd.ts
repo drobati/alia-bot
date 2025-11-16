@@ -1,6 +1,7 @@
 import { SlashCommandBuilder, ChatInputCommandInteraction, ChannelType } from 'discord.js';
 import { Context } from '../types';
 import { DndGameAttributes } from '../types/database';
+import { safelySendToChannel } from '../utils/discordHelpers';
 
 const DEFAULT_SYSTEM_PROMPT = "You are running a MUD-like D&D campaign for my friends and I. " +
     "We'll type in responses and you will use your context to respond with engaging, immersive " +
@@ -184,7 +185,12 @@ async function handleCreateGame(interaction: ChatInputCommandInteraction, contex
         });
     } catch (error) {
         context.log.error({ error, guildId, name }, 'Failed to create D&D game');
-        await interaction.reply({ content: 'Failed to create game. Please try again.', ephemeral: true });
+        const errorMessage = 'Failed to create game. Please try again.';
+        if (interaction.replied || interaction.deferred) {
+            await interaction.followUp({ content: errorMessage, ephemeral: true });
+        } else {
+            await interaction.reply({ content: errorMessage, ephemeral: true });
+        }
     }
 }
 
@@ -379,8 +385,13 @@ async function handleStartGame(interaction: ChatInputCommandInteraction, context
 
         // Send response to configured channel
         const channel = await interaction.client.channels.fetch(game.channelId);
-        if (channel && channel.isTextBased()) {
-            await channel.send(`🎲 **Game Started: ${game.name}**\n\n${response}`);
+        if (channel && 'send' in channel) {
+            await safelySendToChannel(
+                channel as any,
+                `🎲 **Game Started: ${game.name}**\n\n${response}`,
+                context,
+                'D&D game start',
+            );
         }
 
         await interaction.editReply(`✅ Game started! Opening scene sent to <#${game.channelId}>`);

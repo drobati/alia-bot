@@ -1,5 +1,6 @@
 import dndCommand from './dnd';
 import { DndGameAttributes } from '../types/database';
+import OpenAI from 'openai';
 
 // Mock OpenAI
 jest.mock('openai');
@@ -51,6 +52,7 @@ describe('DnD Command', () => {
             editReply: jest.fn().mockResolvedValue(undefined),
             deferReply: jest.fn().mockResolvedValue(undefined),
             respond: jest.fn().mockResolvedValue(undefined),
+            followUp: jest.fn().mockResolvedValue(undefined),
             client: mockClient,
         };
 
@@ -73,8 +75,12 @@ describe('DnD Command', () => {
         beforeEach(() => {
             mockInteraction.options.getSubcommand.mockReturnValue('create');
             mockInteraction.options.getString.mockImplementation((name: string) => {
-                if (name === 'name') return 'test-game';
-                if (name === 'prompt') return null;
+                if (name === 'name') {
+                    return 'test-game';
+                }
+                if (name === 'prompt') {
+                    return null;
+                }
                 return null;
             });
         });
@@ -112,8 +118,12 @@ describe('DnD Command', () => {
 
         it('should create a new game with custom prompt', async () => {
             mockInteraction.options.getString.mockImplementation((name: string) => {
-                if (name === 'name') return 'test-game';
-                if (name === 'prompt') return 'Custom system prompt';
+                if (name === 'name') {
+                    return 'test-game';
+                }
+                if (name === 'prompt') {
+                    return 'Custom system prompt';
+                }
                 return null;
             });
             mockDndGameModel.findOne.mockResolvedValue(null);
@@ -346,8 +356,8 @@ describe('DnD Command', () => {
             mockDndGameModel.update.mockResolvedValue([1]);
 
             // Mock OpenAI
-            const mockOpenAI = require('openai');
-            mockOpenAI.default = jest.fn().mockImplementation(() => ({
+            const MockedOpenAI = jest.mocked(OpenAI);
+            MockedOpenAI.mockImplementation(() => ({
                 chat: {
                     completions: {
                         create: jest.fn().mockResolvedValue({
@@ -359,7 +369,7 @@ describe('DnD Command', () => {
                         }),
                     },
                 },
-            }));
+            } as any));
 
             await dndCommand.execute(mockInteraction, mockContext);
 
@@ -410,14 +420,14 @@ describe('DnD Command', () => {
                 systemPrompt: 'You are a DM',
             });
 
-            const mockOpenAI = require('openai');
-            mockOpenAI.default = jest.fn().mockImplementation(() => ({
+            const MockedOpenAI = jest.mocked(OpenAI);
+            MockedOpenAI.mockImplementation(() => ({
                 chat: {
                     completions: {
                         create: jest.fn().mockRejectedValue(new Error('API Error')),
                     },
                 },
-            }));
+            } as any));
 
             await dndCommand.execute(mockInteraction, mockContext);
 
@@ -592,7 +602,7 @@ describe('DnD Command', () => {
             await dndCommand.execute(mockInteraction, mockContext);
 
             expect(mockInteraction.followUp).toHaveBeenCalledWith({
-                content: expect.stringContaining('error occurred'),
+                content: expect.stringContaining('Failed to create game'),
                 ephemeral: true,
             });
         });

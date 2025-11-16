@@ -1,6 +1,7 @@
 import dndResponseHandler from './dnd';
 import { DndGameAttributes } from '../types/database';
 import { safelySendToChannel } from '../utils/discordHelpers';
+import OpenAI from 'openai';
 
 // Mock dependencies
 jest.mock('../utils/discordHelpers');
@@ -258,8 +259,8 @@ describe('DnD Response Handler', () => {
                 .mockResolvedValueOnce(mockGame); // Second findOne for processing
 
             // Mock OpenAI
-            const mockOpenAI = require('openai');
-            mockOpenAI.default = jest.fn().mockImplementation(() => ({
+            const MockedOpenAI = jest.mocked(OpenAI);
+            MockedOpenAI.mockImplementation(() => ({
                 chat: {
                     completions: {
                         create: jest.fn().mockResolvedValue({
@@ -276,7 +277,7 @@ describe('DnD Response Handler', () => {
                         }),
                     },
                 },
-            }));
+            } as any));
 
             // Collect message
             await dndResponseHandler(mockMessage, mockContext);
@@ -285,8 +286,8 @@ describe('DnD Response Handler', () => {
             await jest.runAllTimersAsync();
 
             // Should have called OpenAI with formatted messages
-            const OpenAI = require('openai').default;
-            const openaiInstance = OpenAI.mock.results[0].value;
+            const MockedOpenAIClass = jest.mocked(OpenAI);
+            const openaiInstance = MockedOpenAIClass.mock.results[0].value;
             expect(openaiInstance.chat.completions.create).toHaveBeenCalledWith({
                 model: 'gpt-4-turbo-preview',
                 messages: [
@@ -328,8 +329,8 @@ describe('DnD Response Handler', () => {
                 .mockResolvedValueOnce(mockGame)
                 .mockResolvedValueOnce(mockGame);
 
-            const mockOpenAI = require('openai');
-            mockOpenAI.default = jest.fn().mockImplementation(() => ({
+            const MockedOpenAI = jest.mocked(OpenAI);
+            MockedOpenAI.mockImplementation(() => ({
                 chat: {
                     completions: {
                         create: jest.fn().mockResolvedValue({
@@ -338,13 +339,13 @@ describe('DnD Response Handler', () => {
                         }),
                     },
                 },
-            }));
+            } as any));
 
             await dndResponseHandler(mockMessage, mockContext);
             await jest.runAllTimersAsync();
 
-            const OpenAI = require('openai').default;
-            const openaiInstance = OpenAI.mock.results[0].value;
+            const MockedOpenAIClass = jest.mocked(OpenAI);
+            const openaiInstance = MockedOpenAIClass.mock.results[0].value;
             expect(openaiInstance.chat.completions.create).toHaveBeenCalledWith(
                 expect.objectContaining({
                     messages: expect.arrayContaining([
@@ -368,8 +369,8 @@ describe('DnD Response Handler', () => {
                 .mockResolvedValueOnce(mockGame)
                 .mockResolvedValueOnce(mockGame);
 
-            const mockOpenAI = require('openai');
-            mockOpenAI.default = jest.fn().mockImplementation(() => ({
+            const MockedOpenAI = jest.mocked(OpenAI);
+            MockedOpenAI.mockImplementation(() => ({
                 chat: {
                     completions: {
                         create: jest.fn().mockResolvedValue({
@@ -378,7 +379,7 @@ describe('DnD Response Handler', () => {
                         }),
                     },
                 },
-            }));
+            } as any));
 
             await dndResponseHandler(mockMessage, mockContext);
             await jest.runAllTimersAsync();
@@ -407,8 +408,8 @@ describe('DnD Response Handler', () => {
             await jest.runAllTimersAsync();
 
             // Should not process if no messages
-            const mockOpenAI = require('openai');
-            expect(mockOpenAI.default).not.toHaveBeenCalled();
+            const MockedOpenAI = jest.mocked(OpenAI);
+            expect(MockedOpenAI).not.toHaveBeenCalled();
         });
     });
 
@@ -451,14 +452,14 @@ describe('DnD Response Handler', () => {
                 .mockResolvedValueOnce(mockGame)
                 .mockResolvedValueOnce(mockGame);
 
-            const mockOpenAI = require('openai');
-            mockOpenAI.default = jest.fn().mockImplementation(() => ({
+            const MockedOpenAI = jest.mocked(OpenAI);
+            MockedOpenAI.mockImplementation(() => ({
                 chat: {
                     completions: {
                         create: jest.fn().mockRejectedValue(new Error('OpenAI API error')),
                     },
                 },
-            }));
+            } as any));
 
             await dndResponseHandler(mockMessage, mockContext);
             await jest.runAllTimersAsync();
@@ -496,8 +497,8 @@ describe('DnD Response Handler', () => {
                 .mockResolvedValueOnce(mockGame)
                 .mockResolvedValueOnce(mockGame);
 
-            const mockOpenAI = require('openai');
-            mockOpenAI.default = jest.fn().mockImplementation(() => ({
+            const MockedOpenAI = jest.mocked(OpenAI);
+            MockedOpenAI.mockImplementation(() => ({
                 chat: {
                     completions: {
                         create: jest.fn().mockResolvedValue({
@@ -506,7 +507,7 @@ describe('DnD Response Handler', () => {
                         }),
                     },
                 },
-            }));
+            } as any));
 
             mockClient.channels.fetch.mockRejectedValue(new Error('Channel not found'));
 
@@ -549,8 +550,8 @@ describe('DnD Response Handler', () => {
                 .mockResolvedValueOnce(mockGame)
                 .mockResolvedValueOnce(mockGame);
 
-            const mockOpenAI = require('openai');
-            mockOpenAI.default = jest.fn().mockImplementation(() => ({
+            const MockedOpenAI = jest.mocked(OpenAI);
+            MockedOpenAI.mockImplementation(() => ({
                 chat: {
                     completions: {
                         create: jest.fn().mockResolvedValue({
@@ -559,7 +560,7 @@ describe('DnD Response Handler', () => {
                         }),
                     },
                 },
-            }));
+            } as any));
 
             await dndResponseHandler(mockMessage, mockContext);
             await jest.runAllTimersAsync();
@@ -621,8 +622,8 @@ describe('DnD Response Handler', () => {
                 .mockResolvedValueOnce(mockGame)
                 .mockResolvedValueOnce(mockGame);
 
-            const mockOpenAI = require('openai');
-            mockOpenAI.default = jest.fn().mockImplementation(() => ({
+            const MockedOpenAI = jest.mocked(OpenAI);
+            MockedOpenAI.mockImplementation(() => ({
                 chat: {
                     completions: {
                         create: jest.fn().mockResolvedValue({
@@ -631,7 +632,7 @@ describe('DnD Response Handler', () => {
                         }),
                     },
                 },
-            }));
+            } as any));
 
             await dndResponseHandler(mockMessage, mockContext);
             await jest.runAllTimersAsync();
