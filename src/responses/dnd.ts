@@ -187,7 +187,7 @@ async function processCollectedMessages(gameId: number, context: Context) {
                 if (channel && 'send' in channel) {
                     const success = await safelySendToChannel(
                         channel as any,
-                        `🎲 **${game.name}** (Round ${game.currentRound + 1})\n\n${response}`,
+                        response,
                         context,
                         'D&D response',
                     );

@@ -14,35 +14,40 @@ const dndCommand = {
         .addSubcommand(subcommand =>
             subcommand
                 .setName('create')
-                .setDescription('Create a new D&D game')
+                .setDescription('Create and start a new D&D game in this channel')
                 .addStringOption(option => option
                     .setName('name')
                     .setDescription('Name of the game')
                     .setRequired(true))
                 .addStringOption(option => option
                     .setName('prompt')
-                    .setDescription('Initial system prompt for the game (optional)')
-                    .setRequired(false)),
+                    .setDescription('World-building prompt (setting, theme, rules)')
+                    .setRequired(true)),
         )
         .addSubcommand(subcommand =>
             subcommand
-                .setName('list')
-                .setDescription('List all D&D games'),
-        )
-        .addSubcommand(subcommand =>
-            subcommand
-                .setName('switch')
-                .setDescription('Switch to a different game')
+                .setName('resume')
+                .setDescription('Resume a saved game in this channel')
                 .addStringOption(option => option
                     .setName('name')
-                    .setDescription('Name of the game to switch to')
+                    .setDescription('Name of the game to resume')
                     .setRequired(true)
                     .setAutocomplete(true)),
         )
         .addSubcommand(subcommand =>
             subcommand
+                .setName('list')
+                .setDescription('List all saved D&D games'),
+        )
+        .addSubcommand(subcommand =>
+            subcommand
+                .setName('off')
+                .setDescription('End the active game and save it'),
+        )
+        .addSubcommand(subcommand =>
+            subcommand
                 .setName('delete')
-                .setDescription('Delete a D&D game')
+                .setDescription('Permanently delete a saved game')
                 .addStringOption(option => option
                     .setName('name')
                     .setDescription('Name of the game to delete')
@@ -51,22 +56,8 @@ const dndCommand = {
         )
         .addSubcommand(subcommand =>
             subcommand
-                .setName('start')
-                .setDescription('Start the active game with an initial prompt')
-                .addStringOption(option => option
-                    .setName('prompt')
-                    .setDescription('Opening scene description')
-                    .setRequired(true)),
-        )
-        .addSubcommand(subcommand =>
-            subcommand
                 .setName('config')
                 .setDescription('Configure D&D game settings')
-                .addChannelOption(option => option
-                    .setName('channel')
-                    .setDescription('Channel to use for D&D game')
-                    .addChannelTypes(ChannelType.GuildText)
-                    .setRequired(false))
                 .addIntegerOption(option => option
                     .setName('wait-period')
                     .setDescription('Wait period in minutes before responding (1-30)')
@@ -81,8 +72,12 @@ const dndCommand = {
         if (focusedOption.name === 'name') {
             try {
                 const guildId = interaction.guildId;
+                // Find saved games (not currently active in any channel)
                 const games = await context.tables.DndGame.findAll({
-                    where: { guildId },
+                    where: {
+                        guildId,
+                        channelId: null
+                    },
                     limit: 25,
                     order: [['updatedAt', 'DESC']],
                 });
@@ -95,7 +90,7 @@ const dndCommand = {
 
                 await interaction.respond(
                     filtered.map((game: DndGameAttributes) => ({
-                        name: `${game.name}${game.isActive ? ' (active)' : ''}`,
+                        name: game.name,
                         value: game.name,
                     })),
                 );
@@ -114,17 +109,17 @@ const dndCommand = {
                 case 'create':
                     await handleCreateGame(interaction, context);
                     break;
+                case 'resume':
+                    await handleResumeGame(interaction, context);
+                    break;
                 case 'list':
                     await handleListGames(interaction, context);
                     break;
-                case 'switch':
-                    await handleSwitchGame(interaction, context);
+                case 'off':
+                    await handleOffGame(interaction, context);
                     break;
                 case 'delete':
                     await handleDeleteGame(interaction, context);
-                    break;
-                case 'start':
-                    await handleStartGame(interaction, context);
                     break;
                 case 'config':
                     await handleConfig(interaction, context);
@@ -146,51 +141,244 @@ const dndCommand = {
 };
 
 async function handleCreateGame(interaction: ChatInputCommandInteraction, context: Context) {
+    await interaction.deferReply();
+
     const guildId = interaction.guildId;
+    const channelId = interaction.channelId;
+
+    if (!guildId) {
+        await interaction.editReply('This command can only be used in a server.');
+        return;
+    }
+
+    const name = interaction.options.getString('name', true);
+    const worldPrompt = interaction.options.getString('prompt', true);
+
+    try {
+        // Check if this channel already has an active game
+        const activeGameInChannel = await context.tables.DndGame.findOne({
+            where: { guildId, channelId, isActive: true },
+        }) as unknown as DndGameAttributes | null;
+
+        if (activeGameInChannel) {
+            await interaction.editReply(`This channel already has an active game: **${activeGameInChannel.name}**\n\nUse \`/dnd off\` to end it first.`);
+            return;
+        }
+
+        // Build system prompt with world-building
+        const systemPrompt = `${DEFAULT_SYSTEM_PROMPT}\n\nWorld Setting: ${worldPrompt}`;
+
+        // Generate opening scene using OpenAI
+        const OpenAI = (await import('openai')).default;
+        const openai = new OpenAI({
+            apiKey: process.env.OPENAI_API_KEY || '',
+        });
+
+        const introMessage = {
+            role: 'user' as const,
+            content: 'Begin the adventure with an engaging introduction to this world. Set the scene for the players.'
+        };
+
+        const completion = await openai.chat.completions.create({
+            model: 'gpt-4-turbo-preview',
+            messages: [
+                { role: 'system' as const, content: systemPrompt },
+                introMessage,
+            ],
+            max_tokens: 300,
+            temperature: 0.8,
+        });
+
+        const introResponse = completion.choices[0].message.content;
+
+        if (!introResponse) {
+            await interaction.editReply('Failed to generate opening scene.');
+            return;
+        }
+
+        // Create and save the game
+        const conversationHistory = [
+            { role: 'system' as const, content: systemPrompt },
+            introMessage,
+            { role: 'assistant' as const, content: introResponse },
+        ];
+
+        await context.tables.DndGame.create({
+            guildId,
+            name,
+            systemPrompt,
+            conversationHistory: conversationHistory as any,
+            channelId,
+            isActive: true,
+            waitPeriodMinutes: 5,
+            currentRound: 1,
+            pendingMessages: [] as any,
+            lastResponseTime: new Date(),
+        } as any);
+
+        // Send intro message to channel
+        const channel = await interaction.client.channels.fetch(channelId);
+        if (channel && 'send' in channel) {
+            await safelySendToChannel(
+                channel as any,
+                `🎲 **${name}**\n\n${introResponse}`,
+                context,
+                'D&D game intro',
+            );
+        }
+
+        await interaction.editReply(`✅ Game created and started!\n\nThis channel is now locked to **${name}**.\nUse \`/dnd off\` to end the session.`);
+    } catch (error) {
+        context.log.error({ error, guildId, name }, 'Failed to create D&D game');
+
+        let errorMessage = 'Failed to create game. Please try again.';
+
+        // Handle specific database validation errors
+        if (error && typeof error === 'object' && 'message' in error) {
+            const errorMsg = String(error.message);
+
+            // Name too long
+            if (errorMsg.includes('Data too long for column \'name\'')) {
+                errorMessage = `❌ Game name is too long (max 100 characters).\n\nYour name: ${name.length} characters`;
+            }
+        }
+
+        await interaction.editReply(errorMessage);
+    }
+}
+
+async function handleOffGame(interaction: ChatInputCommandInteraction, context: Context) {
+    const guildId = interaction.guildId;
+    const channelId = interaction.channelId;
+
     if (!guildId) {
         await interaction.reply({ content: 'This command can only be used in a server.', ephemeral: true });
         return;
     }
 
-    const name = interaction.options.getString('name', true);
-    const customPrompt = interaction.options.getString('prompt');
-
     try {
-        // Check if game with this name already exists
-        const existingGame = await context.tables.DndGame.findOne({
-            where: { guildId, name },
+        // Find active game in this channel
+        const game = await context.tables.DndGame.findOne({
+            where: { guildId, channelId },
         }) as unknown as DndGameAttributes | null;
 
-        if (existingGame) {
-            await interaction.reply({ content: `A game named "${name}" already exists.`, ephemeral: true });
+        if (!game) {
+            await interaction.reply({
+                content: 'No active game in this channel.',
+                ephemeral: true,
+            });
             return;
         }
 
-        // Create new game
-        const systemPrompt = customPrompt || DEFAULT_SYSTEM_PROMPT;
-        await context.tables.DndGame.create({
-            guildId,
-            name,
-            systemPrompt,
-            conversationHistory: [],
-            isActive: false,
-            waitPeriodMinutes: 5,
-            currentRound: 0,
-            pendingMessages: [],
-        } as any);
+        // Save the game and unlock channel
+        await context.tables.DndGame.update(
+            { channelId: undefined, isActive: false },
+            { where: { guildId, channelId } },
+        );
 
         await interaction.reply({
-            content: `✅ Created D&D game: **${name}**\nUse \`/dnd switch name:${name}\` to activate it.`,
+            content: `✅ Game **${game.name}** saved and channel unlocked.\n\nRounds played: ${game.currentRound}\nUse \`/dnd resume name:"${game.name}"\` to continue later.`,
             ephemeral: true,
         });
     } catch (error) {
-        context.log.error({ error, guildId, name }, 'Failed to create D&D game');
-        const errorMessage = 'Failed to create game. Please try again.';
-        if (interaction.replied || interaction.deferred) {
-            await interaction.followUp({ content: errorMessage, ephemeral: true });
-        } else {
-            await interaction.reply({ content: errorMessage, ephemeral: true });
+        context.log.error({ error, guildId }, 'Failed to turn off D&D game');
+        await interaction.reply({ content: 'Failed to turn off game. Please try again.', ephemeral: true });
+    }
+}
+
+async function handleResumeGame(interaction: ChatInputCommandInteraction, context: Context) {
+    await interaction.deferReply();
+
+    const guildId = interaction.guildId;
+    const channelId = interaction.channelId;
+
+    if (!guildId) {
+        await interaction.editReply('This command can only be used in a server.');
+        return;
+    }
+
+    const name = interaction.options.getString('name', true);
+
+    try {
+        // Check if this channel already has an active game
+        const activeGameInChannel = await context.tables.DndGame.findOne({
+            where: { guildId, channelId, isActive: true },
+        }) as unknown as DndGameAttributes | null;
+
+        if (activeGameInChannel) {
+            await interaction.editReply(`This channel already has an active game: **${activeGameInChannel.name}**\n\nUse \`/dnd off\` to end it first.`);
+            return;
         }
+
+        // Find the saved game
+        const game = await context.tables.DndGame.findOne({
+            where: { guildId, name, channelId: null },
+        }) as unknown as DndGameAttributes | null;
+
+        if (!game) {
+            await interaction.editReply(`Game "${name}" not found or is already active in another channel.`);
+            return;
+        }
+
+        // Generate recap using OpenAI
+        const OpenAI = (await import('openai')).default;
+        const openai = new OpenAI({
+            apiKey: process.env.OPENAI_API_KEY || '',
+        });
+
+        const recapMessage = {
+            role: 'user' as const,
+            content: 'Provide a brief recap of the story so far to remind the players where they left off. Keep it concise and engaging.'
+        };
+
+        const completion = await openai.chat.completions.create({
+            model: 'gpt-4-turbo-preview',
+            messages: [
+                ...(game.conversationHistory as any[]),
+                recapMessage,
+            ],
+            max_tokens: 300,
+            temperature: 0.7,
+        });
+
+        const recapResponse = completion.choices[0].message.content;
+
+        if (!recapResponse) {
+            await interaction.editReply('Failed to generate recap.');
+            return;
+        }
+
+        // Update game with new channel and add recap to history
+        const updatedHistory = [
+            ...(game.conversationHistory as any[]),
+            recapMessage,
+            { role: 'assistant' as const, content: recapResponse },
+        ];
+
+        await context.tables.DndGame.update(
+            {
+                channelId,
+                conversationHistory: updatedHistory as any,
+                lastResponseTime: new Date(),
+            },
+            { where: { guildId, name } },
+        );
+
+        // Send recap to channel
+        const channel = await interaction.client.channels.fetch(channelId);
+        if (channel && 'send' in channel) {
+            await safelySendToChannel(
+                channel as any,
+                `🎲 **${game.name}** (Round ${game.currentRound})\n\n📖 **Recap:**\n${recapResponse}`,
+                context,
+                'D&D game recap',
+            );
+        }
+
+        await interaction.editReply(`✅ Resumed **${game.name}**!\n\nThis channel is now locked to this game.\nUse \`/dnd off\` to save and end the session.`);
+    } catch (error) {
+        context.log.error({ error, guildId, name }, 'Failed to resume D&D game');
+        await interaction.editReply('Failed to resume game. Please try again.');
     }
 }
 
@@ -204,7 +392,7 @@ async function handleListGames(interaction: ChatInputCommandInteraction, context
     try {
         const games = await context.tables.DndGame.findAll({
             where: { guildId },
-            order: [['isActive', 'DESC'], ['updatedAt', 'DESC']],
+            order: [['channelId', 'DESC'], ['updatedAt', 'DESC']],
         }) as unknown as DndGameAttributes[];
 
         if (games.length === 0) {
@@ -215,21 +403,32 @@ async function handleListGames(interaction: ChatInputCommandInteraction, context
             return;
         }
 
-        const gameList = games
-            .map((game, index) => {
-                const active = game.isActive ? '🎮 **ACTIVE**' : '';
-                const channel = game.channelId ? ` - <#${game.channelId}>` : '';
-                const rounds = game.currentRound > 0 ? ` (${game.currentRound} rounds)` : '';
-                return `${index + 1}. **${game.name}** ${active}${channel}${rounds}`;
-            })
-            .join('\n');
+        const activeGames = games.filter(g => g.channelId);
+        const savedGames = games.filter(g => !g.channelId);
+
+        let description = '';
+
+        if (activeGames.length > 0) {
+            description += '**🎮 Active Games:**\n';
+            description += activeGames.map(game =>
+                `• **${game.name}** - <#${game.channelId}> (Round ${game.currentRound})`
+            ).join('\n');
+        }
+
+        if (savedGames.length > 0) {
+            if (description) description += '\n\n';
+            description += '**💾 Saved Games:**\n';
+            description += savedGames.map(game =>
+                `• **${game.name}** (Round ${game.currentRound})`
+            ).join('\n');
+        }
 
         const embed = {
             title: '🎲 D&D Games',
-            description: gameList,
+            description,
             color: 0xFF6B6B,
             footer: {
-                text: `Total: ${games.length} games`,
+                text: `Total: ${games.length} games (${activeGames.length} active, ${savedGames.length} saved)`,
             },
         };
 
@@ -237,52 +436,6 @@ async function handleListGames(interaction: ChatInputCommandInteraction, context
     } catch (error) {
         context.log.error({ error, guildId }, 'Error listing D&D games');
         await interaction.reply({ content: 'Failed to list games.', ephemeral: true });
-    }
-}
-
-async function handleSwitchGame(interaction: ChatInputCommandInteraction, context: Context) {
-    const guildId = interaction.guildId;
-    if (!guildId) {
-        await interaction.reply({ content: 'This command can only be used in a server.', ephemeral: true });
-        return;
-    }
-
-    const name = interaction.options.getString('name', true);
-
-    try {
-        // Find the game to switch to
-        const game = await context.tables.DndGame.findOne({
-            where: { guildId, name },
-        }) as unknown as DndGameAttributes | null;
-
-        if (!game) {
-            await interaction.reply({ content: `Game "${name}" not found.`, ephemeral: true });
-            return;
-        }
-
-        // Deactivate all other games
-        await context.tables.DndGame.update(
-            { isActive: false },
-            { where: { guildId } },
-        );
-
-        // Activate this game
-        await context.tables.DndGame.update(
-            { isActive: true },
-            { where: { guildId, name } },
-        );
-
-        const channelInfo = game.channelId
-            ? `\nListening in <#${game.channelId}>`
-            : '\nUse `/dnd config` to set a channel.';
-
-        await interaction.reply({
-            content: `✅ Switched to game: **${name}**${channelInfo}`,
-            ephemeral: true,
-        });
-    } catch (error) {
-        context.log.error({ error, guildId, name }, 'Failed to switch D&D game');
-        await interaction.reply({ content: 'Failed to switch game. Please try again.', ephemeral: true });
     }
 }
 
@@ -296,17 +449,29 @@ async function handleDeleteGame(interaction: ChatInputCommandInteraction, contex
     const name = interaction.options.getString('name', true);
 
     try {
-        const deleted = await context.tables.DndGame.destroy({
+        const game = await context.tables.DndGame.findOne({
             where: { guildId, name },
-        });
+        }) as unknown as DndGameAttributes | null;
 
-        if (deleted === 0) {
+        if (!game) {
             await interaction.reply({ content: `Game "${name}" not found.`, ephemeral: true });
             return;
         }
 
+        if (game.channelId) {
+            await interaction.reply({
+                content: `Game **${game.name}** is currently active in <#${game.channelId}>.\n\nUse \`/dnd off\` in that channel first.`,
+                ephemeral: true
+            });
+            return;
+        }
+
+        await context.tables.DndGame.destroy({
+            where: { guildId, name },
+        });
+
         await interaction.reply({
-            content: `🗑️ Deleted game: **${name}**`,
+            content: `🗑️ Permanently deleted game: **${name}**`,
             ephemeral: true,
         });
     } catch (error) {
@@ -315,147 +480,46 @@ async function handleDeleteGame(interaction: ChatInputCommandInteraction, contex
     }
 }
 
-async function handleStartGame(interaction: ChatInputCommandInteraction, context: Context) {
-    await interaction.deferReply();
-
-    const guildId = interaction.guildId;
-    if (!guildId) {
-        await interaction.editReply('This command can only be used in a server.');
-        return;
-    }
-
-    const prompt = interaction.options.getString('prompt', true);
-
-    try {
-        // Find active game
-        const game = await context.tables.DndGame.findOne({
-            where: { guildId, isActive: true },
-        }) as unknown as DndGameAttributes | null;
-
-        if (!game) {
-            await interaction.editReply('No active game. Use `/dnd switch` to activate a game.');
-            return;
-        }
-
-        if (!game.channelId) {
-            await interaction.editReply('No channel configured. Use `/dnd config channel:#channel` to set one.');
-            return;
-        }
-
-        // Generate initial response using OpenAI
-        const OpenAI = (await import('openai')).default;
-        const openai = new OpenAI({
-            apiKey: process.env.OPENAI_API_KEY || '',
-        });
-
-        const messages = [
-            { role: 'system' as const, content: game.systemPrompt },
-            { role: 'user' as const, content: prompt },
-        ];
-
-        const completion = await openai.chat.completions.create({
-            model: 'gpt-4-turbo-preview',
-            messages,
-            max_tokens: 300,
-            temperature: 0.8,
-        });
-
-        const response = completion.choices[0].message.content;
-
-        if (!response) {
-            await interaction.editReply('Failed to generate opening scene.');
-            return;
-        }
-
-        // Update conversation history
-        const updatedHistory = [
-            ...messages,
-            { role: 'assistant' as const, content: response },
-        ];
-
-        await context.tables.DndGame.update(
-            {
-                conversationHistory: updatedHistory as any,
-                currentRound: 1,
-                pendingMessages: [] as any,
-                lastResponseTime: new Date(),
-            },
-            { where: { guildId, isActive: true } },
-        );
-
-        // Send response to configured channel
-        const channel = await interaction.client.channels.fetch(game.channelId);
-        if (channel && 'send' in channel) {
-            await safelySendToChannel(
-                channel as any,
-                `🎲 **Game Started: ${game.name}**\n\n${response}`,
-                context,
-                'D&D game start',
-            );
-        }
-
-        await interaction.editReply(`✅ Game started! Opening scene sent to <#${game.channelId}>`);
-    } catch (error) {
-        context.log.error({ error, guildId }, 'Failed to start D&D game');
-        await interaction.editReply('Failed to start game. Please check your OpenAI API key and try again.');
-    }
-}
-
 async function handleConfig(interaction: ChatInputCommandInteraction, context: Context) {
     const guildId = interaction.guildId;
+    const channelId = interaction.channelId;
+
     if (!guildId) {
         await interaction.reply({ content: 'This command can only be used in a server.', ephemeral: true });
         return;
     }
 
-    const channel = interaction.options.getChannel('channel');
     const waitPeriod = interaction.options.getInteger('wait-period');
 
     try {
-        // Find active game
+        // Find active game in this channel
         const game = await context.tables.DndGame.findOne({
-            where: { guildId, isActive: true },
+            where: { guildId, channelId },
         }) as unknown as DndGameAttributes | null;
 
         if (!game) {
             await interaction.reply({
-                content: 'No active game. Use `/dnd switch` to activate a game first.',
+                content: 'No active game in this channel.',
                 ephemeral: true,
             });
             return;
         }
 
-        const updates: any = {};
-        if (channel) {
-            updates.channelId = channel.id;
-        }
-        if (waitPeriod !== null) {
-            updates.waitPeriodMinutes = waitPeriod;
-        }
-
-        if (Object.keys(updates).length === 0) {
+        if (waitPeriod === null) {
             await interaction.reply({
-                content: 'Please specify at least one option to configure.',
+                content: 'Please specify the wait-period option.',
                 ephemeral: true,
             });
             return;
         }
 
         await context.tables.DndGame.update(
-            updates,
-            { where: { guildId, isActive: true } },
+            { waitPeriodMinutes: waitPeriod },
+            { where: { guildId, channelId } },
         );
 
-        const configMessage = [];
-        if (channel) {
-            configMessage.push(`Channel: <#${channel.id}>`);
-        }
-        if (waitPeriod !== null) {
-            configMessage.push(`Wait period: ${waitPeriod} minutes`);
-        }
-
         await interaction.reply({
-            content: `✅ Updated configuration for **${game.name}**:\n${configMessage.join('\n')}`,
+            content: `✅ Updated configuration for **${game.name}**:\nWait period: ${waitPeriod} minutes`,
             ephemeral: true,
         });
     } catch (error) {

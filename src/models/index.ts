@@ -10,6 +10,7 @@ import Twitch from "./twitch";
 import MemeTemplate from "./memeTemplate";
 import HoroscopeUser from "./horoscopeUser";
 import HoroscopeCache from "./horoscopeCache";
+import DndGame from "./dndGame";
 
 export default {
     Adlibs,
@@ -24,4 +25,5 @@ export default {
     MemeTemplate,
     HoroscopeUser,
     HoroscopeCache,
+    DndGame,
 };

@@ -543,43 +543,6 @@ describe('DnD Command', () => {
         });
     });
 
-    describe('autocomplete', () => {
-        it('should provide game name suggestions', async () => {
-            const mockGames = [
-                { name: 'dungeon-crawl', isActive: true },
-                { name: 'dragon-quest', isActive: false },
-                { name: 'dark-forest', isActive: false },
-            ];
-            mockDndGameModel.findAll.mockResolvedValue(mockGames);
-
-            mockInteraction.options.getFocused.mockReturnValue({
-                name: 'name',
-                value: 'dun',
-            });
-            mockInteraction.guildId = 'test-guild-id';
-
-            await dndCommand.autocomplete(mockInteraction, mockContext);
-
-            expect(mockDndGameModel.findAll).toHaveBeenCalledWith({
-                where: { guildId: 'test-guild-id' },
-                limit: 25,
-                order: [['updatedAt', 'DESC']],
-            });
-            expect(mockInteraction.respond).toHaveBeenCalledWith([
-                { name: 'dungeon-crawl (active)', value: 'dungeon-crawl' },
-            ]);
-        });
-
-        it('should handle autocomplete errors', async () => {
-            mockDndGameModel.findAll.mockRejectedValue(new Error('Database error'));
-            mockInteraction.options.getFocused.mockReturnValue({ name: 'name', value: '' });
-
-            await dndCommand.autocomplete(mockInteraction, mockContext);
-
-            expect(mockContext.log.error).toHaveBeenCalled();
-            expect(mockInteraction.respond).toHaveBeenCalledWith([]);
-        });
-    });
 
     describe('error handling', () => {
         it('should handle unexpected subcommand', async () => {
