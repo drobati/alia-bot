@@ -8,6 +8,8 @@
         "start": "node dist/index.js",
         "lint": "eslint .",
         "test": "cross-env NODE_ENV=test jest",
+        "test:unit": "cross-env NODE_ENV=test jest --testPathIgnorePatterns=integration.test.ts",
+        "test:integration": "cross-env NODE_ENV=test jest --testPathPatterns=integration.test.ts --runInBand",
         "coverage": "cross-env NODE_ENV=test jest --collectCoverage --"
     },
     "repository": {
