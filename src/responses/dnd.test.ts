@@ -314,7 +314,7 @@ describe('DnD Response Handler', () => {
             // Should have sent message to channel
             expect(mockSafelySendToChannel).toHaveBeenCalledWith(
                 expect.anything(),
-                '🎲 **Test Campaign** (Round 2)\n\nThe goblin falls! Victory is yours!',
+                'The goblin falls! Victory is yours!',
                 mockContext,
                 'D&D response',
             );

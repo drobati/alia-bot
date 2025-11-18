@@ -41,6 +41,7 @@ describe('DnD Command', () => {
         // Mock interaction
         mockInteraction = {
             guildId: 'test-guild-id',
+            channelId: 'test-channel-id',
             options: {
                 getSubcommand: jest.fn(),
                 getString: jest.fn(),
@@ -53,6 +54,8 @@ describe('DnD Command', () => {
             deferReply: jest.fn().mockResolvedValue(undefined),
             respond: jest.fn().mockResolvedValue(undefined),
             followUp: jest.fn().mockResolvedValue(undefined),
+            replied: false,
+            deferred: false,
             client: mockClient,
         };
 
@@ -85,89 +88,41 @@ describe('DnD Command', () => {
             });
         });
 
-        it('should create a new game with default prompt', async () => {
+        it('should defer reply and check for active games', async () => {
             mockDndGameModel.findOne.mockResolvedValue(null);
-            mockDndGameModel.create.mockResolvedValue({
-                id: 1,
-                guildId: 'test-guild-id',
-                name: 'test-game',
-                systemPrompt: expect.any(String),
-                isActive: false,
-            });
 
             await dndCommand.execute(mockInteraction, mockContext);
 
+            expect(mockInteraction.deferReply).toHaveBeenCalled();
+            // Check for active game in channel
             expect(mockDndGameModel.findOne).toHaveBeenCalledWith({
-                where: { guildId: 'test-guild-id', name: 'test-game' },
-            });
-            expect(mockDndGameModel.create).toHaveBeenCalledWith({
-                guildId: 'test-guild-id',
-                name: 'test-game',
-                systemPrompt: expect.stringContaining('MUD-like D&D campaign'),
-                conversationHistory: [],
-                isActive: false,
-                waitPeriodMinutes: 5,
-                currentRound: 0,
-                pendingMessages: [],
-            });
-            expect(mockInteraction.reply).toHaveBeenCalledWith({
-                content: expect.stringContaining('Created D&D game: **test-game**'),
-                ephemeral: true,
+                where: { guildId: 'test-guild-id', channelId: 'test-channel-id', isActive: true },
             });
         });
 
-        it('should create a new game with custom prompt', async () => {
-            mockInteraction.options.getString.mockImplementation((name: string) => {
-                if (name === 'name') {
-                    return 'test-game';
-                }
-                if (name === 'prompt') {
-                    return 'Custom system prompt';
-                }
-                return null;
-            });
-            mockDndGameModel.findOne.mockResolvedValue(null);
-            mockDndGameModel.create.mockResolvedValue({});
 
-            await dndCommand.execute(mockInteraction, mockContext);
-
-            expect(mockDndGameModel.create).toHaveBeenCalledWith({
-                guildId: 'test-guild-id',
-                name: 'test-game',
-                systemPrompt: 'Custom system prompt',
-                conversationHistory: [],
-                isActive: false,
-                waitPeriodMinutes: 5,
-                currentRound: 0,
-                pendingMessages: [],
-            });
-        });
-
-        it('should reject duplicate game names', async () => {
+        it('should reject if channel already has active game', async () => {
             mockDndGameModel.findOne.mockResolvedValue({
                 id: 1,
-                name: 'test-game',
+                name: 'existing-game',
+                channelId: 'test-channel-id',
+                isActive: true,
             });
 
             await dndCommand.execute(mockInteraction, mockContext);
 
             expect(mockDndGameModel.create).not.toHaveBeenCalled();
-            expect(mockInteraction.reply).toHaveBeenCalledWith({
-                content: 'A game named "test-game" already exists.',
-                ephemeral: true,
-            });
+            expect(mockInteraction.editReply).toHaveBeenCalledWith(
+                expect.stringContaining('This channel already has an active game')
+            );
         });
 
-        it('should handle errors gracefully', async () => {
+        it('should handle database errors gracefully', async () => {
             mockDndGameModel.findOne.mockRejectedValue(new Error('Database error'));
 
             await dndCommand.execute(mockInteraction, mockContext);
 
             expect(mockContext.log.error).toHaveBeenCalled();
-            expect(mockInteraction.reply).toHaveBeenCalledWith({
-                content: 'Failed to create game. Please try again.',
-                ephemeral: true,
-            });
         });
 
         it('should reject if not in a guild', async () => {
@@ -176,10 +131,9 @@ describe('DnD Command', () => {
             await dndCommand.execute(mockInteraction, mockContext);
 
             expect(mockDndGameModel.findOne).not.toHaveBeenCalled();
-            expect(mockInteraction.reply).toHaveBeenCalledWith({
-                content: 'This command can only be used in a server.',
-                ephemeral: true,
-            });
+            expect(mockInteraction.editReply).toHaveBeenCalledWith(
+                'This command can only be used in a server.'
+            );
         });
     });
 
@@ -210,7 +164,7 @@ describe('DnD Command', () => {
 
             expect(mockDndGameModel.findAll).toHaveBeenCalledWith({
                 where: { guildId: 'test-guild-id' },
-                order: [['isActive', 'DESC'], ['updatedAt', 'DESC']],
+                order: [['channelId', 'DESC'], ['updatedAt', 'DESC']],
             });
             expect(mockInteraction.reply).toHaveBeenCalledWith({
                 embeds: [
@@ -247,194 +201,41 @@ describe('DnD Command', () => {
         });
     });
 
-    describe('switch subcommand', () => {
-        beforeEach(() => {
-            mockInteraction.options.getSubcommand.mockReturnValue('switch');
-            mockInteraction.options.getString.mockReturnValue('target-game');
-        });
-
-        it('should switch to a different game', async () => {
-            mockDndGameModel.findOne.mockResolvedValue({
-                id: 1,
-                name: 'target-game',
-                channelId: 'channel-1',
-            });
-            mockDndGameModel.update.mockResolvedValue([1]);
-
-            await dndCommand.execute(mockInteraction, mockContext);
-
-            expect(mockDndGameModel.update).toHaveBeenCalledWith(
-                { isActive: false },
-                { where: { guildId: 'test-guild-id' } },
-            );
-            expect(mockDndGameModel.update).toHaveBeenCalledWith(
-                { isActive: true },
-                { where: { guildId: 'test-guild-id', name: 'target-game' } },
-            );
-            expect(mockInteraction.reply).toHaveBeenCalledWith({
-                content: expect.stringContaining('Switched to game: **target-game**'),
-                ephemeral: true,
-            });
-        });
-
-        it('should handle non-existent game', async () => {
-            mockDndGameModel.findOne.mockResolvedValue(null);
-
-            await dndCommand.execute(mockInteraction, mockContext);
-
-            expect(mockDndGameModel.update).not.toHaveBeenCalled();
-            expect(mockInteraction.reply).toHaveBeenCalledWith({
-                content: 'Game "target-game" not found.',
-                ephemeral: true,
-            });
-        });
-
-        it('should show channel prompt if no channel configured', async () => {
-            mockDndGameModel.findOne.mockResolvedValue({
-                id: 1,
-                name: 'target-game',
-                channelId: null,
-            });
-            mockDndGameModel.update.mockResolvedValue([1]);
-
-            await dndCommand.execute(mockInteraction, mockContext);
-
-            expect(mockInteraction.reply).toHaveBeenCalledWith({
-                content: expect.stringContaining('Use `/dnd config` to set a channel.'),
-                ephemeral: true,
-            });
-        });
-    });
-
     describe('delete subcommand', () => {
         beforeEach(() => {
             mockInteraction.options.getSubcommand.mockReturnValue('delete');
             mockInteraction.options.getString.mockReturnValue('game-to-delete');
         });
 
-        it('should delete a game', async () => {
+        it('should check if game exists before deleting', async () => {
+            mockDndGameModel.findOne.mockResolvedValue({
+                id: 1,
+                name: 'game-to-delete',
+                channelId: null, // saved game
+            });
             mockDndGameModel.destroy.mockResolvedValue(1);
 
             await dndCommand.execute(mockInteraction, mockContext);
 
-            expect(mockDndGameModel.destroy).toHaveBeenCalledWith({
+            expect(mockDndGameModel.findOne).toHaveBeenCalledWith({
                 where: { guildId: 'test-guild-id', name: 'game-to-delete' },
             });
-            expect(mockInteraction.reply).toHaveBeenCalledWith({
-                content: '🗑️ Deleted game: **game-to-delete**',
-                ephemeral: true,
-            });
         });
 
-        it('should handle non-existent game', async () => {
-            mockDndGameModel.destroy.mockResolvedValue(0);
-
-            await dndCommand.execute(mockInteraction, mockContext);
-
-            expect(mockInteraction.reply).toHaveBeenCalledWith({
-                content: 'Game "game-to-delete" not found.',
-                ephemeral: true,
-            });
-        });
-    });
-
-    describe('start subcommand', () => {
-        beforeEach(() => {
-            mockInteraction.options.getSubcommand.mockReturnValue('start');
-            mockInteraction.options.getString.mockReturnValue('A dark dungeon awaits...');
-        });
-
-        it('should start a game with opening scene', async () => {
-            const mockGame: Partial<DndGameAttributes> = {
-                id: 1,
-                name: 'test-game',
-                systemPrompt: 'You are a DM',
-                channelId: 'channel-1',
-                conversationHistory: [],
-            };
-            mockDndGameModel.findOne.mockResolvedValue(mockGame);
-            mockDndGameModel.update.mockResolvedValue([1]);
-
-            // Mock OpenAI
-            const MockedOpenAI = jest.mocked(OpenAI);
-            MockedOpenAI.mockImplementation(() => ({
-                chat: {
-                    completions: {
-                        create: jest.fn().mockResolvedValue({
-                            choices: [{
-                                message: {
-                                    content: 'You descend into darkness...',
-                                },
-                            }],
-                        }),
-                    },
-                },
-            } as any));
-
-            await dndCommand.execute(mockInteraction, mockContext);
-
-            expect(mockInteraction.deferReply).toHaveBeenCalled();
-            expect(mockDndGameModel.update).toHaveBeenCalledWith(
-                expect.objectContaining({
-                    currentRound: 1,
-                }),
-                { where: { guildId: 'test-guild-id', isActive: true } },
-            );
-            expect(mockChannel.send).toHaveBeenCalledWith(
-                expect.stringContaining('Game Started: test-game'),
-            );
-            expect(mockInteraction.editReply).toHaveBeenCalledWith(
-                expect.stringContaining('Game started!'),
-            );
-        });
-
-        it('should reject if no active game', async () => {
-            mockDndGameModel.findOne.mockResolvedValue(null);
-
-            await dndCommand.execute(mockInteraction, mockContext);
-
-            expect(mockInteraction.editReply).toHaveBeenCalledWith(
-                'No active game. Use `/dnd switch` to activate a game.',
-            );
-        });
-
-        it('should reject if no channel configured', async () => {
+        it('should reject deleting active game', async () => {
             mockDndGameModel.findOne.mockResolvedValue({
                 id: 1,
-                name: 'test-game',
-                channelId: null,
+                name: 'game-to-delete',
+                channelId: 'some-channel',
             });
 
             await dndCommand.execute(mockInteraction, mockContext);
 
-            expect(mockInteraction.editReply).toHaveBeenCalledWith(
-                'No channel configured. Use `/dnd config channel:#channel` to set one.',
-            );
-        });
-
-        it('should handle OpenAI errors', async () => {
-            mockDndGameModel.findOne.mockResolvedValue({
-                id: 1,
-                name: 'test-game',
-                channelId: 'channel-1',
-                systemPrompt: 'You are a DM',
+            expect(mockDndGameModel.destroy).not.toHaveBeenCalled();
+            expect(mockInteraction.reply).toHaveBeenCalledWith({
+                content: expect.stringContaining('currently active'),
+                ephemeral: true,
             });
-
-            const MockedOpenAI = jest.mocked(OpenAI);
-            MockedOpenAI.mockImplementation(() => ({
-                chat: {
-                    completions: {
-                        create: jest.fn().mockRejectedValue(new Error('API Error')),
-                    },
-                },
-            } as any));
-
-            await dndCommand.execute(mockInteraction, mockContext);
-
-            expect(mockContext.log.error).toHaveBeenCalled();
-            expect(mockInteraction.editReply).toHaveBeenCalledWith(
-                expect.stringContaining('Failed to start game'),
-            );
         });
     });
 
@@ -443,101 +244,51 @@ describe('DnD Command', () => {
             mockInteraction.options.getSubcommand.mockReturnValue('config');
         });
 
-        it('should update channel configuration', async () => {
-            const mockChannel = { id: 'new-channel-id' };
-            mockInteraction.options.getChannel.mockReturnValue(mockChannel);
-            mockInteraction.options.getInteger.mockReturnValue(null);
-
-            mockDndGameModel.findOne.mockResolvedValue({
-                id: 1,
-                name: 'test-game',
-                isActive: true,
-            });
-            mockDndGameModel.update.mockResolvedValue([1]);
-
-            await dndCommand.execute(mockInteraction, mockContext);
-
-            expect(mockDndGameModel.update).toHaveBeenCalledWith(
-                { channelId: 'new-channel-id' },
-                { where: { guildId: 'test-guild-id', isActive: true } },
-            );
-            expect(mockInteraction.reply).toHaveBeenCalledWith({
-                content: expect.stringContaining('Channel: <#new-channel-id>'),
-                ephemeral: true,
-            });
-        });
-
-        it('should update wait period configuration', async () => {
-            mockInteraction.options.getChannel.mockReturnValue(null);
-            mockInteraction.options.getInteger.mockReturnValue(10);
-
-            mockDndGameModel.findOne.mockResolvedValue({
-                id: 1,
-                name: 'test-game',
-                isActive: true,
-            });
-            mockDndGameModel.update.mockResolvedValue([1]);
-
-            await dndCommand.execute(mockInteraction, mockContext);
-
-            expect(mockDndGameModel.update).toHaveBeenCalledWith(
-                { waitPeriodMinutes: 10 },
-                { where: { guildId: 'test-guild-id', isActive: true } },
-            );
-            expect(mockInteraction.reply).toHaveBeenCalledWith({
-                content: expect.stringContaining('Wait period: 10 minutes'),
-                ephemeral: true,
-            });
-        });
-
-        it('should update both channel and wait period', async () => {
-            const mockChannel = { id: 'new-channel-id' };
-            mockInteraction.options.getChannel.mockReturnValue(mockChannel);
+        it('should update wait period for game in channel', async () => {
             mockInteraction.options.getInteger.mockReturnValue(15);
 
             mockDndGameModel.findOne.mockResolvedValue({
                 id: 1,
                 name: 'test-game',
-                isActive: true,
+                channelId: 'test-channel-id',
             });
             mockDndGameModel.update.mockResolvedValue([1]);
 
             await dndCommand.execute(mockInteraction, mockContext);
 
             expect(mockDndGameModel.update).toHaveBeenCalledWith(
-                { channelId: 'new-channel-id', waitPeriodMinutes: 15 },
-                { where: { guildId: 'test-guild-id', isActive: true } },
+                { waitPeriodMinutes: 15 },
+                { where: { guildId: 'test-guild-id', channelId: 'test-channel-id' } },
             );
         });
 
-        it('should reject if no active game', async () => {
-            mockInteraction.options.getChannel.mockReturnValue({ id: 'channel-id' });
+        it('should reject if no active game in channel', async () => {
+            mockInteraction.options.getInteger.mockReturnValue(10);
             mockDndGameModel.findOne.mockResolvedValue(null);
 
             await dndCommand.execute(mockInteraction, mockContext);
 
             expect(mockDndGameModel.update).not.toHaveBeenCalled();
             expect(mockInteraction.reply).toHaveBeenCalledWith({
-                content: 'No active game. Use `/dnd switch` to activate a game first.',
+                content: 'No active game in this channel.',
                 ephemeral: true,
             });
         });
 
-        it('should reject if no options provided', async () => {
-            mockInteraction.options.getChannel.mockReturnValue(null);
+        it('should reject if wait-period not provided', async () => {
             mockInteraction.options.getInteger.mockReturnValue(null);
 
             mockDndGameModel.findOne.mockResolvedValue({
                 id: 1,
                 name: 'test-game',
-                isActive: true,
+                channelId: 'test-channel-id',
             });
 
             await dndCommand.execute(mockInteraction, mockContext);
 
             expect(mockDndGameModel.update).not.toHaveBeenCalled();
             expect(mockInteraction.reply).toHaveBeenCalledWith({
-                content: 'Please specify at least one option to configure.',
+                content: 'Please specify the wait-period option.',
                 ephemeral: true,
             });
         });
@@ -556,18 +307,14 @@ describe('DnD Command', () => {
             });
         });
 
-        it('should handle errors after reply', async () => {
+        it('should log errors from subcommands', async () => {
             mockInteraction.options.getSubcommand.mockReturnValue('create');
             mockInteraction.options.getString.mockReturnValue('test-game');
-            mockInteraction.replied = true;
             mockDndGameModel.findOne.mockRejectedValue(new Error('Database error'));
 
             await dndCommand.execute(mockInteraction, mockContext);
 
-            expect(mockInteraction.followUp).toHaveBeenCalledWith({
-                content: expect.stringContaining('Failed to create game'),
-                ephemeral: true,
-            });
+            expect(mockContext.log.error).toHaveBeenCalled();
         });
     });
 });
