@@ -132,6 +132,22 @@ export interface HoroscopeCacheAttributes {
     updatedAt?: Date;
 }
 
+export interface DndGameAttributes {
+    id?: number;
+    guildId: string;
+    name: string;
+    systemPrompt: string;
+    conversationHistory: Array<{ role: string; content: string }>;
+    channelId?: string;
+    isActive: boolean;
+    waitPeriodMinutes: number;
+    currentRound: number;
+    pendingMessages: Array<{ userId: string; username: string; content: string; timestamp: Date }>;
+    lastResponseTime?: Date;
+    createdAt?: Date;
+    updatedAt?: Date;
+}
+
 // Simplified model interfaces for now - avoiding complex Sequelize inheritance issues
 export interface AdlibsModel extends AdlibsAttributes {
     update(_values: Partial<AdlibsAttributes>): Promise<AdlibsModel>;
@@ -180,6 +196,11 @@ export interface HoroscopeUserModel extends HoroscopeUserAttributes {
 
 export interface HoroscopeCacheModel extends HoroscopeCacheAttributes {
     update(_values: Partial<HoroscopeCacheAttributes>): Promise<HoroscopeCacheModel>;
+    destroy(): Promise<void>;
+}
+
+export interface DndGameModel extends DndGameAttributes {
+    update(_values: Partial<DndGameAttributes>): Promise<DndGameModel>;
     destroy(): Promise<void>;
 }
 
@@ -286,6 +307,17 @@ export interface HoroscopeCacheModelStatic {
     count(options?: FindOptions<HoroscopeCacheAttributes>): Promise<number>;
 }
 
+export interface DndGameModelStatic {
+    findAll(options?: FindOptions<DndGameAttributes>): Promise<DndGameModel[]>;
+    findOne(options?: FindOptions<DndGameAttributes>): Promise<DndGameModel | null>;
+    create(values: DndGameAttributes): Promise<DndGameModel>;
+    findOrCreate(options: FindOrCreateOptions<DndGameAttributes>): Promise<[DndGameModel, boolean]>;
+    upsert(values: DndGameAttributes, options?: UpsertOptions): Promise<[DndGameModel, boolean]>;
+    update(values: Partial<DndGameAttributes>, options: { where: WhereOptions<DndGameAttributes> }): Promise<[number]>;
+    destroy(options: DestroyOptions<DndGameAttributes>): Promise<number>;
+    count(options?: FindOptions<DndGameAttributes>): Promise<number>;
+}
+
 // Combined database tables interface
 export interface DatabaseTables {
     Adlibs: AdlibsModelStatic;
@@ -298,5 +330,6 @@ export interface DatabaseTables {
     MemeTemplate: MemeTemplateModelStatic;
     HoroscopeUser: HoroscopeUserModelStatic;
     HoroscopeCache: HoroscopeCacheModelStatic;
+    DndGame: DndGameModelStatic;
     [key: string]: any; // Allow dynamic table access
 }

@@ -29,6 +29,7 @@ services:
       - DB_PASSWORD=${MYSQLDB_PASSWORD}
       - NODE_ENV=${NODE_ENV}
       - BOT_TOKEN=${BOT_TOKEN}
+      - OPENAI_API_KEY=${OPENAI_API_KEY}
     stdin_open: true
     tty: true
 

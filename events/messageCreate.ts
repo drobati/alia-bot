@@ -12,22 +12,38 @@ const messageCreateEvent: BotEvent = {
             }
 
             // Priority-based response system - only one response per message
-            // Priority order: Assistant (NLP) > Triggers > Adlibs > Louds
+            // Priority order: D&D > Assistant (NLP) > Triggers > Adlibs > Louds
 
             let responseHandled = false;
 
-            // 1. Highest Priority: Assistant (NLP Questions)
+            // 1. Highest Priority: D&D (Channel-specific game responses)
             try {
-                const assistantResult = await response.Assistant(message, context);
-                if (assistantResult === true) { // Assistant responded
+                const dndResult = await response.Dnd(message, context);
+                if (dndResult === true) { // D&D game handled
                     responseHandled = true;
-                    context.log.debug('Message handled by Assistant (NLP)', {
+                    context.log.debug('Message handled by D&D', {
                         messageId: message.id,
                         userId: message.author.id,
                     });
                 }
             } catch (error) {
-                context.log.error('Assistant response failed', { error });
+                context.log.error('D&D response failed', { error });
+            }
+
+            // 2. High Priority: Assistant (NLP Questions)
+            if (!responseHandled) {
+                try {
+                    const assistantResult = await response.Assistant(message, context);
+                    if (assistantResult === true) { // Assistant responded
+                        responseHandled = true;
+                        context.log.debug('Message handled by Assistant (NLP)', {
+                            messageId: message.id,
+                            userId: message.author.id,
+                        });
+                    }
+                } catch (error) {
+                    context.log.error('Assistant response failed', { error });
+                }
             }
 
             // 2. Medium-High Priority: Triggers (if NLP didn't respond)
