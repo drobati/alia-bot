@@ -198,7 +198,7 @@ async function handleCreateGame(interaction: ChatInputCommandInteraction, contex
 
         const introMessage = {
             role: 'user' as const,
-            content: 'Begin the adventure with an engaging introduction to this world. Set the scene for the players.',
+            content: 'Begin the adventure with an engaging introduction to this world. Set the scene for the players. IMPORTANT: Keep your response under 1500 characters total.',
         };
 
         const completion = await openai.chat.completions.create({
@@ -207,7 +207,7 @@ async function handleCreateGame(interaction: ChatInputCommandInteraction, contex
                 { role: 'system' as const, content: systemPrompt },
                 introMessage,
             ],
-            max_tokens: 300,
+            max_tokens: 500,
             temperature: 0.8,
         });
 
