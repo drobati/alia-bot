@@ -515,10 +515,11 @@ describe('DnD Response Handler', () => {
             await jest.runAllTimersAsync();
 
             expect(mockContext.log.error).toHaveBeenCalledWith(
-                'Error fetching D&D channel',
+                'Error fetching or sending to D&D channel',
                 expect.objectContaining({
                     error: expect.any(Error),
                     gameId: 1,
+                    gameName: 'Test Campaign',
                     channelId: 'channel-123',
                 }),
             );

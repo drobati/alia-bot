@@ -62,6 +62,7 @@ describe('DnD Command', () => {
             },
             log: {
                 info: jest.fn(),
+                warn: jest.fn(),
                 error: jest.fn(),
                 debug: jest.fn(),
             },
