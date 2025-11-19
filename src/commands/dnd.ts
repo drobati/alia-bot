@@ -1,4 +1,4 @@
-import { SlashCommandBuilder, ChatInputCommandInteraction, ChannelType } from 'discord.js';
+import { SlashCommandBuilder, ChatInputCommandInteraction } from 'discord.js';
 import { Context } from '../types';
 import { DndGameAttributes } from '../types/database';
 import { safelySendToChannel } from '../utils/discordHelpers';
@@ -76,7 +76,7 @@ const dndCommand = {
                 const games = await context.tables.DndGame.findAll({
                     where: {
                         guildId,
-                        channelId: null
+                        channelId: null,
                     },
                     limit: 25,
                     order: [['updatedAt', 'DESC']],
@@ -161,7 +161,10 @@ async function handleCreateGame(interaction: ChatInputCommandInteraction, contex
         }) as unknown as DndGameAttributes | null;
 
         if (activeGameInChannel) {
-            await interaction.editReply(`This channel already has an active game: **${activeGameInChannel.name}**\n\nUse \`/dnd off\` to end it first.`);
+            await interaction.editReply(
+                `This channel already has an active game: **${activeGameInChannel.name}**\n\n`
+                + 'Use `/dnd off` to end it first.',
+            );
             return;
         }
 
@@ -176,7 +179,7 @@ async function handleCreateGame(interaction: ChatInputCommandInteraction, contex
 
         const introMessage = {
             role: 'user' as const,
-            content: 'Begin the adventure with an engaging introduction to this world. Set the scene for the players.'
+            content: 'Begin the adventure with an engaging introduction to this world. Set the scene for the players.',
         };
 
         const completion = await openai.chat.completions.create({
@@ -227,7 +230,10 @@ async function handleCreateGame(interaction: ChatInputCommandInteraction, contex
             );
         }
 
-        await interaction.editReply(`✅ Game created and started!\n\nThis channel is now locked to **${name}**.\nUse \`/dnd off\` to end the session.`);
+        await interaction.editReply(
+            `✅ Game created and started!\n\nThis channel is now locked to **${name}**.\n`
+            + 'Use `/dnd off` to end the session.',
+        );
     } catch (error) {
         context.log.error({ error, guildId, name }, 'Failed to create D&D game');
 
@@ -277,7 +283,9 @@ async function handleOffGame(interaction: ChatInputCommandInteraction, context: 
         );
 
         await interaction.reply({
-            content: `✅ Game **${game.name}** saved and channel unlocked.\n\nRounds played: ${game.currentRound}\nUse \`/dnd resume name:"${game.name}"\` to continue later.`,
+            content: `✅ Game **${game.name}** saved and channel unlocked.\n\n`
+                + `Rounds played: ${game.currentRound}\n`
+                + `Use \`/dnd resume name:"${game.name}"\` to continue later.`,
             ephemeral: true,
         });
     } catch (error) {
@@ -306,7 +314,10 @@ async function handleResumeGame(interaction: ChatInputCommandInteraction, contex
         }) as unknown as DndGameAttributes | null;
 
         if (activeGameInChannel) {
-            await interaction.editReply(`This channel already has an active game: **${activeGameInChannel.name}**\n\nUse \`/dnd off\` to end it first.`);
+            await interaction.editReply(
+                `This channel already has an active game: **${activeGameInChannel.name}**\n\n`
+                + 'Use `/dnd off` to end it first.',
+            );
             return;
         }
 
@@ -328,7 +339,8 @@ async function handleResumeGame(interaction: ChatInputCommandInteraction, contex
 
         const recapMessage = {
             role: 'user' as const,
-            content: 'Provide a brief recap of the story so far to remind the players where they left off. Keep it concise and engaging.'
+            content: 'Provide a brief recap of the story so far to remind the players '
+                + 'where they left off. Keep it concise and engaging.',
         };
 
         const completion = await openai.chat.completions.create({
@@ -375,7 +387,10 @@ async function handleResumeGame(interaction: ChatInputCommandInteraction, contex
             );
         }
 
-        await interaction.editReply(`✅ Resumed **${game.name}**!\n\nThis channel is now locked to this game.\nUse \`/dnd off\` to save and end the session.`);
+        await interaction.editReply(
+            `✅ Resumed **${game.name}**!\n\nThis channel is now locked to this game.\n`
+            + 'Use `/dnd off` to save and end the session.',
+        );
     } catch (error) {
         context.log.error({ error, guildId, name }, 'Failed to resume D&D game');
         await interaction.editReply('Failed to resume game. Please try again.');
@@ -411,15 +426,15 @@ async function handleListGames(interaction: ChatInputCommandInteraction, context
         if (activeGames.length > 0) {
             description += '**🎮 Active Games:**\n';
             description += activeGames.map(game =>
-                `• **${game.name}** - <#${game.channelId}> (Round ${game.currentRound})`
+                `• **${game.name}** - <#${game.channelId}> (Round ${game.currentRound})`,
             ).join('\n');
         }
 
         if (savedGames.length > 0) {
-            if (description) description += '\n\n';
+            if (description) {description += '\n\n';}
             description += '**💾 Saved Games:**\n';
             description += savedGames.map(game =>
-                `• **${game.name}** (Round ${game.currentRound})`
+                `• **${game.name}** (Round ${game.currentRound})`,
             ).join('\n');
         }
 
@@ -460,8 +475,9 @@ async function handleDeleteGame(interaction: ChatInputCommandInteraction, contex
 
         if (game.channelId) {
             await interaction.reply({
-                content: `Game **${game.name}** is currently active in <#${game.channelId}>.\n\nUse \`/dnd off\` in that channel first.`,
-                ephemeral: true
+                content: `Game **${game.name}** is currently active in <#${game.channelId}>.\n\n`
+                    + 'Use `/dnd off` in that channel first.',
+                ephemeral: true,
             });
             return;
         }

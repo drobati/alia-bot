@@ -1,9 +1,5 @@
 import dndCommand from './dnd';
 import { DndGameAttributes } from '../types/database';
-import OpenAI from 'openai';
-
-// Mock OpenAI
-jest.mock('openai');
 
 describe('DnD Command', () => {
     let mockInteraction: any;
@@ -100,7 +96,6 @@ describe('DnD Command', () => {
             });
         });
 
-
         it('should reject if channel already has active game', async () => {
             mockDndGameModel.findOne.mockResolvedValue({
                 id: 1,
@@ -113,7 +108,7 @@ describe('DnD Command', () => {
 
             expect(mockDndGameModel.create).not.toHaveBeenCalled();
             expect(mockInteraction.editReply).toHaveBeenCalledWith(
-                expect.stringContaining('This channel already has an active game')
+                expect.stringContaining('This channel already has an active game'),
             );
         });
 
@@ -132,7 +127,7 @@ describe('DnD Command', () => {
 
             expect(mockDndGameModel.findOne).not.toHaveBeenCalled();
             expect(mockInteraction.editReply).toHaveBeenCalledWith(
-                'This command can only be used in a server.'
+                'This command can only be used in a server.',
             );
         });
     });
@@ -293,7 +288,6 @@ describe('DnD Command', () => {
             });
         });
     });
-
 
     describe('error handling', () => {
         it('should handle unexpected subcommand', async () => {
