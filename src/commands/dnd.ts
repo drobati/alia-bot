@@ -72,6 +72,13 @@ const dndCommand = {
         if (focusedOption.name === 'name') {
             try {
                 const guildId = interaction.guildId;
+
+                context.log.debug('D&D autocomplete requested', {
+                    guildId,
+                    focusedValue: focusedOption.value,
+                    subcommand: interaction.options.getSubcommand(),
+                });
+
                 // Find saved games (not currently active in any channel)
                 const games = await context.tables.DndGame.findAll({
                     where: {
@@ -82,11 +89,23 @@ const dndCommand = {
                     order: [['updatedAt', 'DESC']],
                 });
 
+                context.log.debug('D&D autocomplete query results', {
+                    guildId,
+                    totalGames: games.length,
+                    gameNames: (games as unknown as DndGameAttributes[]).map(g => g.name),
+                });
+
                 const filtered = (games as unknown as DndGameAttributes[])
                     .filter((game: DndGameAttributes) =>
                         game.name.toLowerCase().includes(focusedOption.value.toLowerCase()),
                     )
                     .slice(0, 25);
+
+                context.log.debug('D&D autocomplete filtered results', {
+                    guildId,
+                    filteredCount: filtered.length,
+                    filteredNames: filtered.map(g => g.name),
+                });
 
                 await interaction.respond(
                     filtered.map((game: DndGameAttributes) => ({
@@ -278,7 +297,7 @@ async function handleOffGame(interaction: ChatInputCommandInteraction, context: 
 
         // Save the game and unlock channel
         await context.tables.DndGame.update(
-            { channelId: undefined, isActive: false },
+            { channelId: null, isActive: false },
             { where: { guildId, channelId } },
         );
 
@@ -464,16 +483,32 @@ async function handleDeleteGame(interaction: ChatInputCommandInteraction, contex
     const name = interaction.options.getString('name', true);
 
     try {
+        context.log.info('Attempting to delete D&D game', { guildId, name });
+
         const game = await context.tables.DndGame.findOne({
             where: { guildId, name },
         }) as unknown as DndGameAttributes | null;
 
         if (!game) {
+            context.log.warn('Delete failed - game not found', { guildId, name });
             await interaction.reply({ content: `Game "${name}" not found.`, ephemeral: true });
             return;
         }
 
+        context.log.info('Found game to delete', {
+            guildId,
+            name,
+            gameId: game.id,
+            channelId: game.channelId,
+            isActive: game.isActive,
+        });
+
         if (game.channelId) {
+            context.log.warn('Delete rejected - game is active', {
+                guildId,
+                name,
+                channelId: game.channelId,
+            });
             await interaction.reply({
                 content: `Game **${game.name}** is currently active in <#${game.channelId}>.\n\n`
                     + 'Use `/dnd off` in that channel first.',
@@ -482,8 +517,14 @@ async function handleDeleteGame(interaction: ChatInputCommandInteraction, contex
             return;
         }
 
-        await context.tables.DndGame.destroy({
+        const deleteCount = await context.tables.DndGame.destroy({
             where: { guildId, name },
+        });
+
+        context.log.info('Game deletion completed', {
+            guildId,
+            name,
+            deletedCount: deleteCount,
         });
 
         await interaction.reply({
