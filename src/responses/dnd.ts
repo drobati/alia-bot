@@ -207,11 +207,33 @@ async function processCollectedMessages(gameId: number, context: Context) {
                     }
                 }
             } catch (channelError) {
-                context.log.error('Error fetching D&D channel', {
+                // Enhanced error logging with Discord API error details
+                const errorDetails: any = {
                     error: channelError,
                     gameId,
                     channelId: game.channelId,
-                });
+                    gameName: game.name,
+                };
+
+                // Extract Discord API error code if available
+                if (channelError && typeof channelError === 'object' && 'code' in channelError) {
+                    const discordError = channelError as { code: number; message: string };
+                    errorDetails.discordErrorCode = discordError.code;
+                    errorDetails.discordErrorMessage = discordError.message;
+
+                    // Map error codes to human-readable explanations
+                    const errorCodeMap: Record<number, string> = {
+                        10003: 'Unknown Channel - channel may have been deleted',
+                        50001: 'Missing Access - bot lacks access to the channel',
+                        50013: 'Missing Permissions - bot needs Send Messages permission',
+                        50035: 'Invalid Form Body - message content may be invalid',
+                    };
+
+                    errorDetails.errorExplanation = errorCodeMap[discordError.code]
+                        || `Unknown Discord error code: ${discordError.code}`;
+                }
+
+                context.log.error('Error fetching or sending to D&D channel', errorDetails);
             }
         }
 

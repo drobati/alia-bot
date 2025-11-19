@@ -138,7 +138,7 @@ export interface DndGameAttributes {
     name: string;
     systemPrompt: string;
     conversationHistory: Array<{ role: string; content: string }>;
-    channelId?: string;
+    channelId?: string | null;
     isActive: boolean;
     waitPeriodMinutes: number;
     currentRound: number;
