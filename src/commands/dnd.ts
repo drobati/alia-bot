@@ -3,9 +3,13 @@ import { Context } from '../types';
 import { DndGameAttributes } from '../types/database';
 import { safelySendToChannel } from '../utils/discordHelpers';
 
+// Discord message character limit
+const DISCORD_MESSAGE_LIMIT = 2000;
+
 const DEFAULT_SYSTEM_PROMPT = "You are running a MUD-like D&D campaign for my friends and I. " +
     "We'll type in responses and you will use your context to respond with engaging, immersive " +
-    "storytelling. Keep responses under 2000 characters to fit Discord message limits.";
+    "storytelling. IMPORTANT: Keep ALL responses under 1800 characters. This is a hard limit - " +
+    "Discord cannot display messages over 2000 characters. Be concise but descriptive.";
 
 const dndCommand = {
     data: new SlashCommandBuilder()
@@ -211,11 +215,25 @@ async function handleCreateGame(interaction: ChatInputCommandInteraction, contex
             temperature: 0.8,
         });
 
-        const introResponse = completion.choices[0].message.content;
+        let introResponse = completion.choices[0].message.content;
 
         if (!introResponse) {
             await interaction.editReply('Failed to generate opening scene.');
             return;
+        }
+
+        // Truncate intro response if it exceeds Discord's message limit
+        // Account for the game name header we'll add
+        const headerLength = `🎲 **${name}**\n\n`.length;
+        const maxIntroLength = DISCORD_MESSAGE_LIMIT - headerLength;
+        if (introResponse.length > maxIntroLength) {
+            introResponse = introResponse.substring(0, maxIntroLength - 20) + '\n\n*[truncated]*';
+            context.log.warn('D&D intro response truncated to fit Discord limit', {
+                guildId,
+                name,
+                originalLength: completion.choices[0].message.content?.length,
+                truncatedLength: introResponse.length,
+            });
         }
 
         // Create and save the game

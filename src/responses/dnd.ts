@@ -4,6 +4,9 @@ import { DndGameAttributes } from '../types/database';
 import { safelySendToChannel } from '../utils/discordHelpers';
 import type { ChatCompletionMessageParam } from 'openai/resources/chat/completions';
 
+// Discord message character limit
+const DISCORD_MESSAGE_LIMIT = 2000;
+
 // Track message collection timers per game
 const messageTimers = new Map<number, NodeJS.Timeout>();
 
@@ -144,17 +147,32 @@ async function processCollectedMessages(gameId: number, context: Context) {
             temperature: 0.8,
         });
 
-        const response = completion.choices[0].message.content;
+        let response = completion.choices[0].message.content;
 
         if (!response) {
             context.log.error('No response from OpenAI', { gameId, gameName: game.name });
             return;
         }
 
+        // Truncate response if it exceeds Discord's message limit
+        const originalLength = response.length;
+        if (response.length > DISCORD_MESSAGE_LIMIT) {
+            // Truncate and add indicator that message was cut off
+            response = response.substring(0, DISCORD_MESSAGE_LIMIT - 20) + '\n\n*[truncated]*';
+            context.log.warn('D&D response truncated to fit Discord limit', {
+                gameId,
+                gameName: game.name,
+                originalLength,
+                truncatedLength: response.length,
+            });
+        }
+
         context.log.info('Received D&D response from OpenAI', {
             gameId,
             gameName: game.name,
             responseLength: response.length,
+            originalLength,
+            wasTruncated: originalLength > DISCORD_MESSAGE_LIMIT,
             tokensUsed: completion.usage?.total_tokens,
         });
 
