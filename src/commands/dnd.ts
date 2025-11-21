@@ -8,8 +8,7 @@ const DISCORD_MESSAGE_LIMIT = 2000;
 
 const DEFAULT_SYSTEM_PROMPT = "You are running a MUD-like D&D campaign for my friends and I. " +
     "We'll type in responses and you will use your context to respond with engaging, immersive " +
-    "storytelling. IMPORTANT: Keep ALL responses under 1800 characters. This is a hard limit - " +
-    "Discord cannot display messages over 2000 characters. Be concise but descriptive.";
+    "storytelling. Be concise but descriptive.";
 
 const dndCommand = {
     data: new SlashCommandBuilder()

@@ -130,6 +130,7 @@ async function processCollectedMessages(gameId: number, context: Context) {
         const messages: ChatCompletionMessageParam[] = [
             { role: 'system', content: game.systemPrompt },
             ...(game.conversationHistory as ChatCompletionMessageParam[] || []),
+            { role: 'system', content: 'CRITICAL: Your response MUST be under 2000 characters total. This is a hard Discord limit. Be concise and descriptive.' },
             { role: 'user', content: userPrompt },
         ];
 
