@@ -1,6 +1,6 @@
 import dndResponseHandler from './dnd';
 import { DndGameAttributes } from '../types/database';
-import { safelySendToChannel } from '../utils/discordHelpers';
+import { sendLongMessage } from '../utils/discordHelpers';
 import OpenAI from 'openai';
 
 // Mock dependencies
@@ -16,7 +16,7 @@ describe('DnD Response Handler', () => {
     let mockDndGameModel: any;
     let mockChannel: any;
     let mockClient: any;
-    const mockSafelySendToChannel = safelySendToChannel as jest.MockedFunction<typeof safelySendToChannel>;
+    const mockSendLongMessage = sendLongMessage as jest.MockedFunction<typeof sendLongMessage>;
 
     beforeEach(() => {
         jest.clearAllMocks();
@@ -69,8 +69,8 @@ describe('DnD Response Handler', () => {
             client: mockClient,
         };
 
-        // Mock safelySendToChannel
-        mockSafelySendToChannel.mockResolvedValue(true);
+        // Mock sendLongMessage
+        mockSendLongMessage.mockResolvedValue(true);
     });
 
     afterEach(() => {
@@ -312,7 +312,7 @@ describe('DnD Response Handler', () => {
             );
 
             // Should have sent message to channel
-            expect(mockSafelySendToChannel).toHaveBeenCalledWith(
+            expect(mockSendLongMessage).toHaveBeenCalledWith(
                 expect.anything(),
                 'The goblin falls! Victory is yours!',
                 mockContext,
@@ -567,7 +567,7 @@ describe('DnD Response Handler', () => {
             await jest.runAllTimersAsync();
 
             // Should not throw, just skip sending message
-            expect(mockSafelySendToChannel).not.toHaveBeenCalled();
+            expect(mockSendLongMessage).not.toHaveBeenCalled();
         });
     });
 
