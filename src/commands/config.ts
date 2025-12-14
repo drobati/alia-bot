@@ -1,6 +1,7 @@
 import { isEmpty } from "lodash";
 import { SlashCommandBuilder } from "discord.js";
 import { Op } from "sequelize";
+import { checkOwnerPermission, isOwner } from "../utils/permissions";
 // To set or remove configurations.
 // Commands:
 //   config add key value
@@ -63,10 +64,16 @@ export default {
                 .setDescription('The configuration key.')
                 .setAutocomplete(true)
                 .setRequired(true))),
-    async autocomplete(interaction: any, {
-        tables,
-    }: any) {
+    async autocomplete(interaction: any, context: any) {
+        const { tables } = context;
         const { Config } = tables;
+
+        // Only show autocomplete options to owner
+        if (!isOwner(interaction.user.id)) {
+            await interaction.respond([]);
+            return;
+        }
+
         if (interaction.options.getSubcommand() === 'remove') {
             const keyFragment = interaction.options.getFocused()
             const records = await Config.findAll({
@@ -88,12 +95,24 @@ export default {
         const subcommand = interaction.options.getSubcommand();
 
         try {
+            // Restrict config command to bot owner only
+            await checkOwnerPermission(interaction, context);
+
             if (subcommand === 'add') {
                 await handleAddCommand(interaction, context);
             } else if (subcommand === 'remove') {
                 await handleRemoveCommand(interaction, context);
             }
         } catch (error) {
+            // @ts-expect-error TS(2571): Object is of type 'unknown'.
+            if (error.message?.includes('Unauthorized')) {
+                log.info('Unauthorized config command attempt', {
+                    userId: interaction.user.id,
+                    username: interaction.user.username,
+                });
+                return; // Reply already sent in checkOwnerPermission
+            }
+
             log.error('Error executing config command:', error);
             // @ts-expect-error TS(2571): Object is of type 'unknown'.
             await interaction.reply({ content: `An error occurred: ${error.message}`, ephemeral: true });

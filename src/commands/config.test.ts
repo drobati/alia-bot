@@ -6,6 +6,9 @@ describe('commands/config', () => {
 
     beforeEach(() => {
         interaction = createInteraction();
+        // Set user ID to match owner from test config (config/test.yaml)
+        interaction.user.id = 'fake-owner';
+        interaction.user.username = 'test-owner';
         context = createContext();
         Config = createTable();
         context.tables.Config = Config;
@@ -66,5 +69,25 @@ describe('commands/config', () => {
             content: 'An error occurred: No configuration found for key `fake-key`.',
             ephemeral: true,
         });
+    });
+
+    it('should reject non-owner users', async () => {
+        // Set user ID to a non-owner
+        interaction.user.id = 'non-owner-id';
+        interaction.user.username = 'non-owner';
+        interaction.options.getSubcommand.mockReturnValue('add');
+        interaction.options.getString.mockReturnValueOnce('fake-key').mockReturnValueOnce('fake-value');
+
+        await config.execute(interaction, context);
+
+        // Should show unauthorized message
+        expect(interaction.reply).toHaveBeenCalledWith(
+            expect.objectContaining({
+                content: expect.stringContaining('This command is restricted to the bot owner only'),
+                ephemeral: true,
+            })
+        );
+        // Should not have called upsert
+        expect(Config.upsert).not.toHaveBeenCalled();
     });
 });
