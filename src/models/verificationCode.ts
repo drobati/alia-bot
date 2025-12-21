@@ -65,5 +65,19 @@ export default (sequelize: Sequelize) => ({
     }, {
         timestamps: true,
         underscored: true,
+        indexes: [
+            {
+                // Index for efficient active code queries (guild + used + created_at)
+                fields: ['guild_id', 'used', 'created_at'],
+            },
+            {
+                // Index for counting user's active codes
+                fields: ['generator_id', 'used', 'created_at'],
+            },
+            {
+                // Index for looking up code by guild
+                fields: ['guild_id'],
+            },
+        ],
     }),
 });
