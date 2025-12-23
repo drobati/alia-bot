@@ -1,4 +1,4 @@
-import { Events, GuildMember, TextChannel } from 'discord.js';
+import { Events, GuildMember, TextChannel, PermissionFlagsBits } from 'discord.js';
 import { Context, BotEvent } from '../src/utils/types';
 
 async function getWelcomeChannelId(tables: any, guildId: string): Promise<string | null> {
@@ -55,6 +55,13 @@ const guildMemberAddEvent: BotEvent = {
             const channel = member.guild.channels.cache.get(welcomeChannelId) as TextChannel;
             if (!channel || !channel.isTextBased()) {
                 log.warn({ welcomeChannelId, guildId }, 'Welcome channel not found or not text-based');
+                return;
+            }
+
+            // Check if bot has permission to send messages
+            const botMember = member.guild.members.me;
+            if (!botMember || !channel.permissionsFor(botMember)?.has(PermissionFlagsBits.SendMessages)) {
+                log.warn({ welcomeChannelId, guildId }, 'Bot lacks SendMessages permission in welcome channel');
                 return;
             }
 

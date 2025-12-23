@@ -1,7 +1,15 @@
 import { isEmpty } from "lodash";
-import { SlashCommandBuilder, ChatInputCommandInteraction, AutocompleteInteraction, ChannelType } from "discord.js";
+import {
+    SlashCommandBuilder,
+    ChatInputCommandInteraction,
+    AutocompleteInteraction,
+    ChannelType,
+    PermissionFlagsBits,
+} from "discord.js";
 import { Op } from "sequelize";
 import { Context } from "../types";
+
+const MAX_WELCOME_MESSAGE_LENGTH = 2000;
 
 // Duration parsing helper
 function parseDuration(duration: string): number | null {
@@ -81,6 +89,14 @@ async function handleWelcomeMessage(interaction: ChatInputCommandInteraction, co
 
     if (!guildId) {
         return interaction.reply({ content: "This command can only be used in a server.", ephemeral: true });
+    }
+
+    if (message.length > MAX_WELCOME_MESSAGE_LENGTH) {
+        return interaction.reply({
+            content: `Welcome message must be ${MAX_WELCOME_MESSAGE_LENGTH} characters or less. `
+                + `Your message is ${message.length} characters.`,
+            ephemeral: true,
+        });
     }
 
     const key = `welcome_message_${guildId}`;
@@ -169,6 +185,7 @@ export default {
     data: new SlashCommandBuilder()
         .setName('config')
         .setDescription('Configure bot settings.')
+        .setDefaultMemberPermissions(PermissionFlagsBits.ManageGuild)
         // General subcommand group
         .addSubcommandGroup((group: any) => group
             .setName('general')
