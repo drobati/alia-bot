@@ -196,6 +196,7 @@ export default {
                 .addStringOption((option: any) => option
                     .setName('key')
                     .setDescription('The configuration key.')
+                    .setAutocomplete(true)
                     .setRequired(true))
                 .addStringOption((option: any) => option
                     .setName('value')
@@ -238,6 +239,7 @@ export default {
                 .addStringOption((option: any) => option
                     .setName('duration')
                     .setDescription('Duration (e.g., 24h, 7d, 2w)')
+                    .setAutocomplete(true)
                     .setRequired(true)))
             .addSubcommand((subcommand: any) => subcommand
                 .setName('allowed-roles')
@@ -275,13 +277,15 @@ export default {
         const { Config } = tables;
         const subcommandGroup = interaction.options.getSubcommandGroup();
         const subcommand = interaction.options.getSubcommand();
+        const focusedOption = interaction.options.getFocused(true);
 
-        if (subcommandGroup === 'general' && subcommand === 'remove') {
-            const keyFragment = interaction.options.getFocused();
+        if (subcommandGroup === 'general' && (subcommand === 'add' || subcommand === 'remove')) {
+            // Autocomplete for config keys in both add (for updating) and remove
+            const keyFragment = focusedOption.value;
             const records = await Config.findAll({
                 where: {
                     key: {
-                        [Op.like]: `${keyFragment}%`,
+                        [Op.like]: `%${keyFragment}%`,
                     },
                 },
                 limit: 25,
@@ -291,6 +295,29 @@ export default {
                 value: record.key,
             }));
             await interaction.respond(choices);
+        } else if (subcommandGroup === 'verify' && subcommand === 'expiration') {
+            // Autocomplete for duration options
+            const input = focusedOption.value.toLowerCase();
+            const durationOptions = [
+                { name: '1 hour', value: '1h' },
+                { name: '6 hours', value: '6h' },
+                { name: '12 hours', value: '12h' },
+                { name: '24 hours (1 day)', value: '24h' },
+                { name: '48 hours (2 days)', value: '48h' },
+                { name: '1 day', value: '1d' },
+                { name: '3 days', value: '3d' },
+                { name: '7 days (1 week)', value: '7d' },
+                { name: '14 days (2 weeks)', value: '14d' },
+                { name: '1 week', value: '1w' },
+                { name: '2 weeks', value: '2w' },
+                { name: '4 weeks', value: '4w' },
+            ];
+
+            const filtered = durationOptions.filter(
+                option => option.name.toLowerCase().includes(input)
+                    || option.value.toLowerCase().includes(input),
+            );
+            await interaction.respond(filtered.slice(0, 25));
         }
     },
 
