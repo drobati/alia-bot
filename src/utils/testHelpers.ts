@@ -4,13 +4,17 @@ export function createInteraction() {
         user: {
             id: 'fake-user-id',
         },
+        guildId: null as string | null,
         options: {
             get: jest.fn(),
+            getChannel: jest.fn(),
             getFocused: jest.fn(),
             getInteger: jest.fn(),
             getNumber: jest.fn(),
+            getRole: jest.fn(),
             getString: jest.fn(),
             getSubcommand: jest.fn(),
+            getSubcommandGroup: jest.fn(),
         },
         reply: jest.fn().mockResolvedValue(true),
         respond: jest.fn(),
@@ -42,6 +46,7 @@ export function createTable() {
         findAll: jest.fn(),
         findOne: jest.fn(),
         create: jest.fn(),
+        update: jest.fn(),
         upsert: jest.fn().mockResolvedValue([{}, true]), // Returns [record, created]
         findOrCreate: jest.fn().mockResolvedValue([{}, true]), // Returns [record, created]
         destroy: jest.fn(),

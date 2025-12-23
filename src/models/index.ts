@@ -11,6 +11,7 @@ import MemeTemplate from "./memeTemplate";
 import HoroscopeUser from "./horoscopeUser";
 import HoroscopeCache from "./horoscopeCache";
 import DndGame from "./dndGame";
+import VerificationCode from "./verificationCode";
 
 export default {
     Adlibs,
@@ -26,4 +27,5 @@ export default {
     HoroscopeUser,
     HoroscopeCache,
     DndGame,
+    VerificationCode,
 };
