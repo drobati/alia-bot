@@ -2,7 +2,7 @@ import Sequelize from "sequelize";
 
 async function getWelcomeChannelId(tables: any, guildId: string): Promise<string | null> {
     const config = await tables.Config.findOne({
-        where: { key: `welcome_channel_${guildId}` }
+        where: { key: `welcome_channel_${guildId}` },
     });
     return config?.value || null;
 }
@@ -16,7 +16,7 @@ export default async (message: any, { tables, log }: any): Promise<boolean> => {
         log.debug('LOUDS: Channel check', {
             messageChannelId: message.channelId,
             welcomeChannelId: welcomeChannelId,
-            isWelcomeChannel: welcomeChannelId && message.channelId === welcomeChannelId
+            isWelcomeChannel: welcomeChannelId && message.channelId === welcomeChannelId,
         });
         if (welcomeChannelId && message.channelId === welcomeChannelId) {
             log.debug('LOUDS: Skipping welcome channel');

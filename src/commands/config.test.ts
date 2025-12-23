@@ -86,7 +86,7 @@ describe('commands/config', () => {
 
             expect(Config.upsert).toHaveBeenCalledWith({
                 key: 'welcome_channel_guild123',
-                value: '123456789'
+                value: '123456789',
             });
             expect(interaction.reply).toHaveBeenCalledWith({
                 content: 'Welcome channel set to <#123456789>.',
@@ -105,7 +105,7 @@ describe('commands/config', () => {
 
             expect(Config.upsert).toHaveBeenCalledWith({
                 key: 'welcome_message_guild123',
-                value: 'Welcome {user} to {server}!'
+                value: 'Welcome {user} to {server}!',
             });
         });
     });
@@ -122,7 +122,7 @@ describe('commands/config', () => {
 
             expect(Config.upsert).toHaveBeenCalledWith({
                 key: 'verify_expiration_guild123',
-                value: '86400'
+                value: '86400',
             });
         });
 
@@ -156,7 +156,7 @@ describe('commands/config', () => {
 
             expect(Config.upsert).toHaveBeenCalledWith({
                 key: 'verify_allowed_roles_guild123',
-                value: JSON.stringify(['role1', 'role2'])
+                value: JSON.stringify(['role1', 'role2']),
             });
         });
 
@@ -171,7 +171,7 @@ describe('commands/config', () => {
 
             expect(Config.upsert).toHaveBeenCalledWith({
                 key: 'verify_log_channel_guild123',
-                value: '987654321'
+                value: '987654321',
             });
         });
     });

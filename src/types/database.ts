@@ -341,7 +341,10 @@ export interface VerificationCodeModelStatic {
     create(values: VerificationCodeAttributes): Promise<VerificationCodeModel>;
     findOrCreate(options: FindOrCreateOptions<VerificationCodeAttributes>): Promise<[VerificationCodeModel, boolean]>;
     upsert(values: VerificationCodeAttributes, options?: UpsertOptions): Promise<[VerificationCodeModel, boolean]>;
-    update(values: Partial<VerificationCodeAttributes>, options: { where: WhereOptions<VerificationCodeAttributes> }): Promise<[number]>;
+    update(
+        values: Partial<VerificationCodeAttributes>,
+        options: { where: WhereOptions<VerificationCodeAttributes> },
+    ): Promise<[number]>;
     destroy(options: DestroyOptions<VerificationCodeAttributes>): Promise<number>;
     count(options?: FindOptions<VerificationCodeAttributes>): Promise<number>;
 }

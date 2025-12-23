@@ -1,0 +1,919 @@
+[2025-12-19 09:44:14] Daemon started (interval: 5s, auto-commit: false, auto-push: false)
+[2025-12-19 09:44:14] Using database: /Users/derekrobati/src/projects/alia-bot/.beads/beads.db
+[2025-12-19 09:44:14] Database opened: /Users/derekrobati/src/projects/alia-bot/.beads/beads.db (freshness checking enabled)
+[2025-12-19 09:44:14] Upgrading .beads/.gitignore...
+[2025-12-19 09:44:14] Warning: failed to upgrade .gitignore: open .beads/.gitignore: no such file or directory
+[2025-12-19 09:44:14] Repository fingerprint validated: a385f98b
+[2025-12-19 09:44:14] Starting RPC server: /Users/derekrobati/src/projects/alia-bot/.beads/bd.sock
+[2025-12-19 09:44:14] RPC server ready (socket listening)
+[2025-12-19 09:44:14] Registered in global registry
+[2025-12-19 09:44:14] Starting sync cycle...
+[2025-12-19 09:44:14] Exported to JSONL
+[2025-12-19 09:44:15] Pulled sync branch master
+[2025-12-19 09:44:15] Imported from JSONL
+[2025-12-19 09:44:15] Sync cycle complete
+[2025-12-19 09:44:15] Monitoring parent process (PID 0)
+[2025-12-19 09:44:15] Using event-driven mode
+[2025-12-19 09:44:15] Mutation detected: create alia-bot-5j4
+[2025-12-19 09:44:15] Mutation detected: create alia-bot-jqt
+[2025-12-19 09:44:15] Mutation detected: create alia-bot-jh4
+[2025-12-19 09:44:16] Export triggered by mutation events
+[2025-12-19 09:44:16] Starting export...
+[2025-12-19 09:44:16] Exported to JSONL
+[2025-12-19 09:44:16] JSONL removed/renamed, re-establishing watch
+[2025-12-19 09:44:16] Export complete
+[2025-12-19 09:44:16] Successfully re-established JSONL watch after 50ms
+[2025-12-19 09:44:16] JSONL file created: /Users/derekrobati/src/projects/alia-bot/.beads/issues.jsonl
+[2025-12-19 09:44:16] Mutation detected: create alia-bot-jfb
+[2025-12-19 09:44:16] Export triggered by mutation events
+[2025-12-19 09:44:16] Starting export...
+[2025-12-19 09:44:16] Exported to JSONL
+[2025-12-19 09:44:16] JSONL removed/renamed, re-establishing watch
+[2025-12-19 09:44:16] Export complete
+[2025-12-19 09:44:16] Successfully re-established JSONL watch after 50ms
+[2025-12-19 09:44:16] JSONL file created: /Users/derekrobati/src/projects/alia-bot/.beads/issues.jsonl
+[2025-12-19 09:44:16] File change detected: /Users/derekrobati/src/projects/alia-bot/.beads/issues.jsonl (op: CHMOD)
+[2025-12-19 09:44:16] Mutation detected: create alia-bot-j5l
+[2025-12-19 09:44:17] Import triggered by file change
+[2025-12-19 09:44:17] Starting auto-import...
+[2025-12-19 09:44:17] Skipping auto-import: JSONL content unchanged
+[2025-12-19 09:44:17] File change detected: /Users/derekrobati/src/projects/alia-bot/.beads/issues.jsonl (op: CHMOD)
+[2025-12-19 09:44:17] Export triggered by mutation events
+[2025-12-19 09:44:17] Starting export...
+[2025-12-19 09:44:17] Exported to JSONL
+[2025-12-19 09:44:17] JSONL removed/renamed, re-establishing watch
+[2025-12-19 09:44:17] Export complete
+[2025-12-19 09:44:17] Successfully re-established JSONL watch after 50ms
+[2025-12-19 09:44:17] JSONL file created: /Users/derekrobati/src/projects/alia-bot/.beads/issues.jsonl
+[2025-12-19 09:44:17] Mutation detected: create alia-bot-dwl
+[2025-12-19 09:44:17] Import triggered by file change
+[2025-12-19 09:44:17] Starting auto-import...
+[2025-12-19 09:44:17] Skipping auto-import: JSONL content unchanged
+[2025-12-19 09:44:17] File change detected: /Users/derekrobati/src/projects/alia-bot/.beads/issues.jsonl (op: CHMOD)
+[2025-12-19 09:44:17] Export triggered by mutation events
+[2025-12-19 09:44:17] Starting export...
+[2025-12-19 09:44:18] Exported to JSONL
+[2025-12-19 09:44:18] JSONL removed/renamed, re-establishing watch
+[2025-12-19 09:44:18] Export complete
+[2025-12-19 09:44:18] Successfully re-established JSONL watch after 50ms
+[2025-12-19 09:44:18] JSONL file created: /Users/derekrobati/src/projects/alia-bot/.beads/issues.jsonl
+[2025-12-19 09:44:18] Mutation detected: create alia-bot-uc9
+[2025-12-19 09:44:18] Import triggered by file change
+[2025-12-19 09:44:18] Starting auto-import...
+[2025-12-19 09:44:18] Skipping auto-import: JSONL content unchanged
+[2025-12-19 09:44:18] File change detected: /Users/derekrobati/src/projects/alia-bot/.beads/issues.jsonl (op: CHMOD)
+[2025-12-19 09:44:18] Export triggered by mutation events
+[2025-12-19 09:44:18] Starting export...
+[2025-12-19 09:44:18] Exported to JSONL
+[2025-12-19 09:44:18] JSONL removed/renamed, re-establishing watch
+[2025-12-19 09:44:18] Export complete
+[2025-12-19 09:44:18] Successfully re-established JSONL watch after 50ms
+[2025-12-19 09:44:18] JSONL file created: /Users/derekrobati/src/projects/alia-bot/.beads/issues.jsonl
+[2025-12-19 09:44:18] Mutation detected: create alia-bot-b3k
+[2025-12-19 09:44:19] Import triggered by file change
+[2025-12-19 09:44:19] Starting auto-import...
+[2025-12-19 09:44:19] Skipping auto-import: JSONL content unchanged
+[2025-12-19 09:44:19] File change detected: /Users/derekrobati/src/projects/alia-bot/.beads/issues.jsonl (op: CHMOD)
+[2025-12-19 09:44:19] Export triggered by mutation events
+[2025-12-19 09:44:19] Starting export...
+[2025-12-19 09:44:19] Exported to JSONL
+[2025-12-19 09:44:19] JSONL removed/renamed, re-establishing watch
+[2025-12-19 09:44:19] Export complete
+[2025-12-19 09:44:19] Successfully re-established JSONL watch after 50ms
+[2025-12-19 09:44:19] JSONL file created: /Users/derekrobati/src/projects/alia-bot/.beads/issues.jsonl
+[2025-12-19 09:44:19] Mutation detected: create alia-bot-660
+[2025-12-19 09:44:19] Import triggered by file change
+[2025-12-19 09:44:19] Starting auto-import...
+[2025-12-19 09:44:19] Skipping auto-import: JSONL content unchanged
+[2025-12-19 09:44:19] File change detected: /Users/derekrobati/src/projects/alia-bot/.beads/issues.jsonl (op: CHMOD)
+[2025-12-19 09:44:20] Export triggered by mutation events
+[2025-12-19 09:44:20] Starting export...
+[2025-12-19 09:44:20] Exported to JSONL
+[2025-12-19 09:44:20] JSONL removed/renamed, re-establishing watch
+[2025-12-19 09:44:20] Export complete
+[2025-12-19 09:44:20] Successfully re-established JSONL watch after 50ms
+[2025-12-19 09:44:20] JSONL file created: /Users/derekrobati/src/projects/alia-bot/.beads/issues.jsonl
+[2025-12-19 09:44:20] Mutation detected: create alia-bot-ebr
+[2025-12-19 09:44:20] Import triggered by file change
+[2025-12-19 09:44:20] Starting auto-import...
+[2025-12-19 09:44:20] Skipping auto-import: JSONL content unchanged
+[2025-12-19 09:44:20] File change detected: /Users/derekrobati/src/projects/alia-bot/.beads/issues.jsonl (op: CHMOD)
+[2025-12-19 09:44:20] Export triggered by mutation events
+[2025-12-19 09:44:20] Starting export...
+[2025-12-19 09:44:20] Exported to JSONL
+[2025-12-19 09:44:20] JSONL removed/renamed, re-establishing watch
+[2025-12-19 09:44:20] Export complete
+[2025-12-19 09:44:20] Successfully re-established JSONL watch after 50ms
+[2025-12-19 09:44:20] JSONL file created: /Users/derekrobati/src/projects/alia-bot/.beads/issues.jsonl
+[2025-12-19 09:44:20] Mutation detected: create alia-bot-b4x
+[2025-12-19 09:44:21] Import triggered by file change
+[2025-12-19 09:44:21] Starting auto-import...
+[2025-12-19 09:44:21] Skipping auto-import: JSONL content unchanged
+[2025-12-19 09:44:21] File change detected: /Users/derekrobati/src/projects/alia-bot/.beads/issues.jsonl (op: CHMOD)
+[2025-12-19 09:44:21] Export triggered by mutation events
+[2025-12-19 09:44:21] Starting export...
+[2025-12-19 09:44:21] Exported to JSONL
+[2025-12-19 09:44:21] JSONL removed/renamed, re-establishing watch
+[2025-12-19 09:44:21] Export complete
+[2025-12-19 09:44:21] Successfully re-established JSONL watch after 50ms
+[2025-12-19 09:44:21] JSONL file created: /Users/derekrobati/src/projects/alia-bot/.beads/issues.jsonl
+[2025-12-19 09:44:21] Mutation detected: create alia-bot-ly3
+[2025-12-19 09:44:21] Import triggered by file change
+[2025-12-19 09:44:21] Starting auto-import...
+[2025-12-19 09:44:21] Skipping auto-import: JSONL content unchanged
+[2025-12-19 09:44:21] File change detected: /Users/derekrobati/src/projects/alia-bot/.beads/issues.jsonl (op: CHMOD)
+[2025-12-19 09:44:22] Export triggered by mutation events
+[2025-12-19 09:44:22] Starting export...
+[2025-12-19 09:44:22] Exported to JSONL
+[2025-12-19 09:44:22] JSONL removed/renamed, re-establishing watch
+[2025-12-19 09:44:22] Export complete
+[2025-12-19 09:44:22] Successfully re-established JSONL watch after 50ms
+[2025-12-19 09:44:22] JSONL file created: /Users/derekrobati/src/projects/alia-bot/.beads/issues.jsonl
+[2025-12-19 09:44:22] Mutation detected: create alia-bot-1j4
+[2025-12-19 09:44:22] Import triggered by file change
+[2025-12-19 09:44:22] Starting auto-import...
+[2025-12-19 09:44:22] Skipping auto-import: JSONL content unchanged
+[2025-12-19 09:44:22] Export triggered by mutation events
+[2025-12-19 09:44:22] Starting export...
+[2025-12-19 09:44:22] Exported to JSONL
+[2025-12-19 09:44:22] JSONL removed/renamed, re-establishing watch
+[2025-12-19 09:44:22] Export complete
+[2025-12-19 09:44:22] Successfully re-established JSONL watch after 50ms
+[2025-12-19 09:44:22] JSONL file created: /Users/derekrobati/src/projects/alia-bot/.beads/issues.jsonl
+[2025-12-19 09:44:22] Mutation detected: create alia-bot-8op
+[2025-12-19 09:44:23] Import triggered by file change
+[2025-12-19 09:44:23] Starting auto-import...
+[2025-12-19 09:44:23] Skipping auto-import: JSONL content unchanged
+[2025-12-19 09:44:23] Export triggered by mutation events
+[2025-12-19 09:44:23] Starting export...
+[2025-12-19 09:44:23] Exported to JSONL
+[2025-12-19 09:44:23] JSONL removed/renamed, re-establishing watch
+[2025-12-19 09:44:23] Export complete
+[2025-12-19 09:44:23] Successfully re-established JSONL watch after 50ms
+[2025-12-19 09:44:23] JSONL file created: /Users/derekrobati/src/projects/alia-bot/.beads/issues.jsonl
+[2025-12-19 09:44:23] Mutation detected: create alia-bot-7ud
+[2025-12-19 09:44:23] Import triggered by file change
+[2025-12-19 09:44:23] Starting auto-import...
+[2025-12-19 09:44:23] Skipping auto-import: JSONL content unchanged
+[2025-12-19 09:44:24] File change detected: /Users/derekrobati/src/projects/alia-bot/.beads/issues.jsonl (op: CHMOD)
+[2025-12-19 09:44:24] Export triggered by mutation events
+[2025-12-19 09:44:24] Starting export...
+[2025-12-19 09:44:24] Exported to JSONL
+[2025-12-19 09:44:24] JSONL removed/renamed, re-establishing watch
+[2025-12-19 09:44:24] Export complete
+[2025-12-19 09:44:24] Successfully re-established JSONL watch after 50ms
+[2025-12-19 09:44:24] JSONL file created: /Users/derekrobati/src/projects/alia-bot/.beads/issues.jsonl
+[2025-12-19 09:44:24] Mutation detected: create alia-bot-0m4
+[2025-12-19 09:44:24] Import triggered by file change
+[2025-12-19 09:44:24] Starting auto-import...
+[2025-12-19 09:44:24] Skipping auto-import: JSONL content unchanged
+[2025-12-19 09:44:24] File change detected: /Users/derekrobati/src/projects/alia-bot/.beads/issues.jsonl (op: CHMOD)
+[2025-12-19 09:44:24] Export triggered by mutation events
+[2025-12-19 09:44:24] Starting export...
+[2025-12-19 09:44:24] Exported to JSONL
+[2025-12-19 09:44:24] JSONL removed/renamed, re-establishing watch
+[2025-12-19 09:44:24] Export complete
+[2025-12-19 09:44:24] Successfully re-established JSONL watch after 50ms
+[2025-12-19 09:44:24] JSONL file created: /Users/derekrobati/src/projects/alia-bot/.beads/issues.jsonl
+[2025-12-19 09:44:24] Mutation detected: create alia-bot-mnu
+[2025-12-19 09:44:25] Import triggered by file change
+[2025-12-19 09:44:25] Starting auto-import...
+[2025-12-19 09:44:25] Skipping auto-import: JSONL content unchanged
+[2025-12-19 09:44:25] File change detected: /Users/derekrobati/src/projects/alia-bot/.beads/issues.jsonl (op: CHMOD)
+[2025-12-19 09:44:25] Export triggered by mutation events
+[2025-12-19 09:44:25] Starting export...
+[2025-12-19 09:44:25] Exported to JSONL
+[2025-12-19 09:44:25] JSONL removed/renamed, re-establishing watch
+[2025-12-19 09:44:25] Export complete
+[2025-12-19 09:44:25] Successfully re-established JSONL watch after 50ms
+[2025-12-19 09:44:25] JSONL file created: /Users/derekrobati/src/projects/alia-bot/.beads/issues.jsonl
+[2025-12-19 09:44:25] Mutation detected: create alia-bot-bva
+[2025-12-19 09:44:25] Import triggered by file change
+[2025-12-19 09:44:25] Starting auto-import...
+[2025-12-19 09:44:25] Skipping auto-import: JSONL content unchanged
+[2025-12-19 09:44:26] File change detected: /Users/derekrobati/src/projects/alia-bot/.beads/issues.jsonl (op: CHMOD)
+[2025-12-19 09:44:26] Export triggered by mutation events
+[2025-12-19 09:44:26] Starting export...
+[2025-12-19 09:44:26] Exported to JSONL
+[2025-12-19 09:44:26] JSONL removed/renamed, re-establishing watch
+[2025-12-19 09:44:26] Export complete
+[2025-12-19 09:44:26] Successfully re-established JSONL watch after 50ms
+[2025-12-19 09:44:26] JSONL file created: /Users/derekrobati/src/projects/alia-bot/.beads/issues.jsonl
+[2025-12-19 09:44:26] Mutation detected: create alia-bot-svg
+[2025-12-19 09:44:26] Import triggered by file change
+[2025-12-19 09:44:26] Starting auto-import...
+[2025-12-19 09:44:26] Skipping auto-import: JSONL content unchanged
+[2025-12-19 09:44:26] File change detected: /Users/derekrobati/src/projects/alia-bot/.beads/issues.jsonl (op: CHMOD)
+[2025-12-19 09:44:26] Export triggered by mutation events
+[2025-12-19 09:44:26] Starting export...
+[2025-12-19 09:44:26] Exported to JSONL
+[2025-12-19 09:44:26] JSONL removed/renamed, re-establishing watch
+[2025-12-19 09:44:26] Export complete
+[2025-12-19 09:44:26] Successfully re-established JSONL watch after 50ms
+[2025-12-19 09:44:26] JSONL file created: /Users/derekrobati/src/projects/alia-bot/.beads/issues.jsonl
+[2025-12-19 09:44:26] Mutation detected: create alia-bot-beh
+[2025-12-19 09:44:27] Import triggered by file change
+[2025-12-19 09:44:27] Starting auto-import...
+[2025-12-19 09:44:27] Skipping auto-import: JSONL content unchanged
+[2025-12-19 09:44:27] Export triggered by mutation events
+[2025-12-19 09:44:27] Starting export...
+[2025-12-19 09:44:27] Exported to JSONL
+[2025-12-19 09:44:27] JSONL removed/renamed, re-establishing watch
+[2025-12-19 09:44:27] Export complete
+[2025-12-19 09:44:27] Successfully re-established JSONL watch after 50ms
+[2025-12-19 09:44:27] JSONL file created: /Users/derekrobati/src/projects/alia-bot/.beads/issues.jsonl
+[2025-12-19 09:44:27] Mutation detected: create alia-bot-cum
+[2025-12-19 09:44:27] Import triggered by file change
+[2025-12-19 09:44:27] Starting auto-import...
+[2025-12-19 09:44:27] Skipping auto-import: JSONL content unchanged
+[2025-12-19 09:44:28] File change detected: /Users/derekrobati/src/projects/alia-bot/.beads/issues.jsonl (op: CHMOD)
+[2025-12-19 09:44:28] Export triggered by mutation events
+[2025-12-19 09:44:28] Starting export...
+[2025-12-19 09:44:28] Exported to JSONL
+[2025-12-19 09:44:28] JSONL removed/renamed, re-establishing watch
+[2025-12-19 09:44:28] Export complete
+[2025-12-19 09:44:28] Successfully re-established JSONL watch after 50ms
+[2025-12-19 09:44:28] JSONL file created: /Users/derekrobati/src/projects/alia-bot/.beads/issues.jsonl
+[2025-12-19 09:44:28] Mutation detected: create alia-bot-15i
+[2025-12-19 09:44:28] Import triggered by file change
+[2025-12-19 09:44:28] Starting auto-import...
+[2025-12-19 09:44:28] Skipping auto-import: JSONL content unchanged
+[2025-12-19 09:44:28] File change detected: /Users/derekrobati/src/projects/alia-bot/.beads/issues.jsonl (op: CHMOD)
+[2025-12-19 09:44:28] Export triggered by mutation events
+[2025-12-19 09:44:28] Starting export...
+[2025-12-19 09:44:28] Exported to JSONL
+[2025-12-19 09:44:28] JSONL removed/renamed, re-establishing watch
+[2025-12-19 09:44:28] Export complete
+[2025-12-19 09:44:28] Successfully re-established JSONL watch after 50ms
+[2025-12-19 09:44:28] JSONL file created: /Users/derekrobati/src/projects/alia-bot/.beads/issues.jsonl
+[2025-12-19 09:44:28] Mutation detected: create alia-bot-teg
+[2025-12-19 09:44:29] Import triggered by file change
+[2025-12-19 09:44:29] Starting auto-import...
+[2025-12-19 09:44:29] Skipping auto-import: JSONL content unchanged
+[2025-12-19 09:44:29] File change detected: /Users/derekrobati/src/projects/alia-bot/.beads/issues.jsonl (op: CHMOD)
+[2025-12-19 09:44:29] Export triggered by mutation events
+[2025-12-19 09:44:29] Starting export...
+[2025-12-19 09:44:29] Exported to JSONL
+[2025-12-19 09:44:29] JSONL removed/renamed, re-establishing watch
+[2025-12-19 09:44:29] Export complete
+[2025-12-19 09:44:29] Successfully re-established JSONL watch after 50ms
+[2025-12-19 09:44:29] JSONL file created: /Users/derekrobati/src/projects/alia-bot/.beads/issues.jsonl
+[2025-12-19 09:44:29] Mutation detected: create alia-bot-x0b
+[2025-12-19 09:44:29] Import triggered by file change
+[2025-12-19 09:44:29] Starting auto-import...
+[2025-12-19 09:44:29] Skipping auto-import: JSONL content unchanged
+[2025-12-19 09:44:29] File change detected: /Users/derekrobati/src/projects/alia-bot/.beads/issues.jsonl (op: CHMOD)
+[2025-12-19 09:44:30] Export triggered by mutation events
+[2025-12-19 09:44:30] Starting export...
+[2025-12-19 09:44:30] Exported to JSONL
+[2025-12-19 09:44:30] JSONL removed/renamed, re-establishing watch
+[2025-12-19 09:44:30] Export complete
+[2025-12-19 09:44:30] Successfully re-established JSONL watch after 50ms
+[2025-12-19 09:44:30] JSONL file created: /Users/derekrobati/src/projects/alia-bot/.beads/issues.jsonl
+[2025-12-19 09:44:30] Mutation detected: create alia-bot-bv1
+[2025-12-19 09:44:30] Import triggered by file change
+[2025-12-19 09:44:30] Starting auto-import...
+[2025-12-19 09:44:30] Skipping auto-import: JSONL content unchanged
+[2025-12-19 09:44:30] File change detected: /Users/derekrobati/src/projects/alia-bot/.beads/issues.jsonl (op: CHMOD)
+[2025-12-19 09:44:30] Export triggered by mutation events
+[2025-12-19 09:44:30] Starting export...
+[2025-12-19 09:44:30] Exported to JSONL
+[2025-12-19 09:44:30] JSONL removed/renamed, re-establishing watch
+[2025-12-19 09:44:30] Export complete
+[2025-12-19 09:44:30] Successfully re-established JSONL watch after 50ms
+[2025-12-19 09:44:30] JSONL file created: /Users/derekrobati/src/projects/alia-bot/.beads/issues.jsonl
+[2025-12-19 09:44:30] Mutation detected: create alia-bot-92m
+[2025-12-19 09:44:31] Import triggered by file change
+[2025-12-19 09:44:31] Starting auto-import...
+[2025-12-19 09:44:31] Skipping auto-import: JSONL content unchanged
+[2025-12-19 09:44:31] Export triggered by mutation events
+[2025-12-19 09:44:31] Starting export...
+[2025-12-19 09:44:31] Exported to JSONL
+[2025-12-19 09:44:31] JSONL removed/renamed, re-establishing watch
+[2025-12-19 09:44:31] Export complete
+[2025-12-19 09:44:31] Successfully re-established JSONL watch after 50ms
+[2025-12-19 09:44:31] JSONL file created: /Users/derekrobati/src/projects/alia-bot/.beads/issues.jsonl
+[2025-12-19 09:44:31] Mutation detected: create alia-bot-btu
+[2025-12-19 09:44:31] Import triggered by file change
+[2025-12-19 09:44:31] Starting auto-import...
+[2025-12-19 09:44:31] Skipping auto-import: JSONL content unchanged
+[2025-12-19 09:44:32] File change detected: /Users/derekrobati/src/projects/alia-bot/.beads/issues.jsonl (op: CHMOD)
+[2025-12-19 09:44:32] Export triggered by mutation events
+[2025-12-19 09:44:32] Starting export...
+[2025-12-19 09:44:32] Exported to JSONL
+[2025-12-19 09:44:32] JSONL removed/renamed, re-establishing watch
+[2025-12-19 09:44:32] Export complete
+[2025-12-19 09:44:32] Successfully re-established JSONL watch after 50ms
+[2025-12-19 09:44:32] JSONL file created: /Users/derekrobati/src/projects/alia-bot/.beads/issues.jsonl
+[2025-12-19 09:44:32] Mutation detected: create alia-bot-a6g
+[2025-12-19 09:44:32] Import triggered by file change
+[2025-12-19 09:44:32] Starting auto-import...
+[2025-12-19 09:44:32] Skipping auto-import: JSONL content unchanged
+[2025-12-19 09:44:32] File change detected: /Users/derekrobati/src/projects/alia-bot/.beads/issues.jsonl (op: CHMOD)
+[2025-12-19 09:44:32] Export triggered by mutation events
+[2025-12-19 09:44:32] Starting export...
+[2025-12-19 09:44:32] Exported to JSONL
+[2025-12-19 09:44:32] JSONL removed/renamed, re-establishing watch
+[2025-12-19 09:44:32] Export complete
+[2025-12-19 09:44:32] Successfully re-established JSONL watch after 50ms
+[2025-12-19 09:44:32] JSONL file created: /Users/derekrobati/src/projects/alia-bot/.beads/issues.jsonl
+[2025-12-19 09:44:32] Mutation detected: create alia-bot-ap2
+[2025-12-19 09:44:33] Import triggered by file change
+[2025-12-19 09:44:33] Starting auto-import...
+[2025-12-19 09:44:33] Skipping auto-import: JSONL content unchanged
+[2025-12-19 09:44:33] File change detected: /Users/derekrobati/src/projects/alia-bot/.beads/issues.jsonl (op: CHMOD)
+[2025-12-19 09:44:33] Export triggered by mutation events
+[2025-12-19 09:44:33] Starting export...
+[2025-12-19 09:44:33] Exported to JSONL
+[2025-12-19 09:44:33] JSONL removed/renamed, re-establishing watch
+[2025-12-19 09:44:33] Export complete
+[2025-12-19 09:44:33] Successfully re-established JSONL watch after 50ms
+[2025-12-19 09:44:33] JSONL file created: /Users/derekrobati/src/projects/alia-bot/.beads/issues.jsonl
+[2025-12-19 09:44:33] Mutation detected: create alia-bot-9qb
+[2025-12-19 09:44:33] Import triggered by file change
+[2025-12-19 09:44:33] Starting auto-import...
+[2025-12-19 09:44:33] Skipping auto-import: JSONL content unchanged
+[2025-12-19 09:44:33] File change detected: /Users/derekrobati/src/projects/alia-bot/.beads/issues.jsonl (op: CHMOD)
+[2025-12-19 09:44:34] Export triggered by mutation events
+[2025-12-19 09:44:34] Starting export...
+[2025-12-19 09:44:34] Exported to JSONL
+[2025-12-19 09:44:34] JSONL removed/renamed, re-establishing watch
+[2025-12-19 09:44:34] Export complete
+[2025-12-19 09:44:34] Successfully re-established JSONL watch after 50ms
+[2025-12-19 09:44:34] JSONL file created: /Users/derekrobati/src/projects/alia-bot/.beads/issues.jsonl
+[2025-12-19 09:44:34] Mutation detected: create alia-bot-vu7
+[2025-12-19 09:44:34] Import triggered by file change
+[2025-12-19 09:44:34] Starting auto-import...
+[2025-12-19 09:44:34] Skipping auto-import: JSONL content unchanged
+[2025-12-19 09:44:34] File change detected: /Users/derekrobati/src/projects/alia-bot/.beads/issues.jsonl (op: CHMOD)
+[2025-12-19 09:44:34] Export triggered by mutation events
+[2025-12-19 09:44:34] Starting export...
+[2025-12-19 09:44:34] Exported to JSONL
+[2025-12-19 09:44:34] JSONL removed/renamed, re-establishing watch
+[2025-12-19 09:44:34] Export complete
+[2025-12-19 09:44:34] Successfully re-established JSONL watch after 50ms
+[2025-12-19 09:44:34] JSONL file created: /Users/derekrobati/src/projects/alia-bot/.beads/issues.jsonl
+[2025-12-19 09:44:34] Mutation detected: create alia-bot-dsv
+[2025-12-19 09:44:35] Import triggered by file change
+[2025-12-19 09:44:35] Starting auto-import...
+[2025-12-19 09:44:35] Skipping auto-import: JSONL content unchanged
+[2025-12-19 09:44:35] File change detected: /Users/derekrobati/src/projects/alia-bot/.beads/issues.jsonl (op: CHMOD)
+[2025-12-19 09:44:35] Export triggered by mutation events
+[2025-12-19 09:44:35] Starting export...
+[2025-12-19 09:44:35] Exported to JSONL
+[2025-12-19 09:44:35] JSONL removed/renamed, re-establishing watch
+[2025-12-19 09:44:35] Export complete
+[2025-12-19 09:44:35] Successfully re-established JSONL watch after 50ms
+[2025-12-19 09:44:35] JSONL file created: /Users/derekrobati/src/projects/alia-bot/.beads/issues.jsonl
+[2025-12-19 09:44:35] Mutation detected: create alia-bot-gmu
+[2025-12-19 09:44:35] Import triggered by file change
+[2025-12-19 09:44:35] Starting auto-import...
+[2025-12-19 09:44:35] Skipping auto-import: JSONL content unchanged
+[2025-12-19 09:44:36] File change detected: /Users/derekrobati/src/projects/alia-bot/.beads/issues.jsonl (op: CHMOD)
+[2025-12-19 09:44:36] Export triggered by mutation events
+[2025-12-19 09:44:36] Starting export...
+[2025-12-19 09:44:36] Exported to JSONL
+[2025-12-19 09:44:36] JSONL removed/renamed, re-establishing watch
+[2025-12-19 09:44:36] Export complete
+[2025-12-19 09:44:36] Successfully re-established JSONL watch after 50ms
+[2025-12-19 09:44:36] JSONL file created: /Users/derekrobati/src/projects/alia-bot/.beads/issues.jsonl
+[2025-12-19 09:44:36] Mutation detected: create alia-bot-ung
+[2025-12-19 09:44:36] Import triggered by file change
+[2025-12-19 09:44:36] Starting auto-import...
+[2025-12-19 09:44:36] Skipping auto-import: JSONL content unchanged
+[2025-12-19 09:44:36] Export triggered by mutation events
+[2025-12-19 09:44:36] Starting export...
+[2025-12-19 09:44:36] Exported to JSONL
+[2025-12-19 09:44:36] JSONL removed/renamed, re-establishing watch
+[2025-12-19 09:44:36] Export complete
+[2025-12-19 09:44:36] Successfully re-established JSONL watch after 50ms
+[2025-12-19 09:44:36] JSONL file created: /Users/derekrobati/src/projects/alia-bot/.beads/issues.jsonl
+[2025-12-19 09:44:36] Mutation detected: create alia-bot-q12
+[2025-12-19 09:44:37] Import triggered by file change
+[2025-12-19 09:44:37] Starting auto-import...
+[2025-12-19 09:44:37] Skipping auto-import: JSONL content unchanged
+[2025-12-19 09:44:37] Export triggered by mutation events
+[2025-12-19 09:44:37] Starting export...
+[2025-12-19 09:44:37] Exported to JSONL
+[2025-12-19 09:44:37] JSONL removed/renamed, re-establishing watch
+[2025-12-19 09:44:37] Export complete
+[2025-12-19 09:44:37] Successfully re-established JSONL watch after 50ms
+[2025-12-19 09:44:37] JSONL file created: /Users/derekrobati/src/projects/alia-bot/.beads/issues.jsonl
+[2025-12-19 09:44:37] Mutation detected: create alia-bot-j6t
+[2025-12-19 09:44:37] Import triggered by file change
+[2025-12-19 09:44:37] Starting auto-import...
+[2025-12-19 09:44:37] Skipping auto-import: JSONL content unchanged
+[2025-12-19 09:44:38] File change detected: /Users/derekrobati/src/projects/alia-bot/.beads/issues.jsonl (op: CHMOD)
+[2025-12-19 09:44:38] Export triggered by mutation events
+[2025-12-19 09:44:38] Starting export...
+[2025-12-19 09:44:38] Exported to JSONL
+[2025-12-19 09:44:38] JSONL removed/renamed, re-establishing watch
+[2025-12-19 09:44:38] Export complete
+[2025-12-19 09:44:38] Successfully re-established JSONL watch after 50ms
+[2025-12-19 09:44:38] JSONL file created: /Users/derekrobati/src/projects/alia-bot/.beads/issues.jsonl
+[2025-12-19 09:44:38] Mutation detected: create alia-bot-5se
+[2025-12-19 09:44:38] Import triggered by file change
+[2025-12-19 09:44:38] Starting auto-import...
+[2025-12-19 09:44:38] Skipping auto-import: JSONL content unchanged
+[2025-12-19 09:44:38] File change detected: /Users/derekrobati/src/projects/alia-bot/.beads/issues.jsonl (op: CHMOD)
+[2025-12-19 09:44:38] Export triggered by mutation events
+[2025-12-19 09:44:38] Starting export...
+[2025-12-19 09:44:38] Exported to JSONL
+[2025-12-19 09:44:38] JSONL removed/renamed, re-establishing watch
+[2025-12-19 09:44:38] Export complete
+[2025-12-19 09:44:38] Successfully re-established JSONL watch after 50ms
+[2025-12-19 09:44:38] JSONL file created: /Users/derekrobati/src/projects/alia-bot/.beads/issues.jsonl
+[2025-12-19 09:44:38] Mutation detected: create alia-bot-43x
+[2025-12-19 09:44:39] Import triggered by file change
+[2025-12-19 09:44:39] Starting auto-import...
+[2025-12-19 09:44:39] Skipping auto-import: JSONL content unchanged
+[2025-12-19 09:44:39] File change detected: /Users/derekrobati/src/projects/alia-bot/.beads/issues.jsonl (op: CHMOD)
+[2025-12-19 09:44:39] Export triggered by mutation events
+[2025-12-19 09:44:39] Starting export...
+[2025-12-19 09:44:39] Exported to JSONL
+[2025-12-19 09:44:39] JSONL removed/renamed, re-establishing watch
+[2025-12-19 09:44:39] Export complete
+[2025-12-19 09:44:39] Successfully re-established JSONL watch after 50ms
+[2025-12-19 09:44:39] JSONL file created: /Users/derekrobati/src/projects/alia-bot/.beads/issues.jsonl
+[2025-12-19 09:44:39] Mutation detected: create alia-bot-jpg
+[2025-12-19 09:44:39] Import triggered by file change
+[2025-12-19 09:44:39] Starting auto-import...
+[2025-12-19 09:44:39] Skipping auto-import: JSONL content unchanged
+[2025-12-19 09:44:40] File change detected: /Users/derekrobati/src/projects/alia-bot/.beads/issues.jsonl (op: CHMOD)
+[2025-12-19 09:44:40] Export triggered by mutation events
+[2025-12-19 09:44:40] Starting export...
+[2025-12-19 09:44:40] Exported to JSONL
+[2025-12-19 09:44:40] JSONL removed/renamed, re-establishing watch
+[2025-12-19 09:44:40] Export complete
+[2025-12-19 09:44:40] Successfully re-established JSONL watch after 50ms
+[2025-12-19 09:44:40] JSONL file created: /Users/derekrobati/src/projects/alia-bot/.beads/issues.jsonl
+[2025-12-19 09:44:40] Mutation detected: create alia-bot-uro
+[2025-12-19 09:44:40] Import triggered by file change
+[2025-12-19 09:44:40] Starting auto-import...
+[2025-12-19 09:44:40] Skipping auto-import: JSONL content unchanged
+[2025-12-19 09:44:40] Export triggered by mutation events
+[2025-12-19 09:44:40] Starting export...
+[2025-12-19 09:44:40] Exported to JSONL
+[2025-12-19 09:44:40] JSONL removed/renamed, re-establishing watch
+[2025-12-19 09:44:40] Export complete
+[2025-12-19 09:44:40] Successfully re-established JSONL watch after 50ms
+[2025-12-19 09:44:40] JSONL file created: /Users/derekrobati/src/projects/alia-bot/.beads/issues.jsonl
+[2025-12-19 09:44:40] Mutation detected: create alia-bot-5gf
+[2025-12-19 09:44:41] Import triggered by file change
+[2025-12-19 09:44:41] Starting auto-import...
+[2025-12-19 09:44:41] Skipping auto-import: JSONL content unchanged
+[2025-12-19 09:44:41] Export triggered by mutation events
+[2025-12-19 09:44:41] Starting export...
+[2025-12-19 09:44:41] Exported to JSONL
+[2025-12-19 09:44:41] JSONL removed/renamed, re-establishing watch
+[2025-12-19 09:44:41] Export complete
+[2025-12-19 09:44:41] Successfully re-established JSONL watch after 50ms
+[2025-12-19 09:44:41] JSONL file created: /Users/derekrobati/src/projects/alia-bot/.beads/issues.jsonl
+[2025-12-19 09:44:41] Mutation detected: create alia-bot-2rc
+[2025-12-19 09:44:41] Import triggered by file change
+[2025-12-19 09:44:41] Starting auto-import...
+[2025-12-19 09:44:41] Skipping auto-import: JSONL content unchanged
+[2025-12-19 09:44:42] File change detected: /Users/derekrobati/src/projects/alia-bot/.beads/issues.jsonl (op: CHMOD)
+[2025-12-19 09:44:42] Export triggered by mutation events
+[2025-12-19 09:44:42] Starting export...
+[2025-12-19 09:44:42] Exported to JSONL
+[2025-12-19 09:44:42] JSONL removed/renamed, re-establishing watch
+[2025-12-19 09:44:42] Export complete
+[2025-12-19 09:44:42] Successfully re-established JSONL watch after 50ms
+[2025-12-19 09:44:42] JSONL file created: /Users/derekrobati/src/projects/alia-bot/.beads/issues.jsonl
+[2025-12-19 09:44:42] Mutation detected: create alia-bot-aca
+[2025-12-19 09:44:42] Import triggered by file change
+[2025-12-19 09:44:42] Starting auto-import...
+[2025-12-19 09:44:42] Skipping auto-import: JSONL content unchanged
+[2025-12-19 09:44:42] File change detected: /Users/derekrobati/src/projects/alia-bot/.beads/issues.jsonl (op: CHMOD)
+[2025-12-19 09:44:42] Export triggered by mutation events
+[2025-12-19 09:44:42] Starting export...
+[2025-12-19 09:44:42] Exported to JSONL
+[2025-12-19 09:44:42] JSONL removed/renamed, re-establishing watch
+[2025-12-19 09:44:42] Export complete
+[2025-12-19 09:44:42] Successfully re-established JSONL watch after 50ms
+[2025-12-19 09:44:42] JSONL file created: /Users/derekrobati/src/projects/alia-bot/.beads/issues.jsonl
+[2025-12-19 09:44:42] Mutation detected: create alia-bot-hz7
+[2025-12-19 09:44:43] Import triggered by file change
+[2025-12-19 09:44:43] Starting auto-import...
+[2025-12-19 09:44:43] Skipping auto-import: JSONL content unchanged
+[2025-12-19 09:44:43] File change detected: /Users/derekrobati/src/projects/alia-bot/.beads/issues.jsonl (op: CHMOD)
+[2025-12-19 09:44:43] Export triggered by mutation events
+[2025-12-19 09:44:43] Starting export...
+[2025-12-19 09:44:43] Exported to JSONL
+[2025-12-19 09:44:43] JSONL removed/renamed, re-establishing watch
+[2025-12-19 09:44:43] Export complete
+[2025-12-19 09:44:43] Successfully re-established JSONL watch after 50ms
+[2025-12-19 09:44:43] JSONL file created: /Users/derekrobati/src/projects/alia-bot/.beads/issues.jsonl
+[2025-12-19 09:44:43] Mutation detected: create alia-bot-w83
+[2025-12-19 09:44:43] Import triggered by file change
+[2025-12-19 09:44:43] Starting auto-import...
+[2025-12-19 09:44:43] Skipping auto-import: JSONL content unchanged
+[2025-12-19 09:44:44] File change detected: /Users/derekrobati/src/projects/alia-bot/.beads/issues.jsonl (op: CHMOD)
+[2025-12-19 09:44:44] Export triggered by mutation events
+[2025-12-19 09:44:44] Starting export...
+[2025-12-19 09:44:44] Exported to JSONL
+[2025-12-19 09:44:44] JSONL removed/renamed, re-establishing watch
+[2025-12-19 09:44:44] Export complete
+[2025-12-19 09:44:44] Successfully re-established JSONL watch after 50ms
+[2025-12-19 09:44:44] JSONL file created: /Users/derekrobati/src/projects/alia-bot/.beads/issues.jsonl
+[2025-12-19 09:44:44] Mutation detected: create alia-bot-ju6
+[2025-12-19 09:44:44] Import triggered by file change
+[2025-12-19 09:44:44] Starting auto-import...
+[2025-12-19 09:44:44] Skipping auto-import: JSONL content unchanged
+[2025-12-19 09:44:44] File change detected: /Users/derekrobati/src/projects/alia-bot/.beads/issues.jsonl (op: CHMOD)
+[2025-12-19 09:44:44] Export triggered by mutation events
+[2025-12-19 09:44:44] Starting export...
+[2025-12-19 09:44:44] Exported to JSONL
+[2025-12-19 09:44:44] JSONL removed/renamed, re-establishing watch
+[2025-12-19 09:44:44] Export complete
+[2025-12-19 09:44:44] Successfully re-established JSONL watch after 50ms
+[2025-12-19 09:44:44] JSONL file created: /Users/derekrobati/src/projects/alia-bot/.beads/issues.jsonl
+[2025-12-19 09:44:44] Mutation detected: create alia-bot-7hz
+[2025-12-19 09:44:45] Import triggered by file change
+[2025-12-19 09:44:45] Starting auto-import...
+[2025-12-19 09:44:45] Skipping auto-import: JSONL content unchanged
+[2025-12-19 09:44:45] File change detected: /Users/derekrobati/src/projects/alia-bot/.beads/issues.jsonl (op: CHMOD)
+[2025-12-19 09:44:45] Export triggered by mutation events
+[2025-12-19 09:44:45] Starting export...
+[2025-12-19 09:44:45] Exported to JSONL
+[2025-12-19 09:44:45] JSONL removed/renamed, re-establishing watch
+[2025-12-19 09:44:45] Export complete
+[2025-12-19 09:44:45] Successfully re-established JSONL watch after 50ms
+[2025-12-19 09:44:45] JSONL file created: /Users/derekrobati/src/projects/alia-bot/.beads/issues.jsonl
+[2025-12-19 09:44:45] Mutation detected: create alia-bot-iez
+[2025-12-19 09:44:45] Import triggered by file change
+[2025-12-19 09:44:45] Starting auto-import...
+[2025-12-19 09:44:45] Skipping auto-import: JSONL content unchanged
+[2025-12-19 09:44:46] File change detected: /Users/derekrobati/src/projects/alia-bot/.beads/issues.jsonl (op: CHMOD)
+[2025-12-19 09:44:46] Export triggered by mutation events
+[2025-12-19 09:44:46] Starting export...
+[2025-12-19 09:44:46] Exported to JSONL
+[2025-12-19 09:44:46] JSONL removed/renamed, re-establishing watch
+[2025-12-19 09:44:46] Export complete
+[2025-12-19 09:44:46] Successfully re-established JSONL watch after 50ms
+[2025-12-19 09:44:46] JSONL file created: /Users/derekrobati/src/projects/alia-bot/.beads/issues.jsonl
+[2025-12-19 09:44:46] Mutation detected: create alia-bot-dg9
+[2025-12-19 09:44:46] Import triggered by file change
+[2025-12-19 09:44:46] Starting auto-import...
+[2025-12-19 09:44:46] Skipping auto-import: JSONL content unchanged
+[2025-12-19 09:44:46] Export triggered by mutation events
+[2025-12-19 09:44:46] Starting export...
+[2025-12-19 09:44:46] Exported to JSONL
+[2025-12-19 09:44:46] JSONL removed/renamed, re-establishing watch
+[2025-12-19 09:44:46] Export complete
+[2025-12-19 09:44:46] Successfully re-established JSONL watch after 50ms
+[2025-12-19 09:44:46] JSONL file created: /Users/derekrobati/src/projects/alia-bot/.beads/issues.jsonl
+[2025-12-19 09:44:46] Mutation detected: create alia-bot-2lh
+[2025-12-19 09:44:47] Import triggered by file change
+[2025-12-19 09:44:47] Starting auto-import...
+[2025-12-19 09:44:47] Skipping auto-import: JSONL content unchanged
+[2025-12-19 09:44:47] Export triggered by mutation events
+[2025-12-19 09:44:47] Starting export...
+[2025-12-19 09:44:47] Exported to JSONL
+[2025-12-19 09:44:47] JSONL removed/renamed, re-establishing watch
+[2025-12-19 09:44:47] Export complete
+[2025-12-19 09:44:47] Successfully re-established JSONL watch after 50ms
+[2025-12-19 09:44:47] JSONL file created: /Users/derekrobati/src/projects/alia-bot/.beads/issues.jsonl
+[2025-12-19 09:44:47] Mutation detected: create alia-bot-kl1
+[2025-12-19 09:44:47] Import triggered by file change
+[2025-12-19 09:44:47] Starting auto-import...
+[2025-12-19 09:44:47] Skipping auto-import: JSONL content unchanged
+[2025-12-19 09:44:48] File change detected: /Users/derekrobati/src/projects/alia-bot/.beads/issues.jsonl (op: CHMOD)
+[2025-12-19 09:44:48] Export triggered by mutation events
+[2025-12-19 09:44:48] Starting export...
+[2025-12-19 09:44:48] Exported to JSONL
+[2025-12-19 09:44:48] JSONL removed/renamed, re-establishing watch
+[2025-12-19 09:44:48] Export complete
+[2025-12-19 09:44:48] Successfully re-established JSONL watch after 50ms
+[2025-12-19 09:44:48] JSONL file created: /Users/derekrobati/src/projects/alia-bot/.beads/issues.jsonl
+[2025-12-19 09:44:48] Mutation detected: create alia-bot-7yh
+[2025-12-19 09:44:48] Import triggered by file change
+[2025-12-19 09:44:48] Starting auto-import...
+[2025-12-19 09:44:48] Skipping auto-import: JSONL content unchanged
+[2025-12-19 09:44:48] File change detected: /Users/derekrobati/src/projects/alia-bot/.beads/issues.jsonl (op: CHMOD)
+[2025-12-19 09:44:48] Export triggered by mutation events
+[2025-12-19 09:44:48] Starting export...
+[2025-12-19 09:44:48] Exported to JSONL
+[2025-12-19 09:44:48] JSONL removed/renamed, re-establishing watch
+[2025-12-19 09:44:48] Export complete
+[2025-12-19 09:44:48] Successfully re-established JSONL watch after 50ms
+[2025-12-19 09:44:48] JSONL file created: /Users/derekrobati/src/projects/alia-bot/.beads/issues.jsonl
+[2025-12-19 09:44:49] Import triggered by file change
+[2025-12-19 09:44:49] Starting auto-import...
+[2025-12-19 09:44:49] Skipping auto-import: JSONL content unchanged
+[2025-12-19 09:44:49] File change detected: /Users/derekrobati/src/projects/alia-bot/.beads/issues.jsonl (op: CHMOD)
+[2025-12-19 09:44:49] Import triggered by file change
+[2025-12-19 09:44:49] Starting auto-import...
+[2025-12-19 09:44:49] Skipping auto-import: JSONL content unchanged
+[2025-12-19 09:44:50] Import triggered by file change
+[2025-12-19 09:44:50] Starting auto-import...
+[2025-12-19 09:44:50] Skipping auto-import: JSONL content unchanged
+[2025-12-19 10:19:25] File change detected: /Users/derekrobati/src/projects/alia-bot/.beads/issues.jsonl (op: CHMOD)
+[2025-12-19 10:19:26] Import triggered by file change
+[2025-12-19 10:19:26] Starting auto-import...
+[2025-12-19 10:19:26] Skipping auto-import: JSONL content unchanged
+[2025-12-21 12:36:13] File change detected: /Users/derekrobati/src/projects/alia-bot/.beads/issues.jsonl (op: CHMOD)
+[2025-12-21 12:36:14] Import triggered by file change
+[2025-12-21 12:36:14] Starting auto-import...
+[2025-12-21 12:36:14] Skipping auto-import: JSONL content unchanged
+[2025-12-21 12:36:16] Git HEAD change detected: /Users/derekrobati/src/projects/alia-bot/.git/HEAD
+[2025-12-21 12:36:17] File change detected: /Users/derekrobati/src/projects/alia-bot/.beads/issues.jsonl (op: CHMOD)
+[2025-12-21 12:36:17] File change detected: /Users/derekrobati/src/projects/alia-bot/.beads/issues.jsonl (op: CHMOD)
+[2025-12-21 12:36:17] Import triggered by file change
+[2025-12-21 12:36:17] Starting auto-import...
+[2025-12-21 12:36:17] Skipping auto-import: JSONL content unchanged
+[2025-12-21 12:36:18] Import triggered by file change
+[2025-12-21 12:36:18] Starting auto-import...
+[2025-12-21 12:36:18] Skipping auto-import: JSONL content unchanged
+[2025-12-21 12:38:45] Git HEAD change detected: /Users/derekrobati/src/projects/alia-bot/.git/HEAD
+[2025-12-21 12:38:45] File change detected: /Users/derekrobati/src/projects/alia-bot/.beads/issues.jsonl (op: CHMOD)
+[2025-12-21 12:38:45] File change detected: /Users/derekrobati/src/projects/alia-bot/.beads/issues.jsonl (op: CHMOD)
+[2025-12-21 12:38:46] Import triggered by file change
+[2025-12-21 12:38:46] Starting auto-import...
+[2025-12-21 12:38:46] Skipping auto-import: JSONL content unchanged
+[2025-12-21 12:38:46] Import triggered by file change
+[2025-12-21 12:38:46] Starting auto-import...
+[2025-12-21 12:38:46] Skipping auto-import: JSONL content unchanged
+[2025-12-21 12:42:05] Git HEAD change detected: /Users/derekrobati/src/projects/alia-bot/.git/HEAD
+[2025-12-21 12:42:05] File change detected: /Users/derekrobati/src/projects/alia-bot/.beads/issues.jsonl (op: CHMOD)
+[2025-12-21 12:42:05] File change detected: /Users/derekrobati/src/projects/alia-bot/.beads/issues.jsonl (op: CHMOD)
+[2025-12-21 12:42:06] Import triggered by file change
+[2025-12-21 12:42:06] Starting auto-import...
+[2025-12-21 12:42:06] Skipping auto-import: JSONL content unchanged
+[2025-12-21 12:42:06] Import triggered by file change
+[2025-12-21 12:42:06] Starting auto-import...
+[2025-12-21 12:42:06] Skipping auto-import: JSONL content unchanged
+[2025-12-21 12:42:08] JSONL removed/renamed, re-establishing watch
+[2025-12-21 12:42:08] Successfully re-established JSONL watch after 50ms
+[2025-12-21 12:42:08] JSONL file created: /Users/derekrobati/src/projects/alia-bot/.beads/issues.jsonl
+[2025-12-21 12:42:09] File change detected: /Users/derekrobati/src/projects/alia-bot/.beads/issues.jsonl (op: CHMOD)
+[2025-12-21 12:42:09] File change detected: /Users/derekrobati/src/projects/alia-bot/.beads/issues.jsonl (op: CHMOD)
+[2025-12-21 12:42:09] File change detected: /Users/derekrobati/src/projects/alia-bot/.beads/issues.jsonl (op: CHMOD)
+[2025-12-21 12:42:09] Import triggered by file change
+[2025-12-21 12:42:09] Starting auto-import...
+[2025-12-21 12:42:09] Skipping auto-import: JSONL content unchanged
+[2025-12-21 12:42:10] Import triggered by file change
+[2025-12-21 12:42:10] Starting auto-import...
+[2025-12-21 12:42:10] Skipping auto-import: JSONL content unchanged
+[2025-12-21 12:42:10] File change detected: /Users/derekrobati/src/projects/alia-bot/.beads/issues.jsonl (op: CHMOD)
+[2025-12-21 12:42:10] File change detected: /Users/derekrobati/src/projects/alia-bot/.beads/issues.jsonl (op: CHMOD)
+[2025-12-21 12:42:10] File change detected: /Users/derekrobati/src/projects/alia-bot/.beads/issues.jsonl (op: CHMOD)
+[2025-12-21 12:42:10] File change detected: /Users/derekrobati/src/projects/alia-bot/.beads/issues.jsonl (op: CHMOD)
+[2025-12-21 12:42:10] File change detected: /Users/derekrobati/src/projects/alia-bot/.beads/issues.jsonl (op: CHMOD)
+[2025-12-21 12:42:11] Import triggered by file change
+[2025-12-21 12:42:11] Starting auto-import...
+[2025-12-21 12:42:11] Skipping auto-import: JSONL content unchanged
+[2025-12-21 12:42:15] File change detected: /Users/derekrobati/src/projects/alia-bot/.beads/issues.jsonl (op: CHMOD)
+[2025-12-21 12:42:16] Import triggered by file change
+[2025-12-21 12:42:16] Starting auto-import...
+[2025-12-21 12:42:16] Skipping auto-import: JSONL content unchanged
+[2025-12-21 12:42:17] File change detected: /Users/derekrobati/src/projects/alia-bot/.beads/issues.jsonl (op: CHMOD)
+[2025-12-21 12:42:17] JSONL removed/renamed, re-establishing watch
+[2025-12-21 12:42:18] Successfully re-established JSONL watch after 50ms
+[2025-12-21 12:42:18] JSONL file created: /Users/derekrobati/src/projects/alia-bot/.beads/issues.jsonl
+[2025-12-21 12:42:18] Import triggered by file change
+[2025-12-21 12:42:18] Starting auto-import...
+[2025-12-21 12:42:18] Skipping auto-import: JSONL content unchanged
+[2025-12-21 12:42:18] File change detected: /Users/derekrobati/src/projects/alia-bot/.beads/issues.jsonl (op: CHMOD)
+[2025-12-21 12:42:18] File change detected: /Users/derekrobati/src/projects/alia-bot/.beads/issues.jsonl (op: CHMOD)
+[2025-12-21 12:42:18] File change detected: /Users/derekrobati/src/projects/alia-bot/.beads/issues.jsonl (op: CHMOD)
+[2025-12-21 12:42:19] Import triggered by file change
+[2025-12-21 12:42:19] Starting auto-import...
+[2025-12-21 12:42:19] Skipping auto-import: JSONL content unchanged
+[2025-12-21 12:42:19] Import triggered by file change
+[2025-12-21 12:42:19] Starting auto-import...
+[2025-12-21 12:42:19] Skipping auto-import: JSONL content unchanged
+[2025-12-21 12:42:23] File change detected: /Users/derekrobati/src/projects/alia-bot/.beads/issues.jsonl (op: CHMOD)
+[2025-12-21 12:42:23] File change detected: /Users/derekrobati/src/projects/alia-bot/.beads/issues.jsonl (op: CHMOD)
+[2025-12-21 12:42:23] File change detected: /Users/derekrobati/src/projects/alia-bot/.beads/issues.jsonl (op: CHMOD)
+[2025-12-21 12:42:24] Import triggered by file change
+[2025-12-21 12:42:24] Starting auto-import...
+[2025-12-21 12:42:24] Skipping auto-import: JSONL content unchanged
+[2025-12-21 14:07:49] File change detected: /Users/derekrobati/src/projects/alia-bot/.beads/issues.jsonl (op: CHMOD)
+[2025-12-21 14:07:50] Import triggered by file change
+[2025-12-21 14:07:50] Starting auto-import...
+[2025-12-21 14:07:50] Skipping auto-import: JSONL content unchanged
+[2025-12-21 14:07:53] File change detected: /Users/derekrobati/src/projects/alia-bot/.beads/issues.jsonl (op: CHMOD)
+[2025-12-21 14:07:54] Import triggered by file change
+[2025-12-21 14:07:54] Starting auto-import...
+[2025-12-21 14:07:54] Skipping auto-import: JSONL content unchanged
+[2025-12-21 14:08:04] File change detected: /Users/derekrobati/src/projects/alia-bot/.beads/issues.jsonl (op: CHMOD)
+[2025-12-21 14:08:05] Import triggered by file change
+[2025-12-21 14:08:05] Starting auto-import...
+[2025-12-21 14:08:05] Skipping auto-import: JSONL content unchanged
+[2025-12-21 14:08:12] File change detected: /Users/derekrobati/src/projects/alia-bot/.beads/issues.jsonl (op: CHMOD)
+[2025-12-21 14:08:12] File change detected: /Users/derekrobati/src/projects/alia-bot/.beads/issues.jsonl (op: CHMOD)
+[2025-12-21 14:08:13] Import triggered by file change
+[2025-12-21 14:08:13] Starting auto-import...
+[2025-12-21 14:08:13] Skipping auto-import: JSONL content unchanged
+[2025-12-21 14:08:23] File change detected: /Users/derekrobati/src/projects/alia-bot/.beads/issues.jsonl (op: CHMOD)
+[2025-12-21 14:08:24] Import triggered by file change
+[2025-12-21 14:08:24] Starting auto-import...
+[2025-12-21 14:08:24] Skipping auto-import: JSONL content unchanged
+[2025-12-21 14:09:07] JSONL removed/renamed, re-establishing watch
+[2025-12-21 14:09:07] Successfully re-established JSONL watch after 50ms
+[2025-12-21 14:09:07] JSONL file created: /Users/derekrobati/src/projects/alia-bot/.beads/issues.jsonl
+[2025-12-21 14:09:07] File change detected: /Users/derekrobati/src/projects/alia-bot/.beads/issues.jsonl (op: CHMOD)
+[2025-12-21 14:09:07] File change detected: /Users/derekrobati/src/projects/alia-bot/.beads/issues.jsonl (op: CHMOD)
+[2025-12-21 14:09:07] File change detected: /Users/derekrobati/src/projects/alia-bot/.beads/issues.jsonl (op: CHMOD)
+[2025-12-21 14:09:08] Import triggered by file change
+[2025-12-21 14:09:08] Starting auto-import...
+[2025-12-21 14:09:08] Skipping auto-import: JSONL content unchanged
+[2025-12-21 14:09:08] Import triggered by file change
+[2025-12-21 14:09:08] Starting auto-import...
+[2025-12-21 14:09:08] Skipping auto-import: JSONL content unchanged
+[2025-12-21 14:09:31] File change detected: /Users/derekrobati/src/projects/alia-bot/.beads/issues.jsonl (op: CHMOD)
+[2025-12-21 14:09:32] Import triggered by file change
+[2025-12-21 14:09:32] Starting auto-import...
+[2025-12-21 14:09:32] Skipping auto-import: JSONL content unchanged
+[2025-12-21 14:09:47] File change detected: /Users/derekrobati/src/projects/alia-bot/.beads/issues.jsonl (op: CHMOD)
+[2025-12-21 14:09:48] Import triggered by file change
+[2025-12-21 14:09:48] Starting auto-import...
+[2025-12-21 14:09:48] Skipping auto-import: JSONL content unchanged
+[2025-12-21 14:09:56] File change detected: /Users/derekrobati/src/projects/alia-bot/.beads/issues.jsonl (op: CHMOD)
+[2025-12-21 14:09:57] Import triggered by file change
+[2025-12-21 14:09:57] Starting auto-import...
+[2025-12-21 14:09:57] Skipping auto-import: JSONL content unchanged
+[2025-12-21 14:10:29] File change detected: /Users/derekrobati/src/projects/alia-bot/.beads/issues.jsonl (op: CHMOD)
+[2025-12-21 14:10:30] Import triggered by file change
+[2025-12-21 14:10:30] Starting auto-import...
+[2025-12-21 14:10:30] Skipping auto-import: JSONL content unchanged
+[2025-12-21 14:10:37] File change detected: /Users/derekrobati/src/projects/alia-bot/.beads/issues.jsonl (op: CHMOD)
+[2025-12-21 14:10:38] Import triggered by file change
+[2025-12-21 14:10:38] Starting auto-import...
+[2025-12-21 14:10:38] Skipping auto-import: JSONL content unchanged
+[2025-12-21 14:12:02] File change detected: /Users/derekrobati/src/projects/alia-bot/.beads/issues.jsonl (op: CHMOD)
+[2025-12-21 14:12:03] Import triggered by file change
+[2025-12-21 14:12:03] Starting auto-import...
+[2025-12-21 14:12:03] Skipping auto-import: JSONL content unchanged
+[2025-12-21 14:12:21] File change detected: /Users/derekrobati/src/projects/alia-bot/.beads/issues.jsonl (op: CHMOD)
+[2025-12-21 14:12:22] Import triggered by file change
+[2025-12-21 14:12:22] Starting auto-import...
+[2025-12-21 14:12:22] Skipping auto-import: JSONL content unchanged
+[2025-12-21 14:12:45] File change detected: /Users/derekrobati/src/projects/alia-bot/.beads/issues.jsonl (op: CHMOD)
+[2025-12-21 14:12:46] Import triggered by file change
+[2025-12-21 14:12:46] Starting auto-import...
+[2025-12-21 14:12:46] Skipping auto-import: JSONL content unchanged
+[2025-12-21 14:12:57] File change detected: /Users/derekrobati/src/projects/alia-bot/.beads/issues.jsonl (op: CHMOD)
+[2025-12-21 14:12:58] Import triggered by file change
+[2025-12-21 14:12:58] Starting auto-import...
+[2025-12-21 14:12:58] Skipping auto-import: JSONL content unchanged
+[2025-12-21 14:13:40] File change detected: /Users/derekrobati/src/projects/alia-bot/.beads/issues.jsonl (op: CHMOD)
+[2025-12-21 14:13:41] Import triggered by file change
+[2025-12-21 14:13:41] Starting auto-import...
+[2025-12-21 14:13:41] Skipping auto-import: JSONL content unchanged
+[2025-12-21 14:15:27] File change detected: /Users/derekrobati/src/projects/alia-bot/.beads/issues.jsonl (op: CHMOD)
+[2025-12-21 14:15:28] Import triggered by file change
+[2025-12-21 14:15:28] Starting auto-import...
+[2025-12-21 14:15:28] Skipping auto-import: JSONL content unchanged
+[2025-12-21 14:15:45] File change detected: /Users/derekrobati/src/projects/alia-bot/.beads/issues.jsonl (op: CHMOD)
+[2025-12-21 14:15:46] Import triggered by file change
+[2025-12-21 14:15:46] Starting auto-import...
+[2025-12-21 14:15:46] Skipping auto-import: JSONL content unchanged
+[2025-12-21 14:16:19] File change detected: /Users/derekrobati/src/projects/alia-bot/.beads/issues.jsonl (op: CHMOD)
+[2025-12-21 14:16:20] Import triggered by file change
+[2025-12-21 14:16:20] Starting auto-import...
+[2025-12-21 14:16:20] Skipping auto-import: JSONL content unchanged
+[2025-12-21 14:16:45] File change detected: /Users/derekrobati/src/projects/alia-bot/.beads/issues.jsonl (op: CHMOD)
+[2025-12-21 14:16:46] Import triggered by file change
+[2025-12-21 14:16:46] Starting auto-import...
+[2025-12-21 14:16:46] Skipping auto-import: JSONL content unchanged
+[2025-12-21 14:16:56] File change detected: /Users/derekrobati/src/projects/alia-bot/.beads/issues.jsonl (op: CHMOD)
+[2025-12-21 14:16:57] Import triggered by file change
+[2025-12-21 14:16:57] Starting auto-import...
+[2025-12-21 14:16:57] Skipping auto-import: JSONL content unchanged
+[2025-12-21 14:17:15] File change detected: /Users/derekrobati/src/projects/alia-bot/.beads/issues.jsonl (op: CHMOD)
+[2025-12-21 14:17:16] Import triggered by file change
+[2025-12-21 14:17:16] Starting auto-import...
+[2025-12-21 14:17:16] Skipping auto-import: JSONL content unchanged
+[2025-12-21 14:17:22] File change detected: /Users/derekrobati/src/projects/alia-bot/.beads/issues.jsonl (op: CHMOD)
+[2025-12-21 14:17:23] Import triggered by file change
+[2025-12-21 14:17:23] Starting auto-import...
+[2025-12-21 14:17:23] Skipping auto-import: JSONL content unchanged
+[2025-12-21 14:17:31] JSONL removed/renamed, re-establishing watch
+[2025-12-21 14:17:31] Successfully re-established JSONL watch after 50ms
+[2025-12-21 14:17:31] JSONL file created: /Users/derekrobati/src/projects/alia-bot/.beads/issues.jsonl
+[2025-12-21 14:17:31] File change detected: /Users/derekrobati/src/projects/alia-bot/.beads/issues.jsonl (op: CHMOD)
+[2025-12-21 14:17:32] File change detected: /Users/derekrobati/src/projects/alia-bot/.beads/issues.jsonl (op: CHMOD)
+[2025-12-21 14:17:32] File change detected: /Users/derekrobati/src/projects/alia-bot/.beads/issues.jsonl (op: CHMOD)
+[2025-12-21 14:17:32] Import triggered by file change
+[2025-12-21 14:17:32] Starting auto-import...
+[2025-12-21 14:17:32] Skipping auto-import: JSONL content unchanged
+[2025-12-21 14:17:33] Import triggered by file change
+[2025-12-21 14:17:33] Starting auto-import...
+[2025-12-21 14:17:33] Skipping auto-import: JSONL content unchanged
+[2025-12-21 14:17:56] JSONL removed/renamed, re-establishing watch
+[2025-12-21 14:17:56] Successfully re-established JSONL watch after 50ms
+[2025-12-21 14:17:56] JSONL file created: /Users/derekrobati/src/projects/alia-bot/.beads/issues.jsonl
+[2025-12-21 14:17:57] File change detected: /Users/derekrobati/src/projects/alia-bot/.beads/issues.jsonl (op: CHMOD)
+[2025-12-21 14:17:57] File change detected: /Users/derekrobati/src/projects/alia-bot/.beads/issues.jsonl (op: CHMOD)
+[2025-12-21 14:17:57] File change detected: /Users/derekrobati/src/projects/alia-bot/.beads/issues.jsonl (op: CHMOD)
+[2025-12-21 14:17:57] File change detected: /Users/derekrobati/src/projects/alia-bot/.beads/issues.jsonl (op: CHMOD)
+[2025-12-21 14:17:58] Import triggered by file change
+[2025-12-21 14:17:58] Starting auto-import...
+[2025-12-21 14:17:58] Skipping auto-import: JSONL content unchanged
+[2025-12-21 14:18:52] File change detected: /Users/derekrobati/src/projects/alia-bot/.beads/issues.jsonl (op: CHMOD)
+[2025-12-21 14:18:53] Import triggered by file change
+[2025-12-21 14:18:53] Starting auto-import...
+[2025-12-21 14:18:53] Skipping auto-import: JSONL content unchanged
+[2025-12-21 14:18:56] JSONL removed/renamed, re-establishing watch
+[2025-12-21 14:18:56] Successfully re-established JSONL watch after 50ms
+[2025-12-21 14:18:56] JSONL file created: /Users/derekrobati/src/projects/alia-bot/.beads/issues.jsonl
+[2025-12-21 14:18:57] File change detected: /Users/derekrobati/src/projects/alia-bot/.beads/issues.jsonl (op: CHMOD)
+[2025-12-21 14:18:57] File change detected: /Users/derekrobati/src/projects/alia-bot/.beads/issues.jsonl (op: CHMOD)
+[2025-12-21 14:18:57] File change detected: /Users/derekrobati/src/projects/alia-bot/.beads/issues.jsonl (op: CHMOD)
+[2025-12-21 14:18:58] Import triggered by file change
+[2025-12-21 14:18:58] Starting auto-import...
+[2025-12-21 14:18:58] Skipping auto-import: JSONL content unchanged
+[2025-12-21 14:19:19] File change detected: /Users/derekrobati/src/projects/alia-bot/.beads/issues.jsonl (op: CHMOD)
+[2025-12-21 14:19:20] Import triggered by file change
+[2025-12-21 14:19:20] Starting auto-import...
+[2025-12-21 14:19:20] Skipping auto-import: JSONL content unchanged
+[2025-12-21 14:19:23] File change detected: /Users/derekrobati/src/projects/alia-bot/.beads/issues.jsonl (op: CHMOD)
+[2025-12-21 14:19:24] Import triggered by file change
+[2025-12-21 14:19:24] Starting auto-import...
+[2025-12-21 14:19:24] Skipping auto-import: JSONL content unchanged
+[2025-12-21 14:19:26] File change detected: /Users/derekrobati/src/projects/alia-bot/.beads/issues.jsonl (op: CHMOD)
+[2025-12-21 14:19:27] Import triggered by file change
+[2025-12-21 14:19:27] Starting auto-import...
+[2025-12-21 14:19:27] Skipping auto-import: JSONL content unchanged
+[2025-12-21 14:19:41] File change detected: /Users/derekrobati/src/projects/alia-bot/.beads/issues.jsonl (op: CHMOD)
+[2025-12-21 14:19:42] Import triggered by file change
+[2025-12-21 14:19:42] Starting auto-import...
+[2025-12-21 14:19:42] Skipping auto-import: JSONL content unchanged
+[2025-12-21 14:20:06] File change detected: /Users/derekrobati/src/projects/alia-bot/.beads/issues.jsonl (op: CHMOD)
+[2025-12-21 14:20:07] Import triggered by file change
+[2025-12-21 14:20:07] Starting auto-import...
+[2025-12-21 14:20:07] Skipping auto-import: JSONL content unchanged
+[2025-12-21 14:20:13] JSONL removed/renamed, re-establishing watch
+[2025-12-21 14:20:13] Successfully re-established JSONL watch after 50ms
+[2025-12-21 14:20:13] JSONL file created: /Users/derekrobati/src/projects/alia-bot/.beads/issues.jsonl
+[2025-12-21 14:20:14] File change detected: /Users/derekrobati/src/projects/alia-bot/.beads/issues.jsonl (op: CHMOD)
+[2025-12-21 14:20:14] File change detected: /Users/derekrobati/src/projects/alia-bot/.beads/issues.jsonl (op: CHMOD)
+[2025-12-21 14:20:14] File change detected: /Users/derekrobati/src/projects/alia-bot/.beads/issues.jsonl (op: CHMOD)
+[2025-12-21 14:20:14] Import triggered by file change
+[2025-12-21 14:20:14] Starting auto-import...
+[2025-12-21 14:20:14] Skipping auto-import: JSONL content unchanged
+[2025-12-21 14:20:15] Import triggered by file change
+[2025-12-21 14:20:15] Starting auto-import...
+[2025-12-21 14:20:15] Skipping auto-import: JSONL content unchanged
+[2025-12-21 14:20:17] File change detected: /Users/derekrobati/src/projects/alia-bot/.beads/issues.jsonl (op: CHMOD)
+[2025-12-21 14:20:18] Import triggered by file change
+[2025-12-21 14:20:18] Starting auto-import...
+[2025-12-21 14:20:18] Skipping auto-import: JSONL content unchanged
+[2025-12-21 14:20:19] File change detected: /Users/derekrobati/src/projects/alia-bot/.beads/issues.jsonl (op: CHMOD)
+[2025-12-21 14:20:19] File change detected: /Users/derekrobati/src/projects/alia-bot/.beads/issues.jsonl (op: CHMOD)
+[2025-12-21 14:20:20] Import triggered by file change
+[2025-12-21 14:20:20] Starting auto-import...
+[2025-12-21 14:20:20] Skipping auto-import: JSONL content unchanged
+[2025-12-21 14:20:26] File change detected: /Users/derekrobati/src/projects/alia-bot/.beads/issues.jsonl (op: CHMOD)
+[2025-12-21 14:20:27] Import triggered by file change
+[2025-12-21 14:20:27] Starting auto-import...
+[2025-12-21 14:20:27] Skipping auto-import: JSONL content unchanged
+[2025-12-21 14:20:51] File change detected: /Users/derekrobati/src/projects/alia-bot/.beads/issues.jsonl (op: CHMOD)
+[2025-12-21 14:20:52] Import triggered by file change
+[2025-12-21 14:20:52] Starting auto-import...
+[2025-12-21 14:20:52] Skipping auto-import: JSONL content unchanged
+[2025-12-21 14:21:29] File change detected: /Users/derekrobati/src/projects/alia-bot/.beads/issues.jsonl (op: CHMOD)
+[2025-12-21 14:21:30] Import triggered by file change
+[2025-12-21 14:21:30] Starting auto-import...
+[2025-12-21 14:21:30] Skipping auto-import: JSONL content unchanged
+[2025-12-21 14:22:47] JSONL removed/renamed, re-establishing watch
+[2025-12-21 14:22:47] JSONL still missing after 50ms, retrying...
+[2025-12-21 14:22:47] JSONL still missing after 100ms, retrying...
+[2025-12-21 14:22:47] JSONL still missing after 200ms, retrying...
+[2025-12-21 14:22:47] JSONL still missing after 400ms, retrying...
+[2025-12-21 14:22:47] Failed to re-establish JSONL watch after all retries
+[2025-12-21 14:22:47] Git HEAD change detected: /Users/derekrobati/src/projects/alia-bot/.git/HEAD
+[2025-12-21 14:22:48] Import triggered by file change
+[2025-12-21 14:22:48] Starting auto-import...
+[2025-12-21 14:22:48] Skipping auto-import: JSONL content unchanged
+[2025-12-21 15:01:56] JSONL file created: /Users/derekrobati/src/projects/alia-bot/.beads/issues.jsonl
+[2025-12-21 15:01:57] Import triggered by file change
+[2025-12-21 15:01:57] Starting auto-import...
+[2025-12-21 15:01:57] Skipping auto-import: JSONL content unchanged
+[2025-12-22 23:56:17] JSONL removed/renamed, re-establishing watch
+[2025-12-22 23:56:17] Successfully re-established JSONL watch after 50ms
+[2025-12-22 23:56:17] JSONL file created: /Users/derekrobati/src/projects/alia-bot/.beads/issues.jsonl
+[2025-12-22 23:56:18] Import triggered by file change
+[2025-12-22 23:56:18] Starting auto-import...
+[2025-12-22 23:56:18] Skipping auto-import: JSONL content unchanged
+[2025-12-22 23:56:30] JSONL removed/renamed, re-establishing watch
+[2025-12-22 23:56:30] Successfully re-established JSONL watch after 50ms
+[2025-12-22 23:56:30] JSONL file created: /Users/derekrobati/src/projects/alia-bot/.beads/issues.jsonl
+[2025-12-22 23:56:31] Import triggered by file change
+[2025-12-22 23:56:31] Starting auto-import...
+[2025-12-22 23:56:31] Skipping auto-import: JSONL content unchanged
+[2025-12-23 00:21:30] JSONL removed/renamed, re-establishing watch
+[2025-12-23 00:21:30] Successfully re-established JSONL watch after 50ms
+[2025-12-23 00:21:30] JSONL file created: /Users/derekrobati/src/projects/alia-bot/.beads/issues.jsonl
+[2025-12-23 00:21:31] Import triggered by file change
+[2025-12-23 00:21:31] Starting auto-import...
+[2025-12-23 00:21:31] Skipping auto-import: JSONL content unchanged
+[2025-12-23 00:21:37] JSONL removed/renamed, re-establishing watch
+[2025-12-23 00:21:37] Successfully re-established JSONL watch after 50ms
+[2025-12-23 00:21:37] JSONL file created: /Users/derekrobati/src/projects/alia-bot/.beads/issues.jsonl
+[2025-12-23 00:21:38] Import triggered by file change
+[2025-12-23 00:21:38] Starting auto-import...
+[2025-12-23 00:21:38] Skipping auto-import: JSONL content unchanged

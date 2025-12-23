@@ -6,7 +6,7 @@ import { Context } from "../types";
 // Duration parsing helper
 function parseDuration(duration: string): number | null {
     const match = duration.match(/^(\d+)(h|d|w)$/i);
-    if (!match) return null;
+    if (!match) {return null;}
 
     const value = parseInt(match[1], 10);
     const unit = match[2].toLowerCase();
@@ -87,8 +87,9 @@ async function handleWelcomeMessage(interaction: ChatInputCommandInteraction, co
     await context.tables.Config.upsert({ key, value: message });
 
     await interaction.reply({
-        content: `Welcome message set to:\n\`\`\`\n${message}\n\`\`\`\nSupported placeholders: \`{user}\`, \`{server}\`, \`{memberCount}\``,
-        ephemeral: true
+        content: `Welcome message set to:\n\`\`\`\n${message}\n\`\`\`\n`
+            + 'Supported placeholders: `{user}`, `{server}`, `{memberCount}`',
+        ephemeral: true,
     });
 }
 
@@ -104,7 +105,7 @@ async function handleVerifyExpiration(interaction: ChatInputCommandInteraction, 
     if (seconds === null) {
         return interaction.reply({
             content: "Invalid duration format. Use format like `24h`, `7d`, or `2w` (hours, days, weeks).",
-            ephemeral: true
+            ephemeral: true,
         });
     }
 
@@ -113,7 +114,7 @@ async function handleVerifyExpiration(interaction: ChatInputCommandInteraction, 
 
     await interaction.reply({
         content: `Verification code expiration set to ${formatDuration(seconds)}.`,
-        ephemeral: true
+        ephemeral: true,
     });
 }
 
@@ -136,7 +137,7 @@ async function handleVerifyAllowedRoles(interaction: ChatInputCommandInteraction
     if (roles.length === 0) {
         return interaction.reply({
             content: "Please specify at least one role.",
-            ephemeral: true
+            ephemeral: true,
         });
     }
 
@@ -146,7 +147,7 @@ async function handleVerifyAllowedRoles(interaction: ChatInputCommandInteraction
     const roleNames = roles.map(id => `<@&${id}>`).join(', ');
     await interaction.reply({
         content: `Verification allowed roles set to: ${roleNames}`,
-        ephemeral: true
+        ephemeral: true,
     });
 }
 
@@ -312,7 +313,7 @@ export default {
                 default:
                     await interaction.reply({
                         content: "Unknown command configuration.",
-                        ephemeral: true
+                        ephemeral: true,
                     });
             }
         } catch (error) {
@@ -320,7 +321,7 @@ export default {
             const errorMessage = error instanceof Error ? error.message : 'Unknown error';
             await interaction.reply({
                 content: `An error occurred: ${errorMessage}`,
-                ephemeral: true
+                ephemeral: true,
             });
         }
     },

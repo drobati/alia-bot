@@ -3,14 +3,14 @@ import { Context, BotEvent } from '../src/utils/types';
 
 async function getWelcomeChannelId(tables: any, guildId: string): Promise<string | null> {
     const config = await tables.Config.findOne({
-        where: { key: `welcome_channel_${guildId}` }
+        where: { key: `welcome_channel_${guildId}` },
     });
     return config?.value || null;
 }
 
 async function getWelcomeMessage(tables: any, guildId: string): Promise<string | null> {
     const config = await tables.Config.findOne({
-        where: { key: `welcome_message_${guildId}` }
+        where: { key: `welcome_message_${guildId}` },
     });
     return config?.value || null;
 }
@@ -67,7 +67,7 @@ const guildMemberAddEvent: BotEvent = {
                 guildId,
                 userId: member.id,
                 username: member.user.tag,
-                channelId: welcomeChannelId
+                channelId: welcomeChannelId,
             }, 'Sent welcome message');
         } catch (error) {
             log.error({ error, guildId: member.guild.id, userId: member.id }, 'Error sending welcome message');

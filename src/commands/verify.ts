@@ -23,16 +23,16 @@ function generateCode(): string {
 
 async function getVerifyExpiration(tables: any, guildId: string): Promise<number> {
     const config = await tables.Config.findOne({
-        where: { key: `verify_expiration_${guildId}` }
+        where: { key: `verify_expiration_${guildId}` },
     });
     return config ? parseInt(config.value, 10) : DEFAULT_EXPIRATION_SECONDS;
 }
 
 async function getAllowedRoles(tables: any, guildId: string): Promise<string[]> {
     const config = await tables.Config.findOne({
-        where: { key: `verify_allowed_roles_${guildId}` }
+        where: { key: `verify_allowed_roles_${guildId}` },
     });
-    if (!config || !config.value) return [];
+    if (!config || !config.value) {return [];}
     try {
         return JSON.parse(config.value);
     } catch {
@@ -40,15 +40,20 @@ async function getAllowedRoles(tables: any, guildId: string): Promise<string[]> 
     }
 }
 
-async function getActiveCodeCount(tables: any, guildId: string, userId: string, expirationSeconds: number): Promise<number> {
+async function getActiveCodeCount(
+    tables: any,
+    guildId: string,
+    userId: string,
+    expirationSeconds: number,
+): Promise<number> {
     const expirationDate = new Date(Date.now() - expirationSeconds * 1000);
     return await tables.VerificationCode.count({
         where: {
             guildId,
             generatorId: userId,
             used: false,
-            createdAt: { [Op.gte]: expirationDate }
-        }
+            createdAt: { [Op.gte]: expirationDate },
+        },
     });
 }
 
@@ -90,7 +95,7 @@ const verifyCommand = {
 
             // Filter to roles user has AND are in whitelist
             const availableRoles = roleManager.cache.filter(role =>
-                allowedRoleIds.includes(role.id) && userRoleIds.includes(role.id)
+                allowedRoleIds.includes(role.id) && userRoleIds.includes(role.id),
             );
 
             const focusedValue = interaction.options.getFocused().toLowerCase();
@@ -98,7 +103,7 @@ const verifyCommand = {
                 .filter(role => role.name.toLowerCase().includes(focusedValue))
                 .map(role => ({
                     name: role.name,
-                    value: role.id
+                    value: role.id,
                 }));
 
             await interaction.respond(choices.slice(0, 25));
@@ -113,7 +118,7 @@ const verifyCommand = {
         if (!guildId) {
             return interaction.reply({
                 content: "This command can only be used in a server.",
-                ephemeral: true
+                ephemeral: true,
             });
         }
 
@@ -121,7 +126,7 @@ const verifyCommand = {
         if (!member) {
             return interaction.reply({
                 content: "Could not find your member information.",
-                ephemeral: true
+                ephemeral: true,
             });
         }
 
@@ -132,15 +137,16 @@ const verifyCommand = {
             const allowedRoleIds = await getAllowedRoles(tables, guildId);
             if (allowedRoleIds.length === 0) {
                 return interaction.reply({
-                    content: "No roles have been configured for verification. Ask an admin to set up `/config verify allowed-roles`.",
-                    ephemeral: true
+                    content: "No roles have been configured for verification. "
+                        + "Ask an admin to set up `/config verify allowed-roles`.",
+                    ephemeral: true,
                 });
             }
 
             if (!allowedRoleIds.includes(roleId)) {
                 return interaction.reply({
                     content: "That role isn't available for verification.",
-                    ephemeral: true
+                    ephemeral: true,
                 });
             }
 
@@ -149,7 +155,7 @@ const verifyCommand = {
             if (!roleManager.cache.has(roleId)) {
                 return interaction.reply({
                     content: "You don't have that role.",
-                    ephemeral: true
+                    ephemeral: true,
                 });
             }
 
@@ -160,8 +166,9 @@ const verifyCommand = {
             const activeCount = await getActiveCodeCount(tables, guildId, interaction.user.id, expirationSeconds);
             if (activeCount >= MAX_ACTIVE_CODES) {
                 return interaction.reply({
-                    content: "You've reached the limit of 5 active codes. Wait for some to expire before generating more.",
-                    ephemeral: true
+                    content: "You've reached the limit of 5 active codes. "
+                        + 'Wait for some to expire before generating more.',
+                    ephemeral: true,
                 });
             }
 
@@ -173,9 +180,9 @@ const verifyCommand = {
             while (attempts < maxAttempts) {
                 code = generateCode();
                 const existing = await tables.VerificationCode.findOne({
-                    where: { code }
+                    where: { code },
                 });
-                if (!existing) break;
+                if (!existing) {break;}
                 attempts++;
             }
 
@@ -188,7 +195,7 @@ const verifyCommand = {
                 guildId,
                 generatorId: interaction.user.id,
                 roleId,
-                used: false
+                used: false,
             });
 
             // Get role name for display
@@ -206,21 +213,23 @@ const verifyCommand = {
                 guildId,
                 generatorId: interaction.user.id,
                 roleId,
-                roleName
+                roleName,
             }, 'Verification code generated');
 
             return interaction.reply({
-                content: `Your verification code is: **${code}**\n\nShare this code with someone in the welcome channel to grant them the **${roleName}** role.\n\nThis code expires in ${expirationDisplay} and can only be used once.`,
-                ephemeral: true
+                content: `Your verification code is: **${code}**\n\n`
+                    + `Share this code with someone in the welcome channel to grant them the **${roleName}** role.\n\n`
+                    + `This code expires in ${expirationDisplay} and can only be used once.`,
+                ephemeral: true,
             });
         } catch (error) {
             log.error({ error }, 'Error generating verification code');
             return interaction.reply({
                 content: "Sorry, there was an error generating your verification code. Please try again.",
-                ephemeral: true
+                ephemeral: true,
             });
         }
-    }
+    },
 };
 
 export default verifyCommand;
