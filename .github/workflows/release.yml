@@ -68,3 +68,22 @@ jobs:
           cluster: alia-bot-cluster
           wait-for-service-stability: true
           force-new-deployment: true
+
+      - name: Setup Node.js for command deployment
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build TypeScript
+        run: npm run build
+
+      - name: Deploy Discord slash commands
+        env:
+          BOT_TOKEN: ${{ secrets.BOT_TOKEN }}
+          CLIENT_ID: "555566299086979072"
+          GUILD_ID: "205526497769947136"
+        run: node scripts/deploy-commands.js
