@@ -8,6 +8,7 @@ import {
 } from "discord.js";
 import { Op } from "sequelize";
 import { Context } from "../types";
+import { checkOwnerPermission, isOwner } from "../utils/permissions";
 
 const MAX_WELCOME_MESSAGE_LENGTH = 2000;
 
@@ -272,6 +273,12 @@ export default {
                     .setRequired(true)))),
 
     async autocomplete(interaction: AutocompleteInteraction, { tables }: Context) {
+        // Only show autocomplete options to owner
+        if (!isOwner(interaction.user.id)) {
+            await interaction.respond([]);
+            return;
+        }
+
         const { Config } = tables;
         const subcommandGroup = interaction.options.getSubcommandGroup();
         const subcommand = interaction.options.getSubcommand();
@@ -300,6 +307,9 @@ export default {
         const subcommand = interaction.options.getSubcommand();
 
         try {
+            // Restrict config command to bot owner only
+            await checkOwnerPermission(interaction, context);
+
             switch (subcommandGroup) {
                 case 'general':
                     if (subcommand === 'add') {
@@ -334,6 +344,15 @@ export default {
                     });
             }
         } catch (error) {
+            // @ts-expect-error TS(2571): Object is of type 'unknown'.
+            if (error.message?.includes('Unauthorized')) {
+                log.info('Unauthorized config command attempt', {
+                    userId: interaction.user.id,
+                    username: interaction.user.username,
+                });
+                return; // Reply already sent in checkOwnerPermission
+            }
+
             log.error('Error executing config command:', error);
             const errorMessage = error instanceof Error ? error.message : 'Unknown error';
             await interaction.reply({
