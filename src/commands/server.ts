@@ -1,4 +1,4 @@
-import { SlashCommandBuilder } from 'discord.js';
+import { PermissionFlagsBits, SlashCommandBuilder } from 'discord.js';
 import { Context } from '../utils/types';
 import { checkOwnerPermission } from '../utils/permissions';
 
@@ -19,7 +19,8 @@ export default {
                         .setName('guild_id')
                         .setDescription('The ID of the server to leave')
                         .setRequired(true)
-                        .setAutocomplete(true))),
+                        .setAutocomplete(true)))
+        .setDefaultMemberPermissions(PermissionFlagsBits.Administrator),
 
     async execute(interaction: any, context: Context) {
         const { log } = context;
