@@ -193,7 +193,7 @@ describe('commands/config', () => {
             expect.objectContaining({
                 content: expect.stringContaining('This command is restricted to the bot owner only'),
                 ephemeral: true,
-            })
+            }),
         );
         // Should not have called upsert
         expect(Config.upsert).not.toHaveBeenCalled();
