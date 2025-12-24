@@ -1,5 +1,5 @@
 import { createContext } from "../utils/testHelpers";
-import tips, { TIPS, TIP_CHANCE, COOLDOWN_MS } from "./tips";
+import tips, { TIPS, TIP_CHANCE, COOLDOWN_MS, resetCooldowns } from "./tips";
 
 describe('response/tips', () => {
     let context: any;
@@ -7,6 +7,9 @@ describe('response/tips', () => {
     let mockChannelSend: jest.Mock;
 
     beforeEach(() => {
+        // Reset cooldowns between tests
+        resetCooldowns();
+
         context = createContext();
         mockChannelSend = jest.fn();
         message = {

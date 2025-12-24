@@ -1,6 +1,3 @@
-import { Message } from 'discord.js';
-import { Context } from '../utils/types';
-
 // Tips about available commands and features
 const TIPS = [
     "Try the `/horoscope` command to get your daily cosmic reading!",
@@ -34,7 +31,7 @@ const COOLDOWN_MS = 5 * 60 * 1000; // 5 minute cooldown per channel
  * Tips response handler - occasionally shows helpful tips about bot commands
  * This runs at the lowest priority and only triggers randomly
  */
-export default async (message: Message, { log }: Context): Promise<boolean> => {
+export default async (message: any, { log }: any): Promise<boolean> => {
     try {
         // Skip if message is too short (probably not meaningful conversation)
         if (message.content.length < 10) {
@@ -80,3 +77,8 @@ export default async (message: Message, { log }: Context): Promise<boolean> => {
 
 // Export for testing
 export { TIPS, TIP_CHANCE, COOLDOWN_MS };
+
+// Reset cooldowns (for testing)
+export function resetCooldowns(): void {
+    channelCooldowns.clear();
+}
