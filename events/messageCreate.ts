@@ -94,7 +94,7 @@ const messageCreateEvent: BotEvent = {
                 }
             }
 
-            // 4. Lowest Priority: Louds (only if nothing else responded)
+            // 4. Low Priority: Louds (only if nothing else responded)
             if (!responseHandled) {
                 try {
                     const loudsResult = await response.Louds(message, context);
@@ -107,6 +107,22 @@ const messageCreateEvent: BotEvent = {
                     }
                 } catch (error) {
                     context.log.error('Louds response failed', { error });
+                }
+            }
+
+            // 5. Lowest Priority: Tips (occasional helpful tips, only if nothing else responded)
+            if (!responseHandled) {
+                try {
+                    const tipsResult = await response.Tips(message, context);
+                    if (tipsResult === true) { // Tips responded
+                        responseHandled = true;
+                        context.log.debug('Message handled by Tips', {
+                            messageId: message.id,
+                            userId: message.author.id,
+                        });
+                    }
+                } catch (error) {
+                    context.log.error('Tips response failed', { error });
                 }
             }
 
