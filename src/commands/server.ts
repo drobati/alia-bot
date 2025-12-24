@@ -146,7 +146,7 @@ export default {
             const filtered = guilds
                 .filter((guild: any) =>
                     guild.name.toLowerCase().includes(searchValue) ||
-                    guild.id.includes(searchValue)
+                    guild.id.includes(searchValue),
                 )
                 .first(25);
 
@@ -154,7 +154,7 @@ export default {
                 filtered.map((guild: any) => ({
                     name: `${guild.name} (${guild.memberCount} members)`,
                     value: guild.id,
-                }))
+                })),
             );
         }
     },
