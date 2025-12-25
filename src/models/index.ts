@@ -1,5 +1,6 @@
 import Adlibs from "./adlibs";
 import Config from "./config";
+import CustomDice from "./customDice";
 import Louds from "./louds";
 import Memories from "./memories";
 import MotivationalConfig from "./motivationalConfig";
@@ -16,6 +17,7 @@ import VerificationCode from "./verificationCode";
 export default {
     Adlibs,
     Config,
+    CustomDice,
     Louds,
     Memories,
     MotivationalConfig,
