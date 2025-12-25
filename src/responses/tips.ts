@@ -23,6 +23,7 @@ const TIPS = [
     "Create custom dice with `/dice custom create` - perfect for RPG tables or decision making!",
     "Try fudge dice with `/dice roll 4dF` for Fate/Fudge RPG systems!",
     "Ask the Magic 8-Ball with `/8ball` - will your question be answered favorably?",
+    "Challenge me to Rock-Paper-Scissors with `/rps` - can you beat me?",
 ];
 
 // Cooldown tracking - stores last tip timestamp per channel
