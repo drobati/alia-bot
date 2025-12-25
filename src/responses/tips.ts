@@ -18,6 +18,10 @@ const TIPS = [
     "The `/coinbase` command shows cryptocurrency prices.",
     "Use `/adlibs` to create funny mad-libs style sentences!",
     "Try the `/dnd` commands for D&D game sessions in a dedicated channel.",
+    "Roll dice with `/dice roll 2d6+3` - supports exploding (!), keep (k), drop (d), and more!",
+    "Use `/dice coin` for a quick heads or tails flip!",
+    "Create custom dice with `/dice custom create` - perfect for RPG tables or decision making!",
+    "Try fudge dice with `/dice roll 4dF` for Fate/Fudge RPG systems!",
 ];
 
 // Cooldown tracking - stores last tip timestamp per channel

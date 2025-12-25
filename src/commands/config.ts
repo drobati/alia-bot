@@ -182,6 +182,40 @@ async function handleVerifyLogChannel(interaction: ChatInputCommandInteraction, 
     await interaction.reply({ content: `Verification log channel set to <#${channel.id}>.`, ephemeral: true });
 }
 
+async function handleDiceMaxDice(interaction: ChatInputCommandInteraction, context: Context) {
+    const maxDice = interaction.options.getInteger('limit', true);
+    const guildId = interaction.guildId;
+
+    if (!guildId) {
+        return interaction.reply({ content: "This command can only be used in a server.", ephemeral: true });
+    }
+
+    const key = `dice_max_dice_${guildId}`;
+    await context.tables.Config.upsert({ key, value: maxDice.toString() });
+
+    await interaction.reply({
+        content: `Maximum dice per roll set to **${maxDice}**.`,
+        ephemeral: true,
+    });
+}
+
+async function handleDiceShowThreshold(interaction: ChatInputCommandInteraction, context: Context) {
+    const threshold = interaction.options.getInteger('threshold', true);
+    const guildId = interaction.guildId;
+
+    if (!guildId) {
+        return interaction.reply({ content: "This command can only be used in a server.", ephemeral: true });
+    }
+
+    const key = `dice_show_individual_${guildId}`;
+    await context.tables.Config.upsert({ key, value: threshold.toString() });
+
+    await interaction.reply({
+        content: `Individual dice results will be shown for rolls with **${threshold}** or fewer dice.`,
+        ephemeral: true,
+    });
+}
+
 export default {
     data: new SlashCommandBuilder()
         .setName('config')
@@ -270,6 +304,28 @@ export default {
                     .setName('channel')
                     .setDescription('The channel to log verification events.')
                     .addChannelTypes(ChannelType.GuildText)
+                    .setRequired(true))))
+        // Dice subcommand group
+        .addSubcommandGroup((group: any) => group
+            .setName('dice')
+            .setDescription('Dice rolling settings.')
+            .addSubcommand((subcommand: any) => subcommand
+                .setName('max-dice')
+                .setDescription('Set maximum number of dice per roll.')
+                .addIntegerOption((option: any) => option
+                    .setName('limit')
+                    .setDescription('Maximum dice allowed (default: 100)')
+                    .setMinValue(1)
+                    .setMaxValue(1000)
+                    .setRequired(true)))
+            .addSubcommand((subcommand: any) => subcommand
+                .setName('show-threshold')
+                .setDescription('Set when to show individual dice results.')
+                .addIntegerOption((option: any) => option
+                    .setName('threshold')
+                    .setDescription('Show individual results for this many dice or fewer (default: 10)')
+                    .setMinValue(1)
+                    .setMaxValue(100)
                     .setRequired(true)))),
 
     async autocomplete(interaction: AutocompleteInteraction, { tables }: Context) {
@@ -334,6 +390,14 @@ export default {
                         await handleVerifyAllowedRoles(interaction, context);
                     } else if (subcommand === 'log-channel') {
                         await handleVerifyLogChannel(interaction, context);
+                    }
+                    break;
+
+                case 'dice':
+                    if (subcommand === 'max-dice') {
+                        await handleDiceMaxDice(interaction, context);
+                    } else if (subcommand === 'show-threshold') {
+                        await handleDiceShowThreshold(interaction, context);
                     }
                     break;
 
