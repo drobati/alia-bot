@@ -31,6 +31,7 @@ const TIPS = [
     "Play `/guess start` to begin a number guessing game - how few attempts can you win in?",
     "Feeling brave? Use `/roast` to get a playful roast for yourself or a friend!",
     "Curious about compatibility? Use `/ship` to see the love percentage between two users!",
+    "Check the weather with `/weather <city>` - get current conditions and a 5-day forecast!",
 ];
 
 // Cooldown tracking - stores last tip timestamp per channel
