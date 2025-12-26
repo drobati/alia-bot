@@ -25,6 +25,12 @@ const TIPS = [
     "Ask the Magic 8-Ball with `/8ball` - will your question be answered favorably?",
     "Challenge me to Rock-Paper-Scissors with `/rps` - can you beat me?",
     "Spread positivity with `/affirmation` - send yourself or a friend an uplifting message!",
+    "Need a laugh? Try `/joke` for jokes in categories like programming, animals, and more!",
+    "Test your brain with `/riddle` - can you solve the mystery?",
+    "Think you're smart? Try `/trivia` and test your knowledge across various categories!",
+    "Play `/guess start` to begin a number guessing game - how few attempts can you win in?",
+    "Feeling brave? Use `/roast` to get a playful roast for yourself or a friend!",
+    "Curious about compatibility? Use `/ship` to see the love percentage between two users!",
 ];
 
 // Cooldown tracking - stores last tip timestamp per channel
