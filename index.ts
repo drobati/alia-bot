@@ -8,14 +8,18 @@ import db from 'sequelize';
 import models from './src/models';
 import config from "config";
 import { join } from "path";
-import { readdirSync } from "fs";
+import { readdirSync, readFileSync } from "fs";
 import { BotCommand, Context, BotEvent, ExtendedClient } from "./src/utils/types";
 import { MotivationalScheduler } from './src/services/motivationalScheduler';
 import { VoiceService } from './src/services/voice';
 import { captureOwnerIdDebug, Sentry } from './src/lib/sentry';
 import { logger } from './src/utils/logger';
 
-const VERSION = '2.0.0';
+// Read version from package.json
+const packageJson = JSON.parse(readFileSync(join(__dirname, 'package.json'), 'utf8'));
+const VERSION = packageJson.version;
+// Commit SHA from CI environment variable (set during deployment)
+const COMMIT_SHA = process.env.VERSION || 'development';
 
 const client = new Client({
     intents: [
@@ -46,6 +50,7 @@ const context: Context = {
     sequelize,
     log,
     VERSION,
+    COMMIT_SHA,
     motivationalScheduler: undefined, // Will be set after initialization
     client: client, // Discord client for sending messages
 };
@@ -162,16 +167,16 @@ async function startBot() {
         event: 'login',
     });
 
-    // Send owner config to #deploy channel
+    // Send deployment info to #deploy channel
     try {
         const deployChannelId = '847239885146333215'; // #deploy channel
         const deployChannel = await client.channels.fetch(deployChannelId);
         if (deployChannel?.isTextBased() && 'send' in deployChannel) {
+            const shortSha = COMMIT_SHA.substring(0, 7);
             await deployChannel.send(`🚀 **Bot Deployed**\n` +
                 `**Version:** ${VERSION}\n` +
-                `**Configured Owner ID:** ${ownerId}\n` +
-                `**Owner ID Type:** ${typeof ownerId}\n` +
-                `**Node Environment:** ${process.env.NODE_ENV}\n` +
+                `**Commit:** ${shortSha}\n` +
+                `**Environment:** ${process.env.NODE_ENV}\n` +
                 `**Timestamp:** ${new Date().toISOString()}`);
         }
     } catch (error) {
@@ -192,12 +197,11 @@ async function startBot() {
     context.voiceService = voiceService;
     log.info({ category: 'service_initialization' }, 'Voice service initialized');
 
-    // Final deployment success message with owner configuration
+    // Final deployment success message
     log.info({
         version: VERSION,
+        commitSha: COMMIT_SHA,
         environment: process.env.NODE_ENV || 'development',
-        ownerId,
-        ownerIdType: typeof ownerId,
         deployTimestamp: new Date().toISOString(),
         category: 'bot_deployment',
     }, '🚀 Bot deployed successfully - ready to accept commands');

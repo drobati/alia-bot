@@ -22,6 +22,7 @@ const mockContext: Context = {
         debug: jest.fn(),
     } as any,
     VERSION: '2.0.0',
+    COMMIT_SHA: 'test123',
 };
 
 const mockInteraction = {

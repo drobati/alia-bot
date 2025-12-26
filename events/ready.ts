@@ -2,14 +2,13 @@ import { Client, Events, EmbedBuilder } from 'discord.js';
 import { Context, BotEvent } from '../src/utils/types';
 import server from '../src/lib/server';
 import { stripIndent } from 'common-tags';
-import config from 'config';
 import { safelyFindChannel, safelySendToChannel, isTextChannel } from '../src/utils/discordHelpers';
 
 const clientReadyEvent: BotEvent = {
     name: Events.ClientReady,
     once: true,
     async execute(client: Client, context: Context) {
-        const { tables, log, VERSION } = context;
+        const { tables, log, VERSION, COMMIT_SHA } = context;
 
         log.info(stripIndent`
             One day each of you will come face to face with the horror of your own existence.
@@ -18,50 +17,13 @@ const clientReadyEvent: BotEvent = {
 
         const devChannel = safelyFindChannel(client, 'deploy', isTextChannel, context);
 
-        // Get owner configuration for deployment message
-        const ownerId = config.get<string>('owner');
-
-        // Comprehensive config debugging
-        log.info('=== COMPREHENSIVE CONFIG DEBUG (READY EVENT) - Bot started ===');
-        log.info(`NODE_ENV: ${process.env.NODE_ENV}`);
-        log.info(`Config util version: ${config.util ? 'available' : 'not available'}`);
-
-        // Try to get config source information
-        try {
-            const configSources = config.util?.getConfigSources?.();
-            log.info(`Config sources: ${JSON.stringify(configSources, null, 2)}`);
-        } catch (error) {
-            log.info(`Could not get config sources: ${error}`);
-        }
-
-        // Show all config keys to see what's loaded
-        try {
-            const allKeys = Object.keys(config);
-            log.info(`All config keys available: ${allKeys.join(', ')}`);
-        } catch (error) {
-            log.info(`Could not get config keys: ${error}`);
-        }
-
-        // Check if owner exists and where it comes from
-        log.info(`Owner exists in config: ${config.has('owner')}`);
-        log.info(`Configured Owner ID: ${ownerId}`);
-        log.info(`Owner ID Type: ${typeof ownerId}`);
-
-        // Try to get the raw config object to see structure
-        try {
-            const rawConfig = JSON.stringify(config, null, 2);
-            log.info(`Raw config object: ${rawConfig}`);
-        } catch (error) {
-            log.info(`Could not stringify config: ${error}`);
-        }
-
-        log.info('================================================');
+        // Short commit SHA for display
+        const shortSha = COMMIT_SHA.substring(0, 7);
 
         const deploymentMessage = stripIndent`
             🚀 **Successfully deployed on ${process.env.NODE_ENV}**
             **Version:** ${VERSION}
-            **Bot Owner ID:** ${ownerId}
-            **Owner ID Type:** ${typeof ownerId}
+            **Commit:** ${shortSha}
             **Timestamp:** ${new Date().toISOString()}
         `;
 

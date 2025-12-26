@@ -12,19 +12,48 @@ on:
       - completed
 
 jobs:
-  Build:
+  Version_Tag:
     runs-on: ubuntu-latest
     if: ${{ github.event.workflow_run.conclusion == 'success' }}
-    environment: production
-    permissions:
-      id-token: write
     outputs:
-      image_tag: ${{ github.event.workflow_run.head_sha }}
+      version: ${{ steps.bump.outputs.version }}
+      sha: ${{ steps.bump.outputs.sha }}
+    permissions:
+      contents: write
 
     steps:
       - uses: actions/checkout@v4
         with:
-          ref: ${{ github.event.workflow_run.head_sha }}
+          ref: master
+          fetch-depth: 0
+
+      - name: Configure git
+        run: |
+          git config user.name "Derek Robati"
+          git config user.email "derek@robati.com"
+
+      - name: Bump version and create tag
+        id: bump
+        run: |
+          npm version patch -m "chore: bump version to %s [skip ci]"
+          VERSION=$(node -p "require('./package.json').version")
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
+          echo "sha=$(git rev-parse HEAD)" >> $GITHUB_OUTPUT
+          git push origin master --follow-tags
+
+  Build:
+    needs: Version_Tag
+    runs-on: ubuntu-latest
+    environment: production
+    permissions:
+      id-token: write
+    outputs:
+      image_tag: ${{ needs.Version_Tag.outputs.sha }}
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ needs.Version_Tag.outputs.sha }}
 
       - name: Configure AWS credentials
         uses: aws-actions/configure-aws-credentials@v1
@@ -40,13 +69,13 @@ jobs:
       - name: Build, tag, and push image to Amazon ECR
         env:
           ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
-          IMAGE_TAG: ${{ github.event.workflow_run.head_sha }}
+          IMAGE_TAG: ${{ needs.Version_Tag.outputs.sha }}
         run: |
           docker build -t $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG .
           docker push $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
 
   Deploy_ECS:
-    needs: Build
+    needs: [Version_Tag, Build]
     runs-on: ubuntu-latest
     environment: production
     permissions:
@@ -55,7 +84,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with:
-          ref: ${{ github.event.workflow_run.head_sha }}
+          ref: ${{ needs.Version_Tag.outputs.sha }}
 
       - name: Configure AWS credentials
         uses: aws-actions/configure-aws-credentials@v1
@@ -86,7 +115,7 @@ jobs:
           container-name: alia-bot-container
           image: ${{ steps.login-ecr.outputs.registry }}/${{ env.ECR_REPOSITORY }}:${{ needs.Build.outputs.image_tag }}
           environment-variables: |
-            VERSION=${{ github.event.workflow_run.head_sha }}
+            VERSION=${{ needs.Version_Tag.outputs.sha }}
 
       - name: Deploy Amazon ECS task definition
         uses: aws-actions/amazon-ecs-deploy-task-definition@v1
@@ -98,14 +127,14 @@ jobs:
           force-new-deployment: true
 
   Deploy_Commands:
-    needs: Build
+    needs: [Version_Tag, Build]
     runs-on: ubuntu-latest
     environment: production
 
     steps:
       - uses: actions/checkout@v4
         with:
-          ref: ${{ github.event.workflow_run.head_sha }}
+          ref: ${{ needs.Version_Tag.outputs.sha }}
 
       - name: Setup Node.js
         uses: actions/setup-node@v4
