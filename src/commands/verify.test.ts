@@ -1,5 +1,10 @@
 import { createContext, createInteraction, createTable } from "../utils/testHelpers";
 import verifyCommand from "./verify";
+import * as permissions from "../utils/permissions";
+
+jest.mock("../utils/permissions", () => ({
+    isOwner: jest.fn().mockReturnValue(false),
+}));
 
 describe('commands/verify', () => {
     let interaction: any;
@@ -14,6 +19,9 @@ describe('commands/verify', () => {
         VerificationCode = createTable();
         context.tables.Config = Config;
         context.tables.VerificationCode = VerificationCode;
+
+        // Reset isOwner mock
+        (permissions.isOwner as jest.Mock).mockReturnValue(false);
 
         // Default guild setup
         interaction.guildId = 'guild123';
@@ -104,6 +112,40 @@ describe('commands/verify', () => {
 
             expect(interaction.reply).toHaveBeenCalledWith({
                 content: "You don't have that role.",
+                ephemeral: true,
+            });
+        });
+
+        it('should allow owner to generate code for role they do not have', async () => {
+            (permissions.isOwner as jest.Mock).mockReturnValue(true);
+            interaction.options.getString.mockReturnValue('role456');
+            Config.findOne
+                .mockResolvedValueOnce({ value: JSON.stringify(['role456']) }) // allowed roles
+                .mockResolvedValueOnce(null); // expiration
+            // User doesn't have role456
+            interaction.member.roles.cache.has = jest.fn().mockReturnValue(false);
+            interaction.member.roles.cache.get = jest.fn().mockReturnValue(undefined);
+            // But guild has it
+            interaction.guild = {
+                roles: {
+                    cache: {
+                        get: jest.fn().mockReturnValue({ id: 'role456', name: 'Dota Role' }),
+                    },
+                },
+            };
+            VerificationCode.count.mockResolvedValue(0);
+            VerificationCode.findOne.mockResolvedValue(null);
+            VerificationCode.create.mockResolvedValue({});
+
+            await verifyCommand.execute(interaction, context);
+
+            expect(VerificationCode.create).toHaveBeenCalledWith(
+                expect.objectContaining({
+                    roleId: 'role456',
+                }),
+            );
+            expect(interaction.reply).toHaveBeenCalledWith({
+                content: expect.stringContaining('Dota Role'),
                 ephemeral: true,
             });
         });
@@ -299,6 +341,49 @@ describe('commands/verify', () => {
             await verifyCommand.autocomplete(interaction, context);
 
             expect(interaction.respond).toHaveBeenCalledWith([]);
+        });
+
+        it('should show all whitelisted roles for owner even if they do not have them', async () => {
+            (permissions.isOwner as jest.Mock).mockReturnValue(true);
+            // User doesn't have any roles that match
+            interaction.member.roles.cache = {
+                has: jest.fn().mockReturnValue(false),
+                get: jest.fn().mockReturnValue(undefined),
+                map: jest.fn().mockReturnValue([]),
+                filter: jest.fn().mockReturnValue({
+                    filter: jest.fn().mockReturnValue([]),
+                    map: jest.fn().mockReturnValue([]),
+                    slice: jest.fn().mockReturnValue([]),
+                }),
+            };
+            // But guild has the whitelisted roles
+            const guildRoles = [
+                { id: 'role456', name: 'Dota Role' },
+                { id: 'role789', name: 'Other Role' },
+            ];
+            interaction.guild = {
+                roles: {
+                    cache: {
+                        filter: jest.fn((fn: any) => {
+                            const filtered = guildRoles.filter(fn);
+                            return {
+                                filter: (filterFn: any) => filtered.filter(filterFn),
+                                map: (mapFn: any) => filtered.map(mapFn),
+                                slice: (start: number, end: number) => filtered.slice(start, end),
+                            };
+                        }),
+                    },
+                },
+            };
+            Config.findOne.mockResolvedValue({ value: JSON.stringify(['role456', 'role789']) });
+            interaction.options.getFocused.mockReturnValue('');
+
+            await verifyCommand.autocomplete(interaction, context);
+
+            expect(interaction.respond).toHaveBeenCalledWith([
+                { name: 'Dota Role', value: 'role456' },
+                { name: 'Other Role', value: 'role789' },
+            ]);
         });
 
         it('should handle errors gracefully', async () => {
