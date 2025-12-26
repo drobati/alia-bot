@@ -6,6 +6,20 @@ import {
 } from "discord.js";
 import { Context } from "../types";
 
+// Love statements based on compatibility percentage
+const LOVE_STATEMENTS: { threshold: number; statement: string }[] = [
+    { threshold: 90, statement: "{user1} is mass-simping for {user2}" },
+    { threshold: 80, statement: "{user1} is head over heels for {user2}" },
+    { threshold: 70, statement: "{user1} really likes {user2}" },
+    { threshold: 60, statement: "{user1} has a crush on {user2}" },
+    { threshold: 50, statement: "{user1} kinda vibes with {user2}" },
+    { threshold: 40, statement: "{user1} tolerates {user2}" },
+    { threshold: 30, statement: "{user1} is unsure about {user2}" },
+    { threshold: 20, statement: "{user1} avoids {user2}" },
+    { threshold: 10, statement: "{user1} runs away from {user2}" },
+    { threshold: 0, statement: "{user1} has blocked {user2}" },
+];
+
 // Messages based on compatibility percentage
 const COMPATIBILITY_MESSAGES: { threshold: number; emoji: string; message: string }[] = [
     { threshold: 100, emoji: "💍", message: "A match made in heaven! Wedding bells are ringing!" },
@@ -61,6 +75,17 @@ function getCompatibilityMessage(percentage: number): { emoji: string; message: 
     return COMPATIBILITY_MESSAGES[COMPATIBILITY_MESSAGES.length - 1];
 }
 
+// Get love statement based on percentage
+function getLoveStatement(percentage: number, user1: string, user2: string): string {
+    for (const level of LOVE_STATEMENTS) {
+        if (percentage >= level.threshold) {
+            return level.statement.replace("{user1}", user1).replace("{user2}", user2);
+        }
+    }
+    const fallback = LOVE_STATEMENTS[LOVE_STATEMENTS.length - 1];
+    return fallback.statement.replace("{user1}", user1).replace("{user2}", user2);
+}
+
 // Generate a heart meter visualization
 function generateHeartMeter(percentage: number): string {
     const filledHearts = Math.round(percentage / 10);
@@ -94,6 +119,7 @@ export default {
         const shipName = generateShipName(user1.username, user2.username);
         const { emoji, message } = getCompatibilityMessage(compatibility);
         const heartMeter = generateHeartMeter(compatibility);
+        const loveStatement = getLoveStatement(compatibility, user1.username, user2.username);
 
         const embed = new EmbedBuilder()
             .setColor(compatibility >= 50 ? 0xff69b4 : 0x808080)
@@ -101,7 +127,7 @@ export default {
             .setDescription(
                 isSameUser
                     ? `**${user1.username}** loves themselves! Self-love is important! 💕`
-                    : `**${user1.username}** x **${user2.username}**`,
+                    : `**${loveStatement}** (${compatibility}%)`,
             )
             .addFields(
                 {
