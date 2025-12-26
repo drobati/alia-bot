@@ -12,22 +12,54 @@ const messageCreateEvent: BotEvent = {
             }
 
             // Priority-based response system - only one response per message
-            // Priority order: Assistant (NLP) > Triggers > Adlibs > Louds
+            // Priority order: Verification > D&D > Assistant (NLP) > Triggers > Adlibs > Louds
 
             let responseHandled = false;
 
-            // 1. Highest Priority: Assistant (NLP Questions)
+            // 0. Top Priority: Verification (Welcome channel code processing)
             try {
-                const assistantResult = await response.Assistant(message, context);
-                if (assistantResult === true) { // Assistant responded
+                const verificationResult = await response.Verification(message, context);
+                if (verificationResult === true) {
                     responseHandled = true;
-                    context.log.debug('Message handled by Assistant (NLP)', {
+                    context.log.debug('Message handled by Verification', {
                         messageId: message.id,
                         userId: message.author.id,
                     });
                 }
             } catch (error) {
-                context.log.error('Assistant response failed', { error });
+                context.log.error('Verification response failed', { error });
+            }
+
+            // 1. High Priority: D&D (Channel-specific game responses)
+            if (!responseHandled) {
+                try {
+                    const dndResult = await response.Dnd(message, context);
+                    if (dndResult === true) { // D&D game handled
+                        responseHandled = true;
+                        context.log.debug('Message handled by D&D', {
+                            messageId: message.id,
+                            userId: message.author.id,
+                        });
+                    }
+                } catch (error) {
+                    context.log.error('D&D response failed', { error });
+                }
+            }
+
+            // 2. High Priority: Assistant (NLP Questions)
+            if (!responseHandled) {
+                try {
+                    const assistantResult = await response.Assistant(message, context);
+                    if (assistantResult === true) { // Assistant responded
+                        responseHandled = true;
+                        context.log.debug('Message handled by Assistant (NLP)', {
+                            messageId: message.id,
+                            userId: message.author.id,
+                        });
+                    }
+                } catch (error) {
+                    context.log.error('Assistant response failed', { error });
+                }
             }
 
             // 2. Medium-High Priority: Triggers (if NLP didn't respond)
@@ -62,7 +94,7 @@ const messageCreateEvent: BotEvent = {
                 }
             }
 
-            // 4. Lowest Priority: Louds (only if nothing else responded)
+            // 4. Low Priority: Louds (only if nothing else responded)
             if (!responseHandled) {
                 try {
                     const loudsResult = await response.Louds(message, context);
@@ -75,6 +107,22 @@ const messageCreateEvent: BotEvent = {
                     }
                 } catch (error) {
                     context.log.error('Louds response failed', { error });
+                }
+            }
+
+            // 5. Lowest Priority: Tips (occasional helpful tips, only if nothing else responded)
+            if (!responseHandled) {
+                try {
+                    const tipsResult = await response.Tips(message, context);
+                    if (tipsResult === true) { // Tips responded
+                        responseHandled = true;
+                        context.log.debug('Message handled by Tips', {
+                            messageId: message.id,
+                            userId: message.author.id,
+                        });
+                    }
+                } catch (error) {
+                    context.log.error('Tips response failed', { error });
                 }
             }
 

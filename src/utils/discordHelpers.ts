@@ -1,6 +1,9 @@
 import { TextChannel, DMChannel, NewsChannel, ThreadChannel, Client } from 'discord.js';
 import { Context } from './types';
 
+// Discord message character limit
+const DISCORD_MESSAGE_LIMIT = 2000;
+
 /**
  * Type for sendable Discord channels
  */
@@ -143,6 +146,105 @@ export function safelyFindChannel(
  */
 export function isTextChannel(channel: any): channel is TextChannel {
     return channel?.type === 0; // ChannelType.GuildText
+}
+
+/**
+ * Splits a long message into multiple chunks, respecting paragraph boundaries.
+ * Will not split a paragraph in half - each chunk ends at a paragraph boundary.
+ * If a single paragraph exceeds the limit, it will be sent as its own chunk.
+ */
+export function splitMessageByParagraphs(
+    content: string,
+    maxLength: number = DISCORD_MESSAGE_LIMIT,
+): string[] {
+    if (content.length <= maxLength) {
+        return [content];
+    }
+
+    const paragraphs = content.split(/\n\n+/);
+    const chunks: string[] = [];
+    let currentChunk = '';
+
+    for (const paragraph of paragraphs) {
+        const trimmedParagraph = paragraph.trim();
+        if (!trimmedParagraph) {
+            continue;
+        }
+
+        // If adding this paragraph would exceed the limit
+        if (currentChunk.length + trimmedParagraph.length + 2 > maxLength) {
+            // If we have content in the current chunk, save it
+            if (currentChunk.trim()) {
+                chunks.push(currentChunk.trim());
+            }
+
+            // If the paragraph itself is too long, it becomes its own chunk
+            if (trimmedParagraph.length > maxLength) {
+                chunks.push(trimmedParagraph);
+                currentChunk = '';
+            } else {
+                currentChunk = trimmedParagraph;
+            }
+        } else {
+            // Add paragraph to current chunk
+            if (currentChunk) {
+                currentChunk += '\n\n' + trimmedParagraph;
+            } else {
+                currentChunk = trimmedParagraph;
+            }
+        }
+    }
+
+    // Don't forget the last chunk
+    if (currentChunk.trim()) {
+        chunks.push(currentChunk.trim());
+    }
+
+    return chunks;
+}
+
+/**
+ * Sends a long message as multiple Discord messages, splitting at paragraph boundaries.
+ * Returns true if all messages were sent successfully, false if any failed.
+ */
+export async function sendLongMessage(
+    channel: SendableChannel | null | undefined,
+    content: string,
+    context: Context,
+    operationName: string = 'long message send',
+    delayMs: number = 100,
+): Promise<boolean> {
+    const chunks = splitMessageByParagraphs(content);
+
+    context.log.debug(`${operationName} - splitting into ${chunks.length} messages`, {
+        channelId: channel?.id,
+        originalLength: content.length,
+        chunkCount: chunks.length,
+        chunkLengths: chunks.map(c => c.length),
+    });
+
+    for (let i = 0; i < chunks.length; i++) {
+        const success = await safelySendToChannel(
+            channel,
+            chunks[i],
+            context,
+            `${operationName} (part ${i + 1}/${chunks.length})`,
+        );
+
+        if (!success) {
+            context.log.error(`${operationName} failed at part ${i + 1}/${chunks.length}`, {
+                channelId: channel?.id,
+            });
+            return false;
+        }
+
+        // Small delay between messages to avoid rate limiting
+        if (i < chunks.length - 1 && delayMs > 0) {
+            await new Promise(resolve => setTimeout(resolve, delayMs));
+        }
+    }
+
+    return true;
 }
 
 /**
