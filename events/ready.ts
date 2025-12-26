@@ -37,85 +37,39 @@ const clientReadyEvent: BotEvent = {
             log.error("Failed to send deployment message to 'deploy' channel");
         }
 
-        // Debug table sync with comprehensive error handling
+        // Sync database tables
         try {
-            log.info('=== TABLE SYNC DEBUG START ===');
-            log.info(`Tables object exists: ${tables ? 'YES' : 'NO'}`);
-            log.info(`Tables object type: ${typeof tables}`);
+            const tableKeys = Object.keys(tables);
+            if (tableKeys.length === 0) {
+                log.error({ category: 'database' }, 'No tables found in tables object');
+                return;
+            }
 
-            if (tables) {
-                const tableKeys = Object.keys(tables);
-                log.info(`Number of tables found: ${tableKeys.length}`);
-                log.info(`Table names: ${tableKeys.join(', ')}`);
-
-                if (tableKeys.length > 0) {
-                    log.info('Starting table sync process...');
-
-                    for (const key of tableKeys) {
-                        try {
-                            log.info(`[SYNC] Starting sync for table: ${key}`);
-                            log.info(`[SYNC] Table ${key} object type: ${typeof tables[key]}`);
-                            const hasSyncMethod = typeof tables[key]?.sync === 'function' ? 'YES' : 'NO';
-                            log.info(`[SYNC] Table ${key} has sync method: ${hasSyncMethod}`);
-
-                            if (tables[key]?.sync && typeof tables[key].sync === 'function') {
-                                await tables[key].sync();
-                                log.info(`[SYNC] ✅ Successfully synced table: ${key}`);
-                                await safelySendToChannel(
-                                    devChannel,
-                                    `✅ Table ${key} synced successfully`,
-                                    context,
-                                    `table sync success: ${key}`,
-                                );
-                            } else {
-                                log.error(`[SYNC] ❌ Table ${key} does not have sync method`);
-                                await safelySendToChannel(
-                                    devChannel,
-                                    `❌ Table ${key} missing sync method`,
-                                    context,
-                                    `table sync error: ${key}`,
-                                );
-                            }
-                        } catch (syncError) {
-                            log.error(`[SYNC] ❌ Error syncing table '${key}':`, syncError);
-                            const errorMsg = syncError instanceof Error ? syncError.message : String(syncError);
-                            await safelySendToChannel(
-                                devChannel,
-                                `❌ Error syncing table '${key}': ${errorMsg}`,
-                                context,
-                                `table sync error: ${key}`,
-                            );
-                        }
+            const syncErrors: string[] = [];
+            for (const key of tableKeys) {
+                try {
+                    if (tables[key]?.sync && typeof tables[key].sync === 'function') {
+                        await tables[key].sync();
                     }
-
-                    log.info('=== TABLE SYNC COMPLETED ===');
-                } else {
-                    log.error('❌ No tables found in tables object!');
-                    await safelySendToChannel(
-                        devChannel,
-                        '❌ CRITICAL: No tables found in tables object!',
-                        context,
-                        'table sync critical error',
-                    );
+                } catch (syncError) {
+                    const errorMsg = syncError instanceof Error ? syncError.message : String(syncError);
+                    syncErrors.push(`${key}: ${errorMsg}`);
+                    log.error({ error: syncError, table: key, category: 'database' }, `Error syncing table ${key}`);
                 }
-            } else {
-                log.error('❌ Tables object is null/undefined!');
+            }
+
+            if (syncErrors.length > 0) {
                 await safelySendToChannel(
                     devChannel,
-                    '❌ CRITICAL: Tables object is null/undefined!',
+                    `⚠️ Database sync completed with ${syncErrors.length} error(s)`,
                     context,
-                    'table sync critical error',
+                    'table sync errors',
                 );
             }
-        } catch (tableDebugError) {
-            log.error('❌ Critical error in table sync debug:', tableDebugError);
-            const errorMsg = tableDebugError instanceof Error ? tableDebugError.message : String(tableDebugError);
-            await safelySendToChannel(
-                devChannel,
-                `❌ CRITICAL TABLE SYNC ERROR: ${errorMsg}`,
-                context,
-                'table sync critical error',
-            );
+
+            log.info({ tables: tableKeys, errors: syncErrors.length, category: 'database' }, 'Database tables synced');
+        } catch (tableSyncError) {
+            log.error({ error: tableSyncError, category: 'database' }, 'Critical error during table sync');
         }
 
         // Start server for webhooks
