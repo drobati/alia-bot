@@ -29,8 +29,8 @@ jobs:
 
       - name: Configure git
         run: |
-          git config user.name "github-actions[bot]"
-          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git config user.name "Derek Robati"
+          git config user.email "derek@robati.com"
 
       - name: Bump version and create tag
         id: bump
