@@ -1,5 +1,5 @@
 # Pull base image from stock node image.
-FROM node:20
+FROM node:24
 
 # Set the working directory in the container
 WORKDIR /opt/app
