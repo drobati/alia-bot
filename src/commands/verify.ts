@@ -6,6 +6,7 @@ import {
 } from "discord.js";
 import { Op } from "sequelize";
 import { Context } from "../types";
+import { isOwner } from "../utils/permissions";
 
 // Character set excluding ambiguous characters (0, 1, O, I, L)
 const CODE_CHARS = 'ABCDEFGHJKMNPQRSTUVWXYZ23456789';
@@ -93,10 +94,18 @@ const verifyCommand = {
             const roleManager = userRoles as GuildMemberRoleManager;
             const userRoleIds = roleManager.cache.map(r => r.id);
 
-            // Filter to roles user has AND are in whitelist
-            const availableRoles = roleManager.cache.filter(role =>
-                allowedRoleIds.includes(role.id) && userRoleIds.includes(role.id),
-            );
+            // Owner can see all whitelisted roles, others only see roles they have
+            const userIsOwner = isOwner(interaction.user.id);
+            const availableRoles = userIsOwner
+                ? interaction.guild?.roles.cache.filter(role => allowedRoleIds.includes(role.id))
+                : roleManager.cache.filter(role =>
+                    allowedRoleIds.includes(role.id) && userRoleIds.includes(role.id),
+                );
+
+            if (!availableRoles) {
+                await interaction.respond([]);
+                return;
+            }
 
             const focusedValue = interaction.options.getFocused().toLowerCase();
             const choices = availableRoles
@@ -150,9 +159,10 @@ const verifyCommand = {
                 });
             }
 
-            // Check if user has the role
+            // Check if user has the role (owner bypasses this check)
             const roleManager = member.roles as GuildMemberRoleManager;
-            if (!roleManager.cache.has(roleId)) {
+            const userIsOwner = isOwner(interaction.user.id);
+            if (!userIsOwner && !roleManager.cache.has(roleId)) {
                 return interaction.reply({
                     content: "You don't have that role.",
                     ephemeral: true,
@@ -198,8 +208,8 @@ const verifyCommand = {
                 used: false,
             });
 
-            // Get role name for display
-            const role = roleManager.cache.get(roleId);
+            // Get role name for display (check guild cache for owners who may not have the role)
+            const role = roleManager.cache.get(roleId) || interaction.guild?.roles.cache.get(roleId);
             const roleName = role?.name || 'Unknown Role';
 
             // Calculate expiration time for display
