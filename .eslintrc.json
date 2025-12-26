@@ -21,6 +21,7 @@
         "node_modules/",
         "db/",
         "scripts/",
+        "infrastructure/",
         "*.js"
     ],
     "rules": {
