@@ -60,27 +60,19 @@ const context: Context = {
 let motivationalScheduler: MotivationalScheduler;
 let voiceService: VoiceService;
 
-// Debug model loading
-log.info('=== MODEL LOADING DEBUG START ===');
-log.info(`Models object keys: ${Object.keys(models).join(', ')}`);
-
+// Load database models
 Object.keys(models).forEach(key => {
     try {
-        log.info(`Loading model: ${key}`);
         const modelsForTable = models[key as keyof typeof models](sequelize);
-        log.info(`Model ${key} returned object with keys: ${Object.keys(modelsForTable).join(', ')}`);
-
         Object.keys(modelsForTable).forEach(tableKey => {
-            log.info(`Adding table to context: ${tableKey}`);
             context.tables[tableKey] = modelsForTable[tableKey as keyof typeof modelsForTable];
         });
     } catch (modelError) {
-        log.error(`Error loading model ${key}:`, modelError);
+        log.error({ error: modelError, model: key, category: 'model_loading' }, `Error loading model ${key}`);
     }
 });
 
-log.info(`Final context.tables keys: ${Object.keys(context.tables).join(', ')}`);
-log.info('=== MODEL LOADING DEBUG END ===');
+log.info({ tables: Object.keys(context.tables), category: 'model_loading' }, 'Database models loaded');
 
 client.commands = new Collection<string, BotCommand>();
 
