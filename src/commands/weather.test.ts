@@ -74,11 +74,12 @@ describe("Weather Command", () => {
             expect(weatherCommand.data.description).toContain("weather");
         });
 
-        it("should have required location option", () => {
+        it("should have required location option with autocomplete", () => {
             const options = weatherCommand.data.options as any[];
             const locationOption = options.find((opt: any) => opt.name === "location");
             expect(locationOption).toBeDefined();
             expect(locationOption.required).toBe(true);
+            expect(locationOption.autocomplete).toBe(true);
         });
 
         it("should have optional unit option", () => {
@@ -204,6 +205,83 @@ describe("Weather Command", () => {
             expect(mockContext.log.error).toHaveBeenCalled();
             const response = mockInteraction.editReply.mock.calls[0][0] as any;
             expect(response.embeds[0].data.title).toBe("Error");
+        });
+    });
+
+    describe("Autocomplete", () => {
+        const createMockAutocompleteInteraction = (focusedValue: string) => ({
+            options: {
+                getFocused: jest.fn().mockReturnValue(focusedValue),
+            },
+            respond: jest.fn().mockResolvedValue(true),
+        });
+
+        it("should return empty array for short input", async () => {
+            const mockInteraction = createMockAutocompleteInteraction("N");
+
+            await weatherCommand.autocomplete(mockInteraction as never);
+
+            expect(mockInteraction.respond).toHaveBeenCalledWith([]);
+        });
+
+        it("should return location suggestions for valid input", async () => {
+            const multipleResults = {
+                data: {
+                    results: [
+                        { name: "Canton", latitude: 34.2, longitude: -84.5, country: "US", admin1: "Georgia" },
+                        { name: "Canton", latitude: 40.8, longitude: -81.4, country: "US", admin1: "Ohio" },
+                    ],
+                },
+            };
+            (axios.get as jest.Mock).mockResolvedValueOnce(multipleResults);
+
+            const mockInteraction = createMockAutocompleteInteraction("Canton");
+
+            await weatherCommand.autocomplete(mockInteraction as never);
+
+            expect(mockInteraction.respond).toHaveBeenCalled();
+            const choices = mockInteraction.respond.mock.calls[0][0];
+            expect(choices).toHaveLength(2);
+            expect(choices[0].name).toContain("Georgia");
+            expect(choices[1].name).toContain("Ohio");
+        });
+
+        it("should handle autocomplete errors gracefully", async () => {
+            (axios.get as jest.Mock).mockRejectedValueOnce(new Error("Network error"));
+
+            const mockInteraction = createMockAutocompleteInteraction("Canton");
+
+            await weatherCommand.autocomplete(mockInteraction as never);
+
+            expect(mockInteraction.respond).toHaveBeenCalledWith([]);
+        });
+    });
+
+    describe("Execute - With Autocomplete Coordinates", () => {
+        it("should use pre-geocoded coordinates from autocomplete", async () => {
+            // Simulating autocomplete selection: "lat,lon|displayName"
+            const locationValue = "34.2,-84.5|Canton, Georgia, United States";
+
+            (axios.get as jest.Mock).mockResolvedValueOnce(mockWeatherResponse);
+
+            const mockInteraction = createMockInteraction(locationValue);
+
+            await weatherCommand.execute(mockInteraction as never, mockContext as never);
+
+            // Should only call weather API, not geocoding (only 1 call)
+            expect(axios.get).toHaveBeenCalledTimes(1);
+            expect(axios.get).toHaveBeenCalledWith(
+                expect.stringContaining("forecast"),
+                expect.objectContaining({
+                    params: expect.objectContaining({
+                        latitude: 34.2,
+                        longitude: -84.5,
+                    }),
+                }),
+            );
+
+            const response = mockInteraction.editReply.mock.calls[0][0] as any;
+            expect(response.embeds[0].data.title).toContain("Canton, Georgia");
         });
     });
 

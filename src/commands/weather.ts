@@ -2,6 +2,7 @@ import axios from "axios";
 import {
     SlashCommandBuilder,
     ChatInputCommandInteraction,
+    AutocompleteInteraction,
     EmbedBuilder,
 } from "discord.js";
 import { Context } from "../types";
@@ -90,28 +91,42 @@ interface WeatherResponse {
     };
 }
 
+function formatLocationName(result: GeocodingResult): string {
+    if (result.admin1) {
+        return `${result.name}, ${result.admin1}, ${result.country}`;
+    }
+    return `${result.name}, ${result.country}`;
+}
+
 async function geocodeLocation(query: string): Promise<GeocodingResult | null> {
+    const results = await geocodeLocationMultiple(query, 1);
+    return results.length > 0 ? results[0] : null;
+}
+
+async function geocodeLocationMultiple(
+    query: string,
+    count: number = 10,
+): Promise<GeocodingResult[]> {
     const url = "https://geocoding-api.open-meteo.com/v1/search";
     const response = await axios.get(url, {
         params: {
             name: query,
-            count: 1,
+            count,
             language: "en",
         },
     });
 
     if (!response.data.results || response.data.results.length === 0) {
-        return null;
+        return [];
     }
 
-    const result = response.data.results[0];
-    return {
+    return response.data.results.map((result: any) => ({
         name: result.name,
         latitude: result.latitude,
         longitude: result.longitude,
         country: result.country,
         admin1: result.admin1,
-    };
+    }));
 }
 
 async function getWeather(lat: number, lon: number): Promise<WeatherResponse> {
@@ -140,6 +155,18 @@ async function getWeather(lat: number, lon: number): Promise<WeatherResponse> {
     return response.data;
 }
 
+// Parse location value - could be "lat,lon|name" from autocomplete or plain text
+function parseLocationValue(value: string): { coords?: { lat: number; lon: number; name: string }; query?: string } {
+    if (value.includes("|")) {
+        const [coords, name] = value.split("|");
+        const [lat, lon] = coords.split(",").map(Number);
+        if (!isNaN(lat) && !isNaN(lon)) {
+            return { coords: { lat, lon, name } };
+        }
+    }
+    return { query: value };
+}
+
 export default {
     data: new SlashCommandBuilder()
         .setName("weather")
@@ -147,8 +174,9 @@ export default {
         .addStringOption(option =>
             option
                 .setName("location")
-                .setDescription("City name (e.g., New York, London, Tokyo)")
-                .setRequired(true),
+                .setDescription("City name (e.g., Canton, GA or Tokyo)")
+                .setRequired(true)
+                .setAutocomplete(true),
         )
         .addStringOption(option =>
             option
@@ -161,40 +189,81 @@ export default {
                 ),
         ),
 
+    async autocomplete(interaction: AutocompleteInteraction) {
+        const focusedValue = interaction.options.getFocused();
+
+        // Need at least 2 characters to search
+        if (focusedValue.length < 2) {
+            await interaction.respond([]);
+            return;
+        }
+
+        try {
+            const results = await geocodeLocationMultiple(focusedValue, 10);
+
+            const choices = results.map(result => {
+                const name = formatLocationName(result);
+                // Value format: "lat,lon|displayName" - allows us to skip geocoding later
+                const value = `${result.latitude},${result.longitude}|${name}`;
+                return {
+                    name: name.length > 100 ? name.substring(0, 97) + "..." : name,
+                    value: value.length > 100 ? value.substring(0, 100) : value,
+                };
+            });
+
+            await interaction.respond(choices);
+        } catch {
+            await interaction.respond([]);
+        }
+    },
+
     async execute(interaction: ChatInputCommandInteraction, context: Context) {
-        const location = interaction.options.getString("location", true);
+        const locationInput = interaction.options.getString("location", true);
         const unit = interaction.options.getString("unit") || "fahrenheit";
 
         await interaction.deferReply();
 
         try {
-            // Geocode the location
-            const geo = await geocodeLocation(location);
+            const parsed = parseLocationValue(locationInput);
+            let lat: number;
+            let lon: number;
+            let locationName: string;
 
-            if (!geo) {
-                await interaction.editReply({
-                    embeds: [
-                        new EmbedBuilder()
-                            .setColor(0xff0000)
-                            .setTitle("Location Not Found")
-                            .setDescription(
-                                `Could not find a location matching "${location}". ` +
-                                    "Try a different city name.",
-                            ),
-                    ],
-                });
-                return;
+            if (parsed.coords) {
+                // From autocomplete - use coordinates directly
+                lat = parsed.coords.lat;
+                lon = parsed.coords.lon;
+                locationName = parsed.coords.name;
+            } else {
+                // Manual input - geocode the location
+                const geo = await geocodeLocation(parsed.query!);
+
+                if (!geo) {
+                    await interaction.editReply({
+                        embeds: [
+                            new EmbedBuilder()
+                                .setColor(0xff0000)
+                                .setTitle("Location Not Found")
+                                .setDescription(
+                                    `Could not find a location matching "${parsed.query}". ` +
+                                        "Try using the autocomplete suggestions.",
+                                ),
+                        ],
+                    });
+                    return;
+                }
+
+                lat = geo.latitude;
+                lon = geo.longitude;
+                locationName = formatLocationName(geo);
             }
 
             // Get weather data
-            const weather = await getWeather(geo.latitude, geo.longitude);
+            const weather = await getWeather(lat, lon);
             const current = weather.current;
             const daily = weather.daily;
 
             const currentWeather = getWeatherInfo(current.weather_code);
-            const locationName = geo.admin1
-                ? `${geo.name}, ${geo.admin1}, ${geo.country}`
-                : `${geo.name}, ${geo.country}`;
 
             // Build forecast string
             const forecastLines = daily.time.map((date, i) => {
