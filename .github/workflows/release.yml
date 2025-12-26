@@ -11,11 +11,13 @@ on:
       - completed
 
 jobs:
-  Build_And_Deploy:
+  Build:
     runs-on: ubuntu-latest
     environment: production
     permissions:
       id-token: write
+    outputs:
+      image: ${{ steps.build-image.outputs.image }}
 
     steps:
       - uses: actions/checkout@v4
@@ -42,24 +44,47 @@ jobs:
         run: |
           docker build -t $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG .
           docker push $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
-          echo "::set-output name=image::$ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG"
+          echo "image=$ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG" >> $GITHUB_OUTPUT
+
+  Deploy_ECS:
+    needs: Build
+    runs-on: ubuntu-latest
+    environment: production
+    permissions:
+      id-token: write
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.workflow_run.head_sha }}
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v1
+        with:
+          role-to-assume: ${{ secrets.ROLE_TO_ASSUME }}
+          role-session-name: ${{ secrets.ROLE_SESSION_NAME }}
+          aws-region: ${{ env.AWS_REGION }}
+
       - name: Download task definition
         run: |
           aws ecs describe-task-definition --task-definition alia-bot-task --query taskDefinition > task-definition.json
+
       - name: Add SENTRY_DSN to task definition
         run: |
           # Add SENTRY_DSN secret to the task definition if not already present
           jq '.containerDefinitions[0].secrets |= if any(.name == "SENTRY_DSN") then . else . + [{"name": "SENTRY_DSN", "valueFrom": "/alia-bot/SENTRY_DSN"}] end' task-definition.json > task-definition-updated.json
           mv task-definition-updated.json task-definition.json
+
       - name: Fill in the new image ID in the Amazon ECS task definition
         id: task-def
         uses: aws-actions/amazon-ecs-render-task-definition@master
         with:
           task-definition: task-definition.json
           container-name: alia-bot-container
-          image: ${{ steps.build-image.outputs.image }}
+          image: ${{ needs.Build.outputs.image }}
           environment-variables: |
             VERSION=${{ github.event.workflow_run.head_sha }}
+
       - name: Deploy Amazon ECS task definition
         uses: aws-actions/amazon-ecs-deploy-task-definition@v1
         with:
@@ -69,7 +94,17 @@ jobs:
           wait-for-service-stability: true
           force-new-deployment: true
 
-      - name: Setup Node.js for command deployment
+  Deploy_Commands:
+    needs: Build
+    runs-on: ubuntu-latest
+    environment: production
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.workflow_run.head_sha }}
+
+      - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
           node-version: '20'
