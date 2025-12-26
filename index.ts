@@ -15,9 +15,9 @@ import { VoiceService } from './src/services/voice';
 import { captureOwnerIdDebug, Sentry } from './src/lib/sentry';
 import { logger } from './src/utils/logger';
 
-// Read version from package.json
+// Version from CI environment variable (set during deployment), fallback to package.json
 const packageJson = JSON.parse(readFileSync(join(__dirname, 'package.json'), 'utf8'));
-const VERSION = packageJson.version;
+const VERSION = process.env.APP_VERSION || packageJson.version;
 // Commit SHA from CI environment variable (set during deployment)
 const COMMIT_SHA = process.env.VERSION || 'development';
 
