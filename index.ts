@@ -16,7 +16,9 @@ import { captureOwnerIdDebug, Sentry } from './src/lib/sentry';
 import { logger } from './src/utils/logger';
 
 // Version from CI environment variable (set during deployment), fallback to package.json
-const packageJson = JSON.parse(readFileSync(join(__dirname, 'package.json'), 'utf8'));
+// Note: __dirname is 'dist/' after compilation, so we need to go up one level
+const packageJsonPath = join(__dirname, '..', 'package.json');
+const packageJson = JSON.parse(readFileSync(packageJsonPath, 'utf8'));
 const VERSION = process.env.APP_VERSION || packageJson.version;
 // Commit SHA from CI environment variable (set during deployment)
 const COMMIT_SHA = process.env.VERSION || 'development';
