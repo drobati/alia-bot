@@ -1,7 +1,29 @@
 import Sequelize from "sequelize";
 
+async function getWelcomeChannelId(tables: any, guildId: string): Promise<string | null> {
+    const config = await tables.Config.findOne({
+        where: { key: `welcome_channel_${guildId}` },
+    });
+    return config?.value || null;
+}
+
 export default async (message: any, { tables, log }: any): Promise<boolean> => {
     const { Louds, Louds_Banned } = tables;
+
+    // Exclude welcome channel from LOUDS processing
+    if (message.guild && message.guildId) {
+        const welcomeChannelId = await getWelcomeChannelId(tables, message.guildId);
+        log.debug('LOUDS: Channel check', {
+            messageChannelId: message.channelId,
+            welcomeChannelId: welcomeChannelId,
+            isWelcomeChannel: welcomeChannelId && message.channelId === welcomeChannelId,
+        });
+        if (welcomeChannelId && message.channelId === welcomeChannelId) {
+            log.debug('LOUDS: Skipping welcome channel');
+            return false; // Skip welcome channel entirely
+        }
+    }
+
     const regex = /^\s*([A-Z"][A-Z0-9 .,'"()?!&%$#@+-]+)$/;
     if (regex.test(message.content)) {
         try {

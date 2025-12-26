@@ -35,6 +35,7 @@ export interface Context {
     VERSION: string;
     motivationalScheduler?: MotivationalScheduler;
     voiceService?: VoiceService;
+    client?: any; // Discord client for sending messages
 }
 
 // Legacy exports for backward compatibility (will be removed gradually)

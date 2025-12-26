@@ -132,6 +132,34 @@ export interface HoroscopeCacheAttributes {
     updatedAt?: Date;
 }
 
+export interface DndGameAttributes {
+    id?: number;
+    guildId: string;
+    name: string;
+    systemPrompt: string;
+    conversationHistory: Array<{ role: string; content: string }>;
+    channelId?: string | null;
+    isActive: boolean;
+    waitPeriodMinutes: number;
+    currentRound: number;
+    pendingMessages: Array<{ userId: string; username: string; content: string; timestamp: Date }>;
+    lastResponseTime?: Date;
+    createdAt?: Date;
+    updatedAt?: Date;
+}
+
+export interface VerificationCodeAttributes {
+    code: string;
+    guildId: string;
+    generatorId: string;
+    roleId: string;
+    used: boolean;
+    usedBy?: string | null;
+    usedAt?: Date | null;
+    createdAt?: Date;
+    updatedAt?: Date;
+}
+
 // Simplified model interfaces for now - avoiding complex Sequelize inheritance issues
 export interface AdlibsModel extends AdlibsAttributes {
     update(_values: Partial<AdlibsAttributes>): Promise<AdlibsModel>;
@@ -180,6 +208,16 @@ export interface HoroscopeUserModel extends HoroscopeUserAttributes {
 
 export interface HoroscopeCacheModel extends HoroscopeCacheAttributes {
     update(_values: Partial<HoroscopeCacheAttributes>): Promise<HoroscopeCacheModel>;
+    destroy(): Promise<void>;
+}
+
+export interface DndGameModel extends DndGameAttributes {
+    update(_values: Partial<DndGameAttributes>): Promise<DndGameModel>;
+    destroy(): Promise<void>;
+}
+
+export interface VerificationCodeModel extends VerificationCodeAttributes {
+    update(_values: Partial<VerificationCodeAttributes>): Promise<VerificationCodeModel>;
     destroy(): Promise<void>;
 }
 
@@ -286,6 +324,31 @@ export interface HoroscopeCacheModelStatic {
     count(options?: FindOptions<HoroscopeCacheAttributes>): Promise<number>;
 }
 
+export interface DndGameModelStatic {
+    findAll(options?: FindOptions<DndGameAttributes>): Promise<DndGameModel[]>;
+    findOne(options?: FindOptions<DndGameAttributes>): Promise<DndGameModel | null>;
+    create(values: DndGameAttributes): Promise<DndGameModel>;
+    findOrCreate(options: FindOrCreateOptions<DndGameAttributes>): Promise<[DndGameModel, boolean]>;
+    upsert(values: DndGameAttributes, options?: UpsertOptions): Promise<[DndGameModel, boolean]>;
+    update(values: Partial<DndGameAttributes>, options: { where: WhereOptions<DndGameAttributes> }): Promise<[number]>;
+    destroy(options: DestroyOptions<DndGameAttributes>): Promise<number>;
+    count(options?: FindOptions<DndGameAttributes>): Promise<number>;
+}
+
+export interface VerificationCodeModelStatic {
+    findAll(options?: FindOptions<VerificationCodeAttributes>): Promise<VerificationCodeModel[]>;
+    findOne(options?: FindOptions<VerificationCodeAttributes>): Promise<VerificationCodeModel | null>;
+    create(values: VerificationCodeAttributes): Promise<VerificationCodeModel>;
+    findOrCreate(options: FindOrCreateOptions<VerificationCodeAttributes>): Promise<[VerificationCodeModel, boolean]>;
+    upsert(values: VerificationCodeAttributes, options?: UpsertOptions): Promise<[VerificationCodeModel, boolean]>;
+    update(
+        values: Partial<VerificationCodeAttributes>,
+        options: { where: WhereOptions<VerificationCodeAttributes> },
+    ): Promise<[number]>;
+    destroy(options: DestroyOptions<VerificationCodeAttributes>): Promise<number>;
+    count(options?: FindOptions<VerificationCodeAttributes>): Promise<number>;
+}
+
 // Combined database tables interface
 export interface DatabaseTables {
     Adlibs: AdlibsModelStatic;
@@ -298,5 +361,7 @@ export interface DatabaseTables {
     MemeTemplate: MemeTemplateModelStatic;
     HoroscopeUser: HoroscopeUserModelStatic;
     HoroscopeCache: HoroscopeCacheModelStatic;
+    DndGame: DndGameModelStatic;
+    VerificationCode: VerificationCodeModelStatic;
     [key: string]: any; // Allow dynamic table access
 }
