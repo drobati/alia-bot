@@ -123,9 +123,13 @@ function handleCommandFile(command: BotCommand, fullPath: string) {
 
 function handleEventFile(event: BotEvent) {
     if (event.once) {
-        client.once(event.name, (...args) => { event.execute(...args, context).then(r => r); });
+        client.once(event.name, (...args) => {
+            event.execute(...args, context).catch(err => log.error({ error: err }, `Error in event ${event.name}`));
+        });
     } else {
-        client.on(event.name, (...args) => { event.execute(...args, context).then(r => r); });
+        client.on(event.name, (...args) => {
+            event.execute(...args, context).catch(err => log.error({ error: err }, `Error in event ${event.name}`));
+        });
     }
 }
 
@@ -211,7 +215,7 @@ process.on('SIGINT', () => {
         voiceService.destroy();
         log.info('Voice service destroyed');
     }
-    client.destroy();
+    void client.destroy();
     process.exit(0);
 });
 
@@ -224,7 +228,7 @@ process.on('SIGTERM', () => {
         voiceService.destroy();
         log.info('Voice service destroyed');
     }
-    client.destroy();
+    void client.destroy();
     process.exit(0);
 });
 
