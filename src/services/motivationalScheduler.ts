@@ -65,7 +65,7 @@ export class MotivationalScheduler {
 
         // Stop existing task if it exists
         if (this.scheduledTasks.has(taskKey)) {
-            this.scheduledTasks.get(taskKey)?.stop();
+            void this.scheduledTasks.get(taskKey)?.stop();
             this.scheduledTasks.delete(taskKey);
         }
 
@@ -221,7 +221,7 @@ export class MotivationalScheduler {
         const taskKey = `motivational_${channelId}`;
 
         if (this.scheduledTasks.has(taskKey)) {
-            this.scheduledTasks.get(taskKey)?.stop();
+            void this.scheduledTasks.get(taskKey)?.stop();
             this.scheduledTasks.delete(taskKey);
 
             this.context.log.info('Removed motivational message schedule', {
@@ -267,7 +267,7 @@ export class MotivationalScheduler {
         });
 
         for (const [, task] of this.scheduledTasks.entries()) {
-            task.stop();
+            void task.stop();
         }
 
         this.scheduledTasks.clear();
