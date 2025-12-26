@@ -50,6 +50,7 @@ const mockContext: Context = {
     tables: {} as any,
     sequelize: {} as any,
     VERSION: '2.0.0',
+    COMMIT_SHA: 'test123',
 };
 
 describe('motivationalGenerator', () => {

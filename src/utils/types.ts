@@ -33,6 +33,7 @@ export interface Context {
     log: BotLogger;
     sequelize: Sequelize;
     VERSION: string;
+    COMMIT_SHA: string;
     motivationalScheduler?: MotivationalScheduler;
     voiceService?: VoiceService;
     client?: any; // Discord client for sending messages
