@@ -23,6 +23,29 @@ export interface VoiceService {
     destroy: () => void;
 }
 
+export interface EngagementService {
+    trackMessage: (guildId: string, userId: string, username: string) => void;
+    trackCommand: (guildId: string, userId: string, username: string) => void;
+    getLeaderboard: (guildId: string, limit?: number) => Promise<Array<{
+        userId: string;
+        username: string;
+        messageCount: number;
+        commandCount: number;
+        lastActive: Date;
+    }>>;
+    getUserStats: (guildId: string, userId: string) => Promise<{
+        userId: string;
+        username: string;
+        messageCount: number;
+        commandCount: number;
+        lastActive: Date;
+        firstSeen: Date;
+        rank: number;
+    } | null>;
+    getBufferSize: () => number;
+    shutdown: () => Promise<void>;
+}
+
 // Re-export types from dedicated type files
 export { BotCommand, ExtendedClient, BotEvent, MessageResponse } from '../types/discord';
 export { DatabaseTables } from '../types/database';
@@ -36,6 +59,7 @@ export interface Context {
     COMMIT_SHA: string;
     motivationalScheduler?: MotivationalScheduler;
     voiceService?: VoiceService;
+    engagementService?: EngagementService;
     client?: any; // Discord client for sending messages
 }
 

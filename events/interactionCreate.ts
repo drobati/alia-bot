@@ -45,6 +45,16 @@ const interactionCreateEventHandler: BotEvent = {
             }
             else if (interaction.isCommand()) {
                 log.info(`Executing ${interaction.commandName}`);
+
+                // Track command usage for engagement stats (non-blocking)
+                if (context.engagementService && interaction.guildId) {
+                    context.engagementService.trackCommand(
+                        interaction.guildId,
+                        interaction.user.id,
+                        interaction.user.username,
+                    );
+                }
+
                 await command.execute(interaction, context);
             }
         } catch (error) {

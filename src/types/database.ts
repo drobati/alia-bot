@@ -160,6 +160,19 @@ export interface VerificationCodeAttributes {
     updatedAt?: Date;
 }
 
+export interface UserStatsAttributes {
+    id?: number;
+    guildId: string;
+    userId: string;
+    username: string;
+    messageCount: number;
+    commandCount: number;
+    lastActive: Date;
+    firstSeen?: Date;
+    createdAt?: Date;
+    updatedAt?: Date;
+}
+
 // Simplified model interfaces for now - avoiding complex Sequelize inheritance issues
 export interface AdlibsModel extends AdlibsAttributes {
     update(_values: Partial<AdlibsAttributes>): Promise<AdlibsModel>;
@@ -219,6 +232,13 @@ export interface DndGameModel extends DndGameAttributes {
 export interface VerificationCodeModel extends VerificationCodeAttributes {
     update(_values: Partial<VerificationCodeAttributes>): Promise<VerificationCodeModel>;
     destroy(): Promise<void>;
+    getDataValue<K extends keyof VerificationCodeAttributes>(key: K): VerificationCodeAttributes[K];
+}
+
+export interface UserStatsModel extends UserStatsAttributes {
+    update(_values: Partial<UserStatsAttributes>): Promise<UserStatsModel>;
+    destroy(): Promise<void>;
+    getDataValue<K extends keyof UserStatsAttributes>(key: K): UserStatsAttributes[K];
 }
 
 // Static model interfaces for Sequelize model classes
@@ -349,6 +369,20 @@ export interface VerificationCodeModelStatic {
     count(options?: FindOptions<VerificationCodeAttributes>): Promise<number>;
 }
 
+export interface UserStatsModelStatic {
+    findAll(options?: FindOptions<UserStatsAttributes>): Promise<UserStatsModel[]>;
+    findOne(options?: FindOptions<UserStatsAttributes>): Promise<UserStatsModel | null>;
+    create(values: UserStatsAttributes): Promise<UserStatsModel>;
+    findOrCreate(options: FindOrCreateOptions<UserStatsAttributes>): Promise<[UserStatsModel, boolean]>;
+    upsert(values: UserStatsAttributes, options?: UpsertOptions): Promise<[UserStatsModel, boolean]>;
+    update(
+        values: Partial<UserStatsAttributes>,
+        options: { where: WhereOptions<UserStatsAttributes> },
+    ): Promise<[number]>;
+    destroy(options: DestroyOptions<UserStatsAttributes>): Promise<number>;
+    count(options?: FindOptions<UserStatsAttributes>): Promise<number>;
+}
+
 // Combined database tables interface
 export interface DatabaseTables {
     Adlibs: AdlibsModelStatic;
@@ -363,5 +397,6 @@ export interface DatabaseTables {
     HoroscopeCache: HoroscopeCacheModelStatic;
     DndGame: DndGameModelStatic;
     VerificationCode: VerificationCodeModelStatic;
+    UserStats: UserStatsModelStatic;
     [key: string]: any; // Allow dynamic table access
 }

@@ -5,10 +5,19 @@ import response from '../src/responses'; // Adjust the import path as needed
 const messageCreateEvent: BotEvent = {
     name: Events.MessageCreate,
     async execute(message: Message, context: Context) {
-        const { log } = context;
+        const { log, engagementService } = context;
         try {
             if (message.author.bot) {
                 return;
+            }
+
+            // Track message for engagement stats (non-blocking)
+            if (engagementService && message.guildId) {
+                engagementService.trackMessage(
+                    message.guildId,
+                    message.author.id,
+                    message.author.username,
+                );
             }
 
             // Priority-based response system - only one response per message

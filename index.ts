@@ -12,6 +12,7 @@ import { readdirSync, readFileSync } from "fs";
 import { BotCommand, Context, BotEvent, ExtendedClient } from "./src/utils/types";
 import { MotivationalScheduler } from './src/services/motivationalScheduler';
 import { VoiceService } from './src/services/voice';
+import { EngagementService } from './src/services/engagementService';
 import { captureOwnerIdDebug, Sentry } from './src/lib/sentry';
 import { logger } from './src/utils/logger';
 
@@ -59,6 +60,7 @@ const context: Context = {
 
 let motivationalScheduler: MotivationalScheduler;
 let voiceService: VoiceService;
+let engagementService: EngagementService;
 
 // Load database models
 Object.keys(models).forEach(key => {
@@ -191,6 +193,12 @@ async function startBot() {
     context.voiceService = voiceService;
     log.info({ category: 'service_initialization' }, 'Voice service initialized');
 
+    // Initialize engagement service
+    engagementService = new EngagementService(context);
+    engagementService.initialize();
+    context.engagementService = engagementService;
+    log.info({ category: 'service_initialization' }, 'Engagement service initialized');
+
     // Final deployment success message
     log.info({
         version: VERSION,
@@ -202,30 +210,35 @@ async function startBot() {
 }
 
 // Graceful shutdown handler
-process.on('SIGINT', () => {
-    log.info('Received SIGINT, shutting down gracefully...');
+async function gracefulShutdown(signal: string): Promise<void> {
+    log.info(`Received ${signal}, shutting down gracefully...`);
     if (motivationalScheduler) {
         motivationalScheduler.shutdown();
+    }
+    if (engagementService) {
+        await engagementService.shutdown();
+        log.info('Engagement service shut down');
     }
     if (voiceService) {
         voiceService.destroy();
         log.info('Voice service destroyed');
     }
-    client.destroy();
+    void client.destroy();
     process.exit(0);
+}
+
+process.on('SIGINT', () => {
+    gracefulShutdown('SIGINT').catch(err => {
+        log.error({ error: err }, 'Error during shutdown');
+        process.exit(1);
+    });
 });
 
 process.on('SIGTERM', () => {
-    log.info('Received SIGTERM, shutting down gracefully...');
-    if (motivationalScheduler) {
-        motivationalScheduler.shutdown();
-    }
-    if (voiceService) {
-        voiceService.destroy();
-        log.info('Voice service destroyed');
-    }
-    client.destroy();
-    process.exit(0);
+    gracefulShutdown('SIGTERM').catch(err => {
+        log.error({ error: err }, 'Error during shutdown');
+        process.exit(1);
+    });
 });
 
 startBot().catch(error => {
