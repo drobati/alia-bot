@@ -7,6 +7,7 @@ export function createInteraction() {
         guildId: null as string | null,
         options: {
             get: jest.fn(),
+            getBoolean: jest.fn(),
             getChannel: jest.fn(),
             getFocused: jest.fn(),
             getInteger: jest.fn(),
@@ -15,6 +16,7 @@ export function createInteraction() {
             getString: jest.fn(),
             getSubcommand: jest.fn(),
             getSubcommandGroup: jest.fn(),
+            getUser: jest.fn(),
         },
         reply: jest.fn().mockResolvedValue(true),
         respond: jest.fn(),
