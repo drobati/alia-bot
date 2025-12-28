@@ -23,6 +23,15 @@ export interface VoiceService {
     destroy: () => void;
 }
 
+// Forward declaration for SchedulerService
+export interface SchedulerService {
+    scheduleEvent: (options: any) => Promise<any>;
+    cancelEvent: (eventId: string, userId?: string) => Promise<boolean>;
+    getEvent: (eventId: string) => Promise<any>;
+    listEvents: (guildId: string, options?: any) => Promise<any[]>;
+    shutdown: () => void;
+}
+
 // Re-export types from dedicated type files
 export { BotCommand, ExtendedClient, BotEvent, MessageResponse } from '../types/discord';
 export { DatabaseTables } from '../types/database';
@@ -36,6 +45,7 @@ export interface Context {
     COMMIT_SHA: string;
     motivationalScheduler?: MotivationalScheduler;
     voiceService?: VoiceService;
+    schedulerService?: SchedulerService;
     client?: any; // Discord client for sending messages
 }
 
