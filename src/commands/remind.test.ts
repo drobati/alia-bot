@@ -81,13 +81,13 @@ describe('commands/remind', () => {
                         mentionUser: true,
                         sendDm: false,
                     }),
-                })
+                }),
             );
             expect(mockInteraction.reply).toHaveBeenCalledWith(
                 expect.objectContaining({
                     embeds: expect.any(Array),
                     ephemeral: true,
-                })
+                }),
             );
         });
 
@@ -105,7 +105,7 @@ describe('commands/remind', () => {
                     payload: expect.objectContaining({
                         sendDm: true,
                     }),
-                })
+                }),
             );
         });
 
@@ -122,7 +122,7 @@ describe('commands/remind', () => {
                 expect.objectContaining({
                     content: expect.stringContaining('Could not understand'),
                     ephemeral: true,
-                })
+                }),
             );
         });
 
@@ -139,7 +139,7 @@ describe('commands/remind', () => {
                 expect.objectContaining({
                     content: expect.stringContaining('not available'),
                     ephemeral: true,
-                })
+                }),
             );
         });
     });
@@ -163,12 +163,12 @@ describe('commands/remind', () => {
                         mentionUser: false,
                         sendDm: false,
                     }),
-                })
+                }),
             );
             expect(mockInteraction.reply).toHaveBeenCalledWith(
                 expect.objectContaining({
                     embeds: expect.any(Array),
-                })
+                }),
             );
         });
     });
@@ -187,7 +187,7 @@ describe('commands/remind', () => {
                 expect.objectContaining({
                     content: 'You have no active reminders.',
                     ephemeral: true,
-                })
+                }),
             );
         });
 
@@ -213,13 +213,13 @@ describe('commands/remind', () => {
                     creatorId: 'user123',
                     eventType: 'reminder',
                     status: 'active',
-                })
+                }),
             );
             expect(mockInteraction.reply).toHaveBeenCalledWith(
                 expect.objectContaining({
                     embeds: expect.any(Array),
                     ephemeral: true,
-                })
+                }),
             );
         });
     });
@@ -237,13 +237,13 @@ describe('commands/remind', () => {
 
             expect(mockContext.schedulerService.cancelEvent).toHaveBeenCalledWith(
                 'abc12345',
-                'user123'
+                'user123',
             );
             expect(mockInteraction.reply).toHaveBeenCalledWith(
                 expect.objectContaining({
                     content: expect.stringContaining('cancelled'),
                     ephemeral: true,
-                })
+                }),
             );
         });
 
@@ -257,7 +257,7 @@ describe('commands/remind', () => {
                 expect.objectContaining({
                     content: expect.stringContaining('not found'),
                     ephemeral: true,
-                })
+                }),
             );
         });
     });
@@ -308,7 +308,7 @@ describe('commands/remind', () => {
                 expect.objectContaining({
                     content: expect.stringContaining('error'),
                     ephemeral: true,
-                })
+                }),
             );
         });
     });

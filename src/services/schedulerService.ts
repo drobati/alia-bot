@@ -4,7 +4,6 @@ import { Op } from 'sequelize';
 import { Context } from '../utils/types';
 import {
     EventType,
-    EventPayload,
     ScheduledEventAttributes,
     generateEventId,
     stringifyPayload,
@@ -77,7 +76,7 @@ export class SchedulerService {
      */
     private startPolling(): void {
         this.pollingInterval = setInterval(async () => {
-            if (this.isShuttingDown) return;
+            if (this.isShuttingDown) {return;}
             await this.processOneTimeEvents();
         }, POLLING_INTERVAL_MS);
 
@@ -105,7 +104,7 @@ export class SchedulerService {
                 limit: 50, // Process in batches
             });
 
-            if (dueEvents.length === 0) return;
+            if (dueEvents.length === 0) {return;}
 
             this.context.log.debug({
                 count: dueEvents.length,
@@ -160,11 +159,12 @@ export class SchedulerService {
 
         // Stop existing task if it exists
         if (this.cronTasks.has(taskKey)) {
-            this.cronTasks.get(taskKey)?.stop();
+            const existingTask = this.cronTasks.get(taskKey);
+            if (existingTask) {void existingTask.stop();}
             this.cronTasks.delete(taskKey);
         }
 
-        if (!event.cronSchedule) return;
+        if (!event.cronSchedule) {return;}
 
         try {
             const task = cron.schedule(event.cronSchedule, async () => {
@@ -458,7 +458,8 @@ export class SchedulerService {
             // Remove cron task if exists
             const taskKey = `event_${eventId}`;
             if (this.cronTasks.has(taskKey)) {
-                this.cronTasks.get(taskKey)?.stop();
+                const existingTask = this.cronTasks.get(taskKey);
+                if (existingTask) {void existingTask.stop();}
                 this.cronTasks.delete(taskKey);
             }
 
@@ -536,7 +537,7 @@ export class SchedulerService {
 
         // Stop all cron tasks
         for (const [, task] of this.cronTasks.entries()) {
-            task.stop();
+            void task.stop();
         }
         this.cronTasks.clear();
     }

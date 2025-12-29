@@ -61,7 +61,9 @@ function parseRecurringPattern(input: string): ParsedTime | null {
     }
 
     // "every [weekday] at HH:MM"
-    const weeklyMatch = lowerInput.match(/^every\s+(monday|tuesday|wednesday|thursday|friday|saturday|sunday)\s+at\s+(\d{1,2})(?::(\d{2}))?\s*(am|pm)?$/i);
+    // eslint-disable-next-line max-len
+    const weeklyPattern = /^every\s+(monday|tuesday|wednesday|thursday|friday|saturday|sunday)\s+at\s+(\d{1,2})(?::(\d{2}))?\s*(am|pm)?$/i;
+    const weeklyMatch = lowerInput.match(weeklyPattern);
     if (weeklyMatch) {
         const dayOfWeek = getDayOfWeekNumber(weeklyMatch[1]);
         const { hour, minute } = parseTimeComponents(weeklyMatch[2], weeklyMatch[3], weeklyMatch[4]);
@@ -114,7 +116,7 @@ function parseRecurringPattern(input: string): ParsedTime | null {
 function parseTimeComponents(
     hourStr: string,
     minuteStr?: string,
-    period?: string
+    period?: string,
 ): { hour: number | null; minute: number } {
     let hour = parseInt(hourStr, 10);
     const minute = minuteStr ? parseInt(minuteStr, 10) : 0;
@@ -215,7 +217,9 @@ export function formatRelativeTime(date: Date, referenceDate?: Date): string {
         if (remainingMinutes === 0) {
             return `in ${hours} hour${hours !== 1 ? 's' : ''}`;
         }
-        return `in ${hours} hour${hours !== 1 ? 's' : ''} and ${remainingMinutes} minute${remainingMinutes !== 1 ? 's' : ''}`;
+        const hourText = `${hours} hour${hours !== 1 ? 's' : ''}`;
+        const minText = `${remainingMinutes} minute${remainingMinutes !== 1 ? 's' : ''}`;
+        return `in ${hourText} and ${minText}`;
     }
 
     if (days === 1) {

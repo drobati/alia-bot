@@ -315,7 +315,7 @@ async function handleList(interaction: any, context: Context) {
                 return `**${index + 1}.** \`${reminder.eventId}\`\n` +
                     `"${preview}"\n` +
                     `${timeDisplay} • ${deliveryType}`;
-            }).join('\n\n')
+            }).join('\n\n'),
         )
         .setFooter({ text: 'Use /remind cancel to cancel a reminder' });
 

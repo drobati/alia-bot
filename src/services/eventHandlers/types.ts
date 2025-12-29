@@ -34,6 +34,7 @@ export interface ValidationResult {
 /**
  * Event handler interface - each event type implements this
  */
+/* eslint-disable no-unused-vars */
 export interface EventHandler {
     type: EventType;
 
@@ -52,6 +53,7 @@ export interface EventHandler {
      */
     formatDisplay?(event: ScheduledEventAttributes): string;
 }
+/* eslint-enable no-unused-vars */
 
 /**
  * Options for creating a new scheduled event
