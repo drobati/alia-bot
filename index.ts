@@ -12,6 +12,8 @@ import { readdirSync, readFileSync } from "fs";
 import { BotCommand, Context, BotEvent, ExtendedClient } from "./src/utils/types";
 import { MotivationalScheduler } from './src/services/motivationalScheduler';
 import { VoiceService } from './src/services/voice';
+import { SchedulerService } from './src/services/schedulerService';
+import { registerDefaultHandlers } from './src/services/eventHandlers';
 import { captureOwnerIdDebug, Sentry } from './src/lib/sentry';
 import { logger } from './src/utils/logger';
 
@@ -59,6 +61,7 @@ const context: Context = {
 
 let motivationalScheduler: MotivationalScheduler;
 let voiceService: VoiceService;
+let schedulerService: SchedulerService;
 
 // Load database models
 Object.keys(models).forEach(key => {
@@ -195,6 +198,13 @@ async function startBot() {
     context.voiceService = voiceService;
     log.info({ category: 'service_initialization' }, 'Voice service initialized');
 
+    // Initialize scheduler service
+    schedulerService = new SchedulerService(client, context);
+    registerDefaultHandlers(schedulerService);
+    context.schedulerService = schedulerService;
+    await schedulerService.initialize();
+    log.info({ category: 'service_initialization' }, 'Scheduler service initialized');
+
     // Final deployment success message
     log.info({
         version: VERSION,
@@ -211,6 +221,10 @@ process.on('SIGINT', () => {
     if (motivationalScheduler) {
         motivationalScheduler.shutdown();
     }
+    if (schedulerService) {
+        schedulerService.shutdown();
+        log.info('Scheduler service shut down');
+    }
     if (voiceService) {
         voiceService.destroy();
         log.info('Voice service destroyed');
@@ -223,6 +237,10 @@ process.on('SIGTERM', () => {
     log.info('Received SIGTERM, shutting down gracefully...');
     if (motivationalScheduler) {
         motivationalScheduler.shutdown();
+    }
+    if (schedulerService) {
+        schedulerService.shutdown();
+        log.info('Scheduler service shut down');
     }
     if (voiceService) {
         voiceService.destroy();
