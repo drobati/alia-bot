@@ -75,7 +75,7 @@ export default {
                 await flagTriggered(interaction, context, false);
                 break;
             default:
-                await interaction.reply("I don't recognize that command.");
+                await interaction.reply({ content: "I don't recognize that command.", ephemeral: true });
         }
     },
 };
@@ -100,9 +100,9 @@ const upsertMemory = async (interaction: any, context: any) => {
     }
 
     if (created) {
-        await interaction.reply(`"${key}" is now "${value}".`);
+        await interaction.reply({ content: `"${key}" is now "${value}".`, ephemeral: true });
     } else {
-        await interaction.reply(`"${key}" is now "${value}" (previously: "${oldValue}").`);
+        await interaction.reply({ content: `"${key}" is now "${value}" (previously: "${oldValue}").`, ephemeral: true });
     }
 };
 
@@ -110,9 +110,9 @@ const getMemory = async (interaction: any, context: any) => {
     const key = interaction.options.getString('key');
     const record = await context.tables.Memories.findOne({ where: { key } });
     if (record) {
-        await interaction.reply(`"${key}" is "${record.value}".`);
+        await interaction.reply({ content: `"${key}" is "${record.value}".`, ephemeral: true });
     } else {
-        await interaction.reply(`I can't remember "${key}".`);
+        await interaction.reply({ content: `I can't remember "${key}".`, ephemeral: true });
     }
 };
 
@@ -129,13 +129,13 @@ const removeMemory = async (interaction: any, context: any) => {
                 triggerCache.removeTrigger(key);
             }
 
-            await interaction.reply(`Forgotten: "${key}".`);
+            await interaction.reply({ content: `Forgotten: "${key}".`, ephemeral: true });
         } catch (error) {
             context.log?.error({ error, key }, 'Failed to delete memory record');
-            await interaction.reply(`Failed to forget "${key}". Please try again.`);
+            await interaction.reply({ content: `Failed to forget "${key}". Please try again.`, ephemeral: true });
         }
     } else {
-        await interaction.reply(`I can't remember "${key}" to forget it.`);
+        await interaction.reply({ content: `I can't remember "${key}" to forget it.`, ephemeral: true });
     }
 };
 
@@ -150,9 +150,9 @@ const getTopMemories = async (interaction: any, context: any) => {
         records.forEach((record: any) => {
             response += ` * "${record.key}" - Accessed ${record.read_count} times\n`;
         });
-        await interaction.reply(response);
+        await interaction.reply({ content: response, ephemeral: true });
     } else {
-        await interaction.reply("I can't remember anything.");
+        await interaction.reply({ content: "I can't remember anything.", ephemeral: true });
     }
 };
 
@@ -167,9 +167,9 @@ const getRandomMemories = async (interaction: any, context: any) => {
         records.forEach((record: any) => {
             response += ` * "${record.key}" - "${record.value}"\n`;
         });
-        await interaction.reply(response);
+        await interaction.reply({ content: response, ephemeral: true });
     } else {
-        await interaction.reply("I can't remember anything.");
+        await interaction.reply({ content: "I can't remember anything.", ephemeral: true });
     }
 };
 
@@ -183,8 +183,8 @@ const flagTriggered = async (interaction: any, context: any, triggered: any) => 
         triggerCache.updateTriggerStatus(key, triggered, record.value);
 
         const triggeredStatus = triggered ? 'triggered' : 'untriggered';
-        await interaction.reply(`"${key}" is now ${triggeredStatus}.`);
+        await interaction.reply({ content: `"${key}" is now ${triggeredStatus}.`, ephemeral: true });
     } else {
-        await interaction.reply(`I can't remember "${key}" to trigger it.`);
+        await interaction.reply({ content: `I can't remember "${key}" to trigger it.`, ephemeral: true });
     }
 };
