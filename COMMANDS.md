@@ -129,6 +129,29 @@
 
 ---
 
+### `/trivia`
+**Purpose:** Test your knowledge with random trivia questions
+
+**Usage:**
+```
+/trivia
+```
+
+**Features:**
+- Presents a random multiple-choice question with 4 options (A, B, C, D)
+- Answer hidden in a spoiler tag - click to reveal
+- Options are shuffled each time to prevent memorization
+- Category-specific emoji in the title
+
+**Categories:**
+- 🔬 Science - Chemistry, biology, astronomy
+- 📜 History - World events, famous figures
+- 🌍 Geography - Countries, capitals, natural features
+- 🎬 Entertainment - Movies, music, video games
+- 💻 Technology - Computing, internet, tech history
+
+---
+
 ### `/qr`
 **Purpose:** Generate QR codes for URLs
 
@@ -493,7 +516,7 @@
 
 ### Public Commands
 All users can use these commands:
-- `/adlibs`, `/louds`, `/remember`, `/dadjoke`, `/fear`, `/qr`
+- `/adlibs`, `/louds`, `/remember`, `/dadjoke`, `/fear`, `/qr`, `/trivia`
 - `/meme`, `/poll`, `/rc`, `/exchange`, `/config`
 
 ### Administrative Commands
@@ -524,7 +547,7 @@ Restricted to bot owner:
 | Category | Commands | Purpose |
 |----------|----------|---------|
 | **Content** | adlibs, louds, remember | Manage bot response content |
-| **Fun** | dadjoke, fear, qr, meme | Entertainment and utilities |
+| **Fun** | dadjoke, fear, qr, meme, trivia | Entertainment and utilities |
 | **Interactive** | poll, rc | User engagement features |
 | **Utility** | exchange, config | Practical tools |
 | **Admin** | motivational-config, twitch | Server management |
