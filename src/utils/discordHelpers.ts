@@ -1,4 +1,13 @@
-import { TextChannel, DMChannel, NewsChannel, ThreadChannel, Client } from 'discord.js';
+import {
+    TextChannel,
+    DMChannel,
+    NewsChannel,
+    ThreadChannel,
+    Client,
+    Guild,
+    EmbedBuilder,
+    PermissionFlagsBits,
+} from 'discord.js';
 import { Context } from './types';
 
 // Discord message character limit
@@ -280,4 +289,82 @@ export async function sendWithRetry(
     }
 
     return false;
+}
+
+/**
+ * Gets the configured log channel ID for a guild.
+ * This is the generic bot log channel used by all features.
+ */
+export async function getLogChannelId(
+    tables: Context['tables'],
+    guildId: string,
+): Promise<string | null> {
+    const config = await tables.Config.findOne({
+        where: { key: `log_channel_${guildId}` },
+    });
+    return config?.value || null;
+}
+
+/**
+ * Gets the log channel for a guild if configured and accessible.
+ * Returns null if not configured or bot lacks permissions.
+ */
+export async function getLogChannel(
+    guild: Guild,
+    tables: Context['tables'],
+    log: Context['log'],
+): Promise<TextChannel | null> {
+    const logChannelId = await getLogChannelId(tables, guild.id);
+
+    if (!logChannelId) {
+        log.debug({ guildId: guild.id }, 'No log channel configured');
+        return null;
+    }
+
+    const logChannel = guild.channels.cache.get(logChannelId) as TextChannel;
+    if (!logChannel || !logChannel.isTextBased()) {
+        log.warn({ logChannelId, guildId: guild.id }, 'Log channel not found or not text-based');
+        return null;
+    }
+
+    const botMember = guild.members.me;
+    if (!botMember || !logChannel.permissionsFor(botMember)?.has(PermissionFlagsBits.SendMessages)) {
+        log.warn({ logChannelId, guildId: guild.id }, 'Bot lacks SendMessages permission in log channel');
+        return null;
+    }
+
+    return logChannel;
+}
+
+/**
+ * Sends a log message to the guild's configured log channel.
+ * Handles all error cases gracefully.
+ */
+export async function sendLogMessage(
+    guild: Guild,
+    tables: Context['tables'],
+    log: Context['log'],
+    options: {
+        embeds?: EmbedBuilder[];
+        content?: string;
+    },
+): Promise<boolean> {
+    try {
+        const logChannel = await getLogChannel(guild, tables, log);
+
+        if (!logChannel) {
+            return false;
+        }
+
+        await logChannel.send({
+            content: options.content,
+            embeds: options.embeds,
+        });
+
+        log.debug({ guildId: guild.id }, 'Sent log message');
+        return true;
+    } catch (error) {
+        log.error({ error, guildId: guild.id }, 'Failed to send log message');
+        return false;
+    }
 }

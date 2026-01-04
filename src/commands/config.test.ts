@@ -163,9 +163,12 @@ describe('commands/config', () => {
             });
         });
 
-        it('should set log channel', async () => {
-            interaction.options.getSubcommandGroup.mockReturnValue('verify');
-            interaction.options.getSubcommand.mockReturnValue('log-channel');
+    });
+
+    describe('logs subcommand group', () => {
+        it('should set bot log channel', async () => {
+            interaction.options.getSubcommandGroup.mockReturnValue('logs');
+            interaction.options.getSubcommand.mockReturnValue('channel');
             interaction.options.getChannel.mockReturnValue({ id: '987654321' });
             interaction.guildId = 'guild123';
             Config.upsert.mockResolvedValue([{}, true]);
@@ -173,8 +176,12 @@ describe('commands/config', () => {
             await config.execute(interaction, context);
 
             expect(Config.upsert).toHaveBeenCalledWith({
-                key: 'verify_log_channel_guild123',
+                key: 'log_channel_guild123',
                 value: '987654321',
+            });
+            expect(interaction.reply).toHaveBeenCalledWith({
+                content: expect.stringContaining('Bot log channel set to <#987654321>'),
+                ephemeral: true,
             });
         });
     });
