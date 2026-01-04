@@ -1,6 +1,17 @@
 import dndCommand from './dnd';
 import { DndGameAttributes } from '../types/database';
 
+// Mock OpenAI to prevent real API calls
+jest.mock('openai', () => jest.fn().mockImplementation(() => ({
+    chat: {
+        completions: {
+            create: jest.fn().mockResolvedValue({
+                choices: [{ message: { content: 'Welcome to the adventure!' } }],
+            }),
+        },
+    },
+})));
+
 describe('DnD Command', () => {
     let mockInteraction: any;
     let mockContext: any;
@@ -79,7 +90,7 @@ describe('DnD Command', () => {
                     return 'test-game';
                 }
                 if (name === 'prompt') {
-                    return null;
+                    return 'A fantasy world with dragons';
                 }
                 return null;
             });
