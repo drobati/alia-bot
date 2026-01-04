@@ -102,7 +102,8 @@ const upsertMemory = async (interaction: any, context: any) => {
     if (created) {
         await interaction.reply({ content: `"${key}" is now "${value}".`, ephemeral: true });
     } else {
-        await interaction.reply({ content: `"${key}" is now "${value}" (previously: "${oldValue}").`, ephemeral: true });
+        const msg = `"${key}" is now "${value}" (previously: "${oldValue}").`;
+        await interaction.reply({ content: msg, ephemeral: true });
     }
 };
 

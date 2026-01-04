@@ -153,7 +153,8 @@ const loudsCommand = {
             }
             log.error({ error, subcommand, text }, 'Error executing louds command');
             if (!interaction.replied) {
-                return interaction.reply({ content: "Sorry, there was an error processing your request. Please try again.", ephemeral: true });
+                const errorMsg = "Sorry, there was an error processing your request. Please try again.";
+                return interaction.reply({ content: errorMsg, ephemeral: true });
             }
         }
     },
@@ -209,7 +210,9 @@ const removeWithConfirmation = async (model: any, interaction: ChatInputCommandI
     }
 };
 
-const deleteMatchWithConfirmation = async (model: any, interaction: ChatInputCommandInteraction, pattern: string, log: any) => {
+const deleteMatchWithConfirmation = async (
+    model: any, interaction: ChatInputCommandInteraction, pattern: string, log: any,
+) => {
     // Find matching louds
     const matches = await model.findAll({
         where: {
@@ -247,7 +250,8 @@ const deleteMatchWithConfirmation = async (model: any, interaction: ChatInputCom
     }
 
     const response = await interaction.reply({
-        content: `Found **${matches.length}** loud${matches.length !== 1 ? 's' : ''} matching "${pattern}":\n${preview}\n\nAre you sure you want to delete all of them?`,
+        content: `Found **${matches.length}** loud${matches.length !== 1 ? 's' : ''} ` +
+            `matching "${pattern}":\n${preview}\n\nAre you sure you want to delete all of them?`,
         components: [row],
         ephemeral: true,
     });
@@ -266,7 +270,8 @@ const deleteMatchWithConfirmation = async (model: any, interaction: ChatInputCom
                     },
                 },
             });
-            await confirmation.update({ content: `Deleted **${rowCount}** loud${rowCount !== 1 ? 's' : ''} matching "${pattern}".`, components: [] });
+            const deleteMsg = `Deleted **${rowCount}** loud${rowCount !== 1 ? 's' : ''} matching "${pattern}".`;
+            await confirmation.update({ content: deleteMsg, components: [] });
         } else {
             await confirmation.update({ content: "Deletion cancelled.", components: [] });
         }
