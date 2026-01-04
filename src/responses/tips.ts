@@ -38,7 +38,7 @@ const TIPS = [
 const channelCooldowns = new Map<string, number>();
 
 // Configuration
-const TIP_CHANCE = 0.02; // 2% chance to show a tip
+const TIP_CHANCE = 0.05; // 5% chance to show a tip
 const COOLDOWN_MS = 5 * 60 * 1000; // 5 minute cooldown per channel
 
 /**

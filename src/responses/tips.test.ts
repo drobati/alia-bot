@@ -112,7 +112,7 @@ describe('response/tips', () => {
     it('exports expected constants', () => {
         expect(TIPS).toBeDefined();
         expect(TIPS.length).toBeGreaterThan(0);
-        expect(TIP_CHANCE).toBe(0.02);
+        expect(TIP_CHANCE).toBe(0.05);
         expect(COOLDOWN_MS).toBe(5 * 60 * 1000);
     });
 
