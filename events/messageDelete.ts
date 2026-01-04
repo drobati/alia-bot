@@ -9,11 +9,15 @@ function buildMessageDeleteEmbed(message: Message | PartialMessage): EmbedBuilde
         ? content.substring(0, 1021) + '...'
         : content;
 
+    const authorValue = message.author
+        ? `<@${message.author.id}> (${message.author.tag})`
+        : '*Unknown*';
+
     const embed = new EmbedBuilder()
         .setColor(0xEB459E) // Fuchsia
         .setTitle('Message Deleted')
         .addFields(
-            { name: 'Author', value: message.author ? `<@${message.author.id}> (${message.author.tag})` : '*Unknown*', inline: true },
+            { name: 'Author', value: authorValue, inline: true },
             { name: 'Channel', value: `<#${message.channelId}>`, inline: true },
             { name: 'Content', value: truncatedContent, inline: false },
         )
