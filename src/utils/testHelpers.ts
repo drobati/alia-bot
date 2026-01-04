@@ -5,6 +5,11 @@ export function createInteraction() {
             id: 'fake-user-id',
         },
         guildId: null as string | null,
+        client: {
+            user: {
+                id: 'bot-user-id',
+            },
+        },
         options: {
             get: jest.fn(),
             getChannel: jest.fn(),
@@ -15,6 +20,7 @@ export function createInteraction() {
             getString: jest.fn(),
             getSubcommand: jest.fn(),
             getSubcommandGroup: jest.fn(),
+            getUser: jest.fn(),
         },
         reply: jest.fn().mockResolvedValue(true),
         respond: jest.fn(),
