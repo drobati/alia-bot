@@ -27,7 +27,7 @@ describe('responses/verification', () => {
                         options.expirationSeconds ? { value: options.expirationSeconds } : null,
                     );
                 }
-                if (where.key.startsWith('verify_log_channel_')) {
+                if (where.key.startsWith('log_channel_')) {
                     return Promise.resolve(
                         options.logChannelId ? { value: options.logChannelId } : null,
                     );
@@ -54,9 +54,13 @@ describe('responses/verification', () => {
 
         // Mock guild and channel
         const mockRole = { id: 'role123', name: 'Test Role' };
+        const mockBotMember = { id: 'bot123' };
         const mockLogChannel = {
             isTextBased: jest.fn().mockReturnValue(true),
             send: jest.fn().mockResolvedValue({}),
+            permissionsFor: jest.fn().mockReturnValue({
+                has: jest.fn().mockReturnValue(true),
+            }),
         };
 
         message = {
@@ -68,6 +72,9 @@ describe('responses/verification', () => {
                 },
                 channels: {
                     cache: new Map([['logchan123', mockLogChannel]]),
+                },
+                members: {
+                    me: mockBotMember,
                 },
             },
             guildId: 'guild123',
