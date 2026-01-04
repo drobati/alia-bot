@@ -160,6 +160,24 @@ describe('RPS Command', () => {
     });
 
     describe('Button handlers', () => {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any, no-unused-vars
+        const getCollectHandler = (): ((i: any) => Promise<void>) => {
+            const call = mockCollector.on.mock.calls.find(
+                // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                (c: any[]) => c[0] === 'collect',
+            );
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any, no-unused-vars
+            return call![1] as (i: any) => Promise<void>;
+        };
+
+        const getEndHandler = (): (() => Promise<void>) => {
+            const call = mockCollector.on.mock.calls.find(
+                // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                (c: any[]) => c[0] === 'end',
+            );
+            return call![1] as () => Promise<void>;
+        };
+
         it('should register collect and end handlers on collector', async () => {
             const mockInteraction = createMockInteraction();
 
@@ -167,6 +185,149 @@ describe('RPS Command', () => {
 
             expect(mockCollector.on).toHaveBeenCalledWith('collect', expect.any(Function));
             expect(mockCollector.on).toHaveBeenCalledWith('end', expect.any(Function));
+        });
+
+        it('should handle new vote in collect handler', async () => {
+            const mockInteraction = createMockInteraction();
+            await rpsCommand.execute(mockInteraction, mockContext);
+
+            const collectHandler = getCollectHandler();
+            const mockButtonInteraction = {
+                customId: "rps_vote_abc12345_rock",
+                user: { id: "voter-1", displayName: "Voter One", username: "voter1" },
+                reply: jest.fn<any>().mockResolvedValue(undefined),
+            };
+
+            await collectHandler(mockButtonInteraction);
+
+            expect(mockButtonInteraction.reply).toHaveBeenCalledWith({
+                content: expect.stringContaining("You chose"),
+                ephemeral: true,
+            });
+        });
+
+        it('should handle vote change in collect handler', async () => {
+            const mockInteraction = createMockInteraction();
+            await rpsCommand.execute(mockInteraction, mockContext);
+
+            const collectHandler = getCollectHandler();
+            const mockButtonInteraction = {
+                customId: "rps_vote_abc12345_rock",
+                user: { id: "voter-1", displayName: "Voter One", username: "voter1" },
+                reply: jest.fn<any>().mockResolvedValue(undefined),
+            };
+
+            await collectHandler(mockButtonInteraction);
+            mockButtonInteraction.customId = "rps_vote_abc12345_paper";
+            await collectHandler(mockButtonInteraction);
+
+            expect(mockButtonInteraction.reply).toHaveBeenLastCalledWith({
+                content: expect.stringContaining("Choice changed"),
+                ephemeral: true,
+            });
+        });
+
+        it('should ignore invalid customId format', async () => {
+            const mockInteraction = createMockInteraction();
+            await rpsCommand.execute(mockInteraction, mockContext);
+
+            const collectHandler = getCollectHandler();
+            const mockButtonInteraction = {
+                customId: "invalid",
+                user: { id: "voter-1" },
+                reply: jest.fn<any>(),
+            };
+
+            await collectHandler(mockButtonInteraction);
+            expect(mockButtonInteraction.reply).not.toHaveBeenCalled();
+        });
+
+        it('should calculate results and update message in end handler', async () => {
+            const mockInteraction = createMockInteraction();
+            await rpsCommand.execute(mockInteraction, mockContext);
+
+            const collectHandler = getCollectHandler();
+            await collectHandler({
+                customId: "rps_vote_abc12345_rock",
+                user: { id: "voter-1", displayName: "Player", username: "player1" },
+                reply: jest.fn<any>().mockResolvedValue(undefined),
+            });
+
+            const endHandler = getEndHandler();
+            await endHandler();
+
+            expect(mockMessage.edit).toHaveBeenCalledWith({
+                embeds: expect.arrayContaining([
+                    expect.objectContaining({
+                        data: expect.objectContaining({
+                            title: expect.stringContaining("Rock-Paper-Scissors Results"),
+                        }),
+                    }),
+                ]),
+                components: expect.arrayContaining([
+                    expect.objectContaining({
+                        components: expect.arrayContaining([
+                            expect.objectContaining({
+                                data: expect.objectContaining({
+                                    disabled: true,
+                                }),
+                            }),
+                        ]),
+                    }),
+                ]),
+            });
+        });
+
+        it('should show no participants message when no votes', async () => {
+            const mockInteraction = createMockInteraction();
+            await rpsCommand.execute(mockInteraction, mockContext);
+
+            const endHandler = getEndHandler();
+            await endHandler();
+
+            expect(mockMessage.edit).toHaveBeenCalledWith(
+                expect.objectContaining({
+                    embeds: expect.arrayContaining([
+                        expect.objectContaining({
+                            data: expect.objectContaining({
+                                fields: expect.arrayContaining([
+                                    expect.objectContaining({
+                                        name: "😶 No Participants",
+                                    }),
+                                ]),
+                            }),
+                        }),
+                    ]),
+                }),
+            );
+        });
+
+        it('should remove game from active games on end', async () => {
+            const mockInteraction = createMockInteraction("cleanup-channel");
+            await rpsCommand.execute(mockInteraction, mockContext);
+
+            expect(activeGames.has("cleanup-channel")).toBe(true);
+
+            const endHandler = getEndHandler();
+            await endHandler();
+
+            expect(activeGames.has("cleanup-channel")).toBe(false);
+        });
+
+        it('should handle message edit error gracefully', async () => {
+            const mockInteraction = createMockInteraction();
+            await rpsCommand.execute(mockInteraction, mockContext);
+            mockMessage.edit.mockRejectedValueOnce(new Error("Edit failed"));
+
+            const endHandler = getEndHandler();
+            await endHandler();
+
+            expect(mockContext.log.error).toHaveBeenCalledWith(
+                "Failed to edit rps results message",
+                expect.objectContaining({
+                    error: expect.any(Error),
+                }),
+            );
         });
     });
 });
