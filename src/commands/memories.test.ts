@@ -22,7 +22,10 @@ describe('commands/memories', () => {
         );
         await memories.execute(interaction as never, context as never);
 
-        expect(interaction.reply).toHaveBeenCalledWith('"key1" is "value1".');
+        expect(interaction.reply).toHaveBeenCalledWith({
+            content: '"key1" is "value1".',
+            ephemeral: true,
+        });
     });
 
     it('should add a new memory', async () => {
@@ -32,7 +35,10 @@ describe('commands/memories', () => {
 
         await memories.execute(interaction as never, context as never);
 
-        expect(interaction.reply).toHaveBeenCalledWith('"key1" is now "value1".');
+        expect(interaction.reply).toHaveBeenCalledWith({
+            content: '"key1" is now "value1".',
+            ephemeral: true,
+        });
     });
 
     it('should delete a memory', async () => {
@@ -43,7 +49,10 @@ describe('commands/memories', () => {
 
         await memories.execute(interaction as never, context as never);
 
-        expect(interaction.reply).toHaveBeenCalledWith('Forgotten: "key1".');
+        expect(interaction.reply).toHaveBeenCalledWith({
+            content: 'Forgotten: "key1".',
+            ephemeral: true,
+        });
     });
 
     it('should return top memories', async () => {
@@ -56,11 +65,14 @@ describe('commands/memories', () => {
 
         await memories.execute(interaction as never, context as never);
 
-        expect(interaction.reply).toHaveBeenCalledWith(stripIndent`
-            Top 5 Memories:
-             * "key1" - Accessed 10 times
-             * "key2" - Accessed 5 times
-        ` + '\n'); // stripIndent removes the trailing newline
+        expect(interaction.reply).toHaveBeenCalledWith({
+            content: stripIndent`
+                Top 5 Memories:
+                 * "key1" - Accessed 10 times
+                 * "key2" - Accessed 5 times
+            ` + '\n',
+            ephemeral: true,
+        });
     });
 
     it('should return random memories', async () => {
@@ -73,11 +85,14 @@ describe('commands/memories', () => {
 
         await memories.execute(interaction as never, context as never);
 
-        expect(interaction.reply).toHaveBeenCalledWith(stripIndent`
-            Random 2 Memories:
-             * "key1" - "value1"
-             * "key2" - "value2"
-        ` + '\n'); // stripIndent removes the trailing newline
+        expect(interaction.reply).toHaveBeenCalledWith({
+            content: stripIndent`
+                Random 2 Memories:
+                 * "key1" - "value1"
+                 * "key2" - "value2"
+            ` + '\n',
+            ephemeral: true,
+        });
     });
 
     it('should trigger a memory', async () => {
@@ -88,7 +103,10 @@ describe('commands/memories', () => {
 
         await memories.execute(interaction as never, context as never);
 
-        expect(interaction.reply).toHaveBeenCalledWith('"key1" is now triggered.');
+        expect(interaction.reply).toHaveBeenCalledWith({
+            content: '"key1" is now triggered.',
+            ephemeral: true,
+        });
     });
 
     it('should untrigger a memory', async () => {
@@ -99,7 +117,10 @@ describe('commands/memories', () => {
 
         await memories.execute(interaction as never, context as never);
 
-        expect(interaction.reply).toHaveBeenCalledWith('"key1" is now untriggered.');
+        expect(interaction.reply).toHaveBeenCalledWith({
+            content: '"key1" is now untriggered.',
+            ephemeral: true,
+        });
     });
 
     it('should handle unrecognized command', async () => {
@@ -107,6 +128,9 @@ describe('commands/memories', () => {
 
         await memories.execute(interaction as never, context as never);
 
-        expect(interaction.reply).toHaveBeenCalledWith("I don't recognize that command.");
+        expect(interaction.reply).toHaveBeenCalledWith({
+            content: "I don't recognize that command.",
+            ephemeral: true,
+        });
     });
 });
