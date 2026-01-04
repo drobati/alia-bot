@@ -98,7 +98,7 @@ describe("commands/drink", () => {
 
             expect(mockedAxios.get).toHaveBeenCalledWith(
                 "https://www.thecocktaildb.com/api/json/v1/1/random.php",
-                { headers: { "User-Agent": "Alia Discord Bot" } }
+                { headers: { "User-Agent": "Alia Discord Bot" } },
             );
         });
 
@@ -133,7 +133,7 @@ describe("commands/drink", () => {
             const embedCall = mockInteraction.editReply.mock.calls[0][0];
             const embed = embedCall.embeds[0];
             const ingredientsField = embed.data.fields.find(
-                (f: any) => f.name === "📋 Ingredients"
+                (f: any) => f.name === "📋 Ingredients",
             );
 
             expect(ingredientsField).toBeDefined();
@@ -152,7 +152,7 @@ describe("commands/drink", () => {
             const embedCall = mockInteraction.editReply.mock.calls[0][0];
             const embed = embedCall.embeds[0];
             const answerField = embed.data.fields.find(
-                (f: any) => f.name === "🎯 Answer"
+                (f: any) => f.name === "🎯 Answer",
             );
 
             expect(answerField).toBeDefined();
@@ -192,7 +192,7 @@ describe("commands/drink", () => {
                     drinkId: "12345",
                     drinkName: "Margarita",
                     userId: "test-user-id",
-                })
+                }),
             );
         });
 
@@ -204,7 +204,7 @@ describe("commands/drink", () => {
             await drinkCommand.execute(mockInteraction, mockContext);
 
             expect(mockInteraction.editReply).toHaveBeenCalledWith(
-                "Could not fetch a drink at this time."
+                "Could not fetch a drink at this time.",
             );
         });
 
@@ -216,7 +216,7 @@ describe("commands/drink", () => {
             await drinkCommand.execute(mockInteraction, mockContext);
 
             expect(mockInteraction.editReply).toHaveBeenCalledWith(
-                "Could not fetch a drink at this time."
+                "Could not fetch a drink at this time.",
             );
         });
 
@@ -227,7 +227,7 @@ describe("commands/drink", () => {
 
             expect(mockContext.log.error).toHaveBeenCalled();
             expect(mockInteraction.editReply).toHaveBeenCalledWith(
-                "Sorry, I could not fetch a drink at this time."
+                "Sorry, I could not fetch a drink at this time.",
             );
         });
 
@@ -239,7 +239,7 @@ describe("commands/drink", () => {
 
             expect(mockContext.log.error).toHaveBeenCalled();
             expect(mockInteraction.reply).toHaveBeenCalledWith(
-                "Sorry, I could not fetch a drink at this time."
+                "Sorry, I could not fetch a drink at this time.",
             );
         });
 
@@ -263,7 +263,7 @@ describe("commands/drink", () => {
             const embedCall = mockInteraction.editReply.mock.calls[0][0];
             const embed = embedCall.embeds[0];
             const ingredientsField = embed.data.fields.find(
-                (f: any) => f.name === "📋 Ingredients"
+                (f: any) => f.name === "📋 Ingredients",
             );
 
             expect(ingredientsField.value).toBe("No ingredients listed");
@@ -286,7 +286,7 @@ describe("commands/drink", () => {
             const embedCall = mockInteraction.editReply.mock.calls[0][0];
             const embed = embedCall.embeds[0];
             const ingredientsField = embed.data.fields.find(
-                (f: any) => f.name === "📋 Ingredients"
+                (f: any) => f.name === "📋 Ingredients",
             );
 
             expect(ingredientsField.value).toContain("Tequila");
