@@ -168,7 +168,7 @@ async function handleVerifyAllowedRoles(interaction: ChatInputCommandInteraction
     });
 }
 
-async function handleVerifyLogChannel(interaction: ChatInputCommandInteraction, context: Context) {
+async function handleLogChannel(interaction: ChatInputCommandInteraction, context: Context) {
     const channel = interaction.options.getChannel('channel', true);
     const guildId = interaction.guildId;
 
@@ -176,10 +176,14 @@ async function handleVerifyLogChannel(interaction: ChatInputCommandInteraction, 
         return interaction.reply({ content: "This command can only be used in a server.", ephemeral: true });
     }
 
-    const key = `verify_log_channel_${guildId}`;
+    const key = `log_channel_${guildId}`;
     await context.tables.Config.upsert({ key, value: channel.id });
 
-    await interaction.reply({ content: `Verification log channel set to <#${channel.id}>.`, ephemeral: true });
+    await interaction.reply({
+        content: `Bot log channel set to <#${channel.id}>. `
+            + `Events like member joins, verification, and other bot activity will be logged there.`,
+        ephemeral: true,
+    });
 }
 
 async function handleDiceMaxDice(interaction: ChatInputCommandInteraction, context: Context) {
@@ -296,15 +300,7 @@ export default {
                 .addRoleOption((option: any) => option
                     .setName('role5')
                     .setDescription('Fifth role to allow.')
-                    .setRequired(false)))
-            .addSubcommand((subcommand: any) => subcommand
-                .setName('log-channel')
-                .setDescription('Set the channel for verification logs.')
-                .addChannelOption((option: any) => option
-                    .setName('channel')
-                    .setDescription('The channel to log verification events.')
-                    .addChannelTypes(ChannelType.GuildText)
-                    .setRequired(true))))
+                    .setRequired(false))))
         // Dice subcommand group
         .addSubcommandGroup((group: any) => group
             .setName('dice')
@@ -326,6 +322,18 @@ export default {
                     .setDescription('Show individual results for this many dice or fewer (default: 10)')
                     .setMinValue(1)
                     .setMaxValue(100)
+                    .setRequired(true))))
+        // Logs subcommand group
+        .addSubcommandGroup((group: any) => group
+            .setName('logs')
+            .setDescription('Bot logging settings.')
+            .addSubcommand((subcommand: any) => subcommand
+                .setName('channel')
+                .setDescription('Set the bot log channel for all events (member joins, verification, etc).')
+                .addChannelOption((option: any) => option
+                    .setName('channel')
+                    .setDescription('The channel to log bot events.')
+                    .addChannelTypes(ChannelType.GuildText)
                     .setRequired(true)))),
 
     async autocomplete(interaction: AutocompleteInteraction, { tables }: Context) {
@@ -388,8 +396,6 @@ export default {
                         await handleVerifyExpiration(interaction, context);
                     } else if (subcommand === 'allowed-roles') {
                         await handleVerifyAllowedRoles(interaction, context);
-                    } else if (subcommand === 'log-channel') {
-                        await handleVerifyLogChannel(interaction, context);
                     }
                     break;
 
@@ -398,6 +404,12 @@ export default {
                         await handleDiceMaxDice(interaction, context);
                     } else if (subcommand === 'show-threshold') {
                         await handleDiceShowThreshold(interaction, context);
+                    }
+                    break;
+
+                case 'logs':
+                    if (subcommand === 'channel') {
+                        await handleLogChannel(interaction, context);
                     }
                     break;
 
