@@ -1,5 +1,6 @@
 import { CommandInteraction, Events, Interaction, ActionRowBuilder, ButtonBuilder, ButtonStyle } from "discord.js";
 import { Command, Context, BotEvent, ExtendedClient } from "../src/utils/types";
+import { Sentry } from "../src/lib/sentry";
 
 const interactionCreateEventHandler: BotEvent = {
     name: Events.InteractionCreate,
@@ -31,6 +32,11 @@ const interactionCreateEventHandler: BotEvent = {
 
         if (!command) {
             log.error(`No command matching ${interaction.commandName} was found.`);
+            Sentry.captureMessage(`Command not found: ${interaction.commandName}`, {
+                level: 'warning',
+                tags: { handler: 'interactionCreate', issue: 'command_not_found' },
+                extra: { commandName: interaction.commandName },
+            });
             return;
         }
 
@@ -45,10 +51,51 @@ const interactionCreateEventHandler: BotEvent = {
             }
             else if (interaction.isCommand()) {
                 log.info(`Executing ${interaction.commandName}`);
+
+                // Debug: capture config command execution attempts
+                if (interaction.commandName === 'config') {
+                    const subcommandGroup = interaction.isChatInputCommand()
+                        ? interaction.options.getSubcommandGroup()
+                        : null;
+                    const subcommand = interaction.isChatInputCommand()
+                        ? interaction.options.getSubcommand()
+                        : null;
+
+                    Sentry.captureMessage(`interactionCreate: executing config command`, {
+                        level: 'info',
+                        tags: {
+                            handler: 'interactionCreate',
+                            command: 'config',
+                            subcommandGroup: subcommandGroup || 'none',
+                            subcommand: subcommand || 'none',
+                        },
+                        extra: {
+                            userId: interaction.user.id,
+                            guildId: interaction.guildId,
+                            interactionId: interaction.id,
+                            commandFound: !!command,
+                        },
+                    });
+                }
+
                 await command.execute(interaction, context);
             }
         } catch (error) {
             log.error(error);
+
+            // Capture error to Sentry with context
+            Sentry.captureException(error, {
+                tags: {
+                    handler: 'interactionCreate',
+                    command: interaction.isChatInputCommand() ? interaction.commandName : 'unknown',
+                },
+                extra: {
+                    userId: interaction.user?.id,
+                    guildId: interaction.guildId,
+                    interactionType: interaction.type,
+                },
+            });
+
             if (interaction instanceof CommandInteraction) {
                 if (interaction.replied || interaction.deferred) {
                     await interaction.followUp({
