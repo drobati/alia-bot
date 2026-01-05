@@ -7,6 +7,23 @@ const interactionCreateEventHandler: BotEvent = {
     async execute(interaction: Interaction, context: Context) {
         const { log } = context;
 
+        // FIRST THING: Capture to Sentry to prove event is firing
+        Sentry.captureMessage(`interactionCreate event fired`, {
+            level: 'info',
+            tags: {
+                handler: 'interactionCreate',
+                interactionType: String(interaction.type),
+                isCommand: String(interaction.isCommand()),
+                isChatInputCommand: String(interaction.isChatInputCommand()),
+                isAutocomplete: String(interaction.isAutocomplete()),
+            },
+            extra: {
+                commandName: interaction.isChatInputCommand() ? interaction.commandName : 'N/A',
+                userId: interaction.user?.id,
+                guildId: interaction.guildId,
+            },
+        });
+
         // Log ALL incoming interactions for debugging
         log.info('Interaction received', {
             type: interaction.type,
