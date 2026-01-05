@@ -170,9 +170,9 @@ async function startBot() {
         event: 'login',
     });
 
-    // Send deployment info to #deploy channel
+    // Send deployment info to #deploy channel (if configured)
+    const deployChannelId = process.env.DEPLOY_CHANNEL_ID || '847239885146333215';
     try {
-        const deployChannelId = '847239885146333215'; // #deploy channel
         const deployChannel = await client.channels.fetch(deployChannelId);
         if (deployChannel?.isTextBased() && 'send' in deployChannel) {
             const shortSha = COMMIT_SHA.substring(0, 7);
@@ -182,11 +182,12 @@ async function startBot() {
                 `**Environment:** ${process.env.NODE_ENV}\n` +
                 `**Timestamp:** ${new Date().toISOString()}`);
         }
-    } catch (error) {
-        log.error({
-            error,
+    } catch {
+        // Deploy notifications are optional - log as warning, not error
+        log.warn({
+            deployChannelId,
             category: 'deployment_notification',
-        }, 'Failed to send deploy message to channel');
+        }, 'Deploy channel not accessible - skipping deploy notification');
     }
 
     // Initialize motivational scheduler after successful login
