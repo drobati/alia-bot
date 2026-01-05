@@ -3,6 +3,9 @@ import { Context, BotEvent } from '../src/utils/types';
 import server from '../src/lib/server';
 import { stripIndent } from 'common-tags';
 import { safelyFindChannel, safelySendToChannel, isTextChannel } from '../src/utils/discordHelpers';
+import { SchedulerService } from '../src/services/schedulerService';
+import { registerDefaultHandlers } from '../src/services/eventHandlers';
+import { Sentry } from '../src/lib/sentry';
 
 const clientReadyEvent: BotEvent = {
     name: Events.ClientReady,
@@ -68,6 +71,23 @@ const clientReadyEvent: BotEvent = {
             }
 
             log.info({ tables: tableKeys, errors: syncErrors.length, category: 'database' }, 'Database tables synced');
+
+            // Initialize scheduler service AFTER tables are synced
+            try {
+                const schedulerService = new SchedulerService(client, context);
+                registerDefaultHandlers(schedulerService);
+                context.schedulerService = schedulerService;
+                await schedulerService.initialize();
+                log.info({ category: 'service_initialization' }, 'Scheduler service initialized');
+            } catch (schedulerError) {
+                log.warn({
+                    error: schedulerError,
+                    category: 'service_initialization',
+                }, 'Scheduler service failed to initialize - bot will continue without scheduled events');
+                Sentry.captureException(schedulerError, {
+                    tags: { service: 'scheduler', phase: 'initialization' },
+                });
+            }
         } catch (tableSyncError) {
             log.error({ error: tableSyncError, category: 'database' }, 'Critical error during table sync');
         }
