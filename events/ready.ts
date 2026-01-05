@@ -73,11 +73,21 @@ const clientReadyEvent: BotEvent = {
             log.info({ tables: tableKeys, errors: syncErrors.length, category: 'database' }, 'Database tables synced');
 
             // Initialize scheduler service AFTER tables are synced
-            // Skip if ScheduledEvent table doesn't exist (migration not run yet)
-            if (!tables.ScheduledEvent) {
+            // Check if scheduled_events table actually exists in the database
+            let scheduledEventsTableExists = false;
+            try {
+                const [results] = await context.sequelize.query(
+                    "SHOW TABLES LIKE 'scheduled_events'",
+                );
+                scheduledEventsTableExists = Array.isArray(results) && results.length > 0;
+            } catch {
+                log.warn({ category: 'database' }, 'Could not check for scheduled_events table');
+            }
+
+            if (!scheduledEventsTableExists) {
                 log.warn({
                     category: 'service_initialization',
-                }, 'Skipping scheduler service - ScheduledEvent table not available (run migration first)');
+                }, 'Skipping scheduler service - scheduled_events table does not exist (run migration first)');
             } else {
                 try {
                     const schedulerService = new SchedulerService(client, context);
