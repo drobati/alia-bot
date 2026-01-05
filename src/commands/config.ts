@@ -286,6 +286,13 @@ async function handleLogShow(interaction: ChatInputCommandInteraction, context: 
         message: 'handleLogShow completed successfully',
         level: 'info',
     });
+
+    // Force capture completion message to see the full breadcrumb trail
+    Sentry.captureMessage('handleLogShow completed', {
+        level: 'info',
+        tags: { command: 'config', subcommand: 'logs show', debug: 'completion' },
+        extra: { guildId, channelId: config.value },
+    });
 }
 
 async function handleDiceMaxDice(interaction: ChatInputCommandInteraction, context: Context) {
@@ -484,6 +491,23 @@ export default {
             message: `Config command executed: ${subcommandGroup}/${subcommand}`,
             level: 'info',
             data: { subcommandGroup, subcommand, userId: interaction.user.id },
+        });
+
+        // Force capture a message to ensure breadcrumbs are visible in Sentry
+        // This guarantees we see the debugging info even when no error is thrown
+        Sentry.captureMessage(`Config command debug: ${subcommandGroup}/${subcommand}`, {
+            level: 'info',
+            tags: {
+                command: 'config',
+                subcommandGroup: subcommandGroup || 'none',
+                subcommand,
+                debug: 'true',
+            },
+            extra: {
+                userId: interaction.user.id,
+                guildId: interaction.guildId,
+                interactionId: interaction.id,
+            },
         });
 
         log.info({
