@@ -9,6 +9,7 @@ import {
 import { Op } from "sequelize";
 import { Context } from "../types";
 import { checkOwnerPermission, isOwner } from "../utils/permissions";
+import { Sentry } from "../lib/sentry";
 
 const MAX_WELCOME_MESSAGE_LENGTH = 2000;
 
@@ -187,16 +188,59 @@ async function handleLogChannel(interaction: ChatInputCommandInteraction, contex
 }
 
 async function handleLogShow(interaction: ChatInputCommandInteraction, context: Context) {
+    Sentry.addBreadcrumb({
+        category: 'config.logs.show',
+        message: 'handleLogShow started',
+        level: 'info',
+    });
+
     const guildId = interaction.guildId;
 
     if (!guildId) {
+        Sentry.addBreadcrumb({
+            category: 'config.logs.show',
+            message: 'No guildId - replying with error',
+            level: 'warning',
+        });
         return interaction.reply({ content: "This command can only be used in a server.", ephemeral: true });
     }
 
+    Sentry.addBreadcrumb({
+        category: 'config.logs.show',
+        message: `Looking up config for guild ${guildId}`,
+        level: 'info',
+        data: { guildId },
+    });
+
     const key = `log_channel_${guildId}`;
-    const config = await context.tables.Config.findOne({ where: { key } });
+
+    let config;
+    try {
+        config = await context.tables.Config.findOne({ where: { key } });
+        Sentry.addBreadcrumb({
+            category: 'config.logs.show',
+            message: `Config lookup result: ${config ? 'found' : 'not found'}`,
+            level: 'info',
+            data: { key, hasConfig: !!config, configValue: config?.value },
+        });
+    } catch (dbError) {
+        Sentry.captureException(dbError, {
+            tags: { command: 'config', subcommand: 'logs show' },
+            extra: { guildId, key },
+        });
+        context.log.error({ error: dbError, guildId }, 'Database error in handleLogShow');
+        return interaction.reply({
+            content: "Database error while looking up log channel configuration.",
+            ephemeral: true,
+        });
+    }
 
     if (!config?.value) {
+        Sentry.addBreadcrumb({
+            category: 'config.logs.show',
+            message: 'No log channel configured - replying',
+            level: 'info',
+        });
         return interaction.reply({
             content: "No log channel is configured for this server.\n"
                 + "Use `/config logs channel` to set one.",
@@ -208,6 +252,13 @@ async function handleLogShow(interaction: ChatInputCommandInteraction, context: 
     const guild = interaction.guild;
     const channel = guild?.channels.cache.get(config.value);
 
+    Sentry.addBreadcrumb({
+        category: 'config.logs.show',
+        message: `Channel lookup: ${channel ? 'found' : 'not found'}`,
+        level: 'info',
+        data: { channelId: config.value, hasGuild: !!guild, hasChannel: !!channel },
+    });
+
     if (!channel) {
         return interaction.reply({
             content: `⚠️ **Warning**: Log channel is configured to ID \`${config.value}\`, `
@@ -217,11 +268,23 @@ async function handleLogShow(interaction: ChatInputCommandInteraction, context: 
         });
     }
 
+    Sentry.addBreadcrumb({
+        category: 'config.logs.show',
+        message: 'Sending success reply',
+        level: 'info',
+    });
+
     await interaction.reply({
         content: `**Current Log Settings**\n`
             + `📋 Log Channel: <#${config.value}> (\`${config.value}\`)\n`
             + `✅ Channel exists and is accessible`,
         ephemeral: true,
+    });
+
+    Sentry.addBreadcrumb({
+        category: 'config.logs.show',
+        message: 'handleLogShow completed successfully',
+        level: 'info',
     });
 }
 
@@ -412,6 +475,24 @@ export default {
         const subcommandGroup = interaction.options.getSubcommandGroup();
         const subcommand = interaction.options.getSubcommand();
 
+        // Add Sentry context for debugging
+        Sentry.setTag('command', 'config');
+        Sentry.setTag('subcommandGroup', subcommandGroup || 'none');
+        Sentry.setTag('subcommand', subcommand);
+        Sentry.addBreadcrumb({
+            category: 'config',
+            message: `Config command executed: ${subcommandGroup}/${subcommand}`,
+            level: 'info',
+            data: { subcommandGroup, subcommand, userId: interaction.user.id },
+        });
+
+        log.info({
+            subcommandGroup,
+            subcommand,
+            userId: interaction.user.id,
+            guildId: interaction.guildId,
+        }, 'Config command received');
+
         try {
             // Restrict config command to bot owner only
             await checkOwnerPermission(interaction, context);
@@ -473,12 +554,39 @@ export default {
                 return; // Reply already sent in checkOwnerPermission
             }
 
-            log.error('Error executing config command:', error);
-            const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-            await interaction.reply({
-                content: `An error occurred: ${errorMessage}`,
-                ephemeral: true,
+            // Capture exception to Sentry with full context
+            Sentry.captureException(error, {
+                tags: {
+                    command: 'config',
+                    subcommandGroup: subcommandGroup || 'none',
+                    subcommand,
+                },
+                extra: {
+                    userId: interaction.user.id,
+                    guildId: interaction.guildId,
+                    interactionId: interaction.id,
+                },
             });
+
+            log.error({ error, subcommandGroup, subcommand }, 'Error executing config command');
+            const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+
+            // Try to reply, but handle case where interaction already replied/deferred
+            try {
+                if (interaction.replied || interaction.deferred) {
+                    await interaction.followUp({
+                        content: `An error occurred: ${errorMessage}`,
+                        ephemeral: true,
+                    });
+                } else {
+                    await interaction.reply({
+                        content: `An error occurred: ${errorMessage}`,
+                        ephemeral: true,
+                    });
+                }
+            } catch (replyError) {
+                log.error({ error: replyError }, 'Failed to send error reply');
+            }
         }
     },
 };
