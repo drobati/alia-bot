@@ -43,7 +43,7 @@ const client = new Client({
         GatewayIntentBits.MessageContent,
         GatewayIntentBits.GuildVoiceStates,
         GatewayIntentBits.GuildMembers,
-        GatewayIntentBits.GuildModeration,
+        // GatewayIntentBits.GuildModeration - disabled, may need enabling in Discord Portal
     ],
     partials: [Partials.Channel, Partials.Message, Partials.GuildMember],
 }) as ExtendedClient;
