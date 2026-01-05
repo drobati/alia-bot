@@ -3,6 +3,19 @@ import 'dotenv/config';
 import { initializeSentry } from './src/lib/sentry';
 initializeSentry();
 
+// Global handlers for unhandled errors - log but don't crash
+process.on('uncaughtException', (error) => {
+    // eslint-disable-next-line no-console
+    console.error('Uncaught Exception:', error);
+    // Don't exit - let the bot continue running
+});
+
+process.on('unhandledRejection', (reason, promise) => {
+    // eslint-disable-next-line no-console
+    console.error('Unhandled Rejection at:', promise, 'reason:', reason);
+    // Don't exit - let the bot continue running
+});
+
 import { Client, Collection, GatewayIntentBits, Partials } from 'discord.js';
 import db from 'sequelize';
 import models from './src/models';
