@@ -31,8 +31,10 @@ const client = new Client({
         GatewayIntentBits.GuildMessages,
         GatewayIntentBits.MessageContent,
         GatewayIntentBits.GuildVoiceStates,
+        GatewayIntentBits.GuildMembers,
+        GatewayIntentBits.GuildModeration,
     ],
-    partials: [Partials.Channel],
+    partials: [Partials.Channel, Partials.Message, Partials.GuildMember],
 }) as ExtendedClient;
 
 // Use enhanced logger with Sentry integration
