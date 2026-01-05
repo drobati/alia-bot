@@ -341,8 +341,22 @@ const drinkCommand = {
                             const votes = count !== 1 ? 's' : '';
                             return `${marker} **${OPTION_LETTERS[i]}.** ${name} - ${count} vote${votes}`;
                         }).join("\n"))
-                    .setThumbnail(correctDrink.strDrinkThumb)
+                    .setImage(correctDrink.strDrinkThumb)
                     .setTimestamp();
+
+                // Add the recipe so people can make the drink
+                resultsEmbed.addFields(
+                    {
+                        name: "📋 Ingredients",
+                        value: ingredientsList || "No ingredients listed",
+                        inline: true,
+                    },
+                    {
+                        name: "🥃 Glass",
+                        value: correctDrink.strGlass || "Any glass",
+                        inline: true,
+                    },
+                );
 
                 if (winners.length > 0) {
                     resultsEmbed.addFields({
