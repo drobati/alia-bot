@@ -186,6 +186,45 @@ async function handleLogChannel(interaction: ChatInputCommandInteraction, contex
     });
 }
 
+async function handleLogShow(interaction: ChatInputCommandInteraction, context: Context) {
+    const guildId = interaction.guildId;
+
+    if (!guildId) {
+        return interaction.reply({ content: "This command can only be used in a server.", ephemeral: true });
+    }
+
+    const key = `log_channel_${guildId}`;
+    const config = await context.tables.Config.findOne({ where: { key } });
+
+    if (!config?.value) {
+        return interaction.reply({
+            content: "No log channel is configured for this server.\n"
+                + "Use `/config logs channel` to set one.",
+            ephemeral: true,
+        });
+    }
+
+    // Verify the channel exists
+    const guild = interaction.guild;
+    const channel = guild?.channels.cache.get(config.value);
+
+    if (!channel) {
+        return interaction.reply({
+            content: `⚠️ **Warning**: Log channel is configured to ID \`${config.value}\`, `
+                + `but this channel no longer exists.\n`
+                + `Use \`/config logs channel\` to set a valid channel.`,
+            ephemeral: true,
+        });
+    }
+
+    await interaction.reply({
+        content: `**Current Log Settings**\n`
+            + `📋 Log Channel: <#${config.value}> (\`${config.value}\`)\n`
+            + `✅ Channel exists and is accessible`,
+        ephemeral: true,
+    });
+}
+
 async function handleDiceMaxDice(interaction: ChatInputCommandInteraction, context: Context) {
     const maxDice = interaction.options.getInteger('limit', true);
     const guildId = interaction.guildId;
@@ -334,7 +373,10 @@ export default {
                     .setName('channel')
                     .setDescription('The channel to log bot events.')
                     .addChannelTypes(ChannelType.GuildText)
-                    .setRequired(true)))),
+                    .setRequired(true)))
+            .addSubcommand((subcommand: any) => subcommand
+                .setName('show')
+                .setDescription('Show current log channel configuration.'))),
 
     async autocomplete(interaction: AutocompleteInteraction, { tables }: Context) {
         // Only show autocomplete options to owner
@@ -410,6 +452,8 @@ export default {
                 case 'logs':
                     if (subcommand === 'channel') {
                         await handleLogChannel(interaction, context);
+                    } else if (subcommand === 'show') {
+                        await handleLogShow(interaction, context);
                     }
                     break;
 

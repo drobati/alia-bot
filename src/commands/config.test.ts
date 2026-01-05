@@ -184,6 +184,65 @@ describe('commands/config', () => {
                 ephemeral: true,
             });
         });
+
+        it('should show current log channel when configured', async () => {
+            interaction.options.getSubcommandGroup.mockReturnValue('logs');
+            interaction.options.getSubcommand.mockReturnValue('show');
+            interaction.guildId = 'guild123';
+            interaction.guild = {
+                channels: {
+                    cache: {
+                        get: jest.fn().mockReturnValue({ id: '987654321', name: 'bot-logs' }),
+                    },
+                },
+            };
+            Config.findOne.mockResolvedValue({ value: '987654321' });
+
+            await config.execute(interaction, context);
+
+            expect(Config.findOne).toHaveBeenCalledWith({
+                where: { key: 'log_channel_guild123' },
+            });
+            expect(interaction.reply).toHaveBeenCalledWith({
+                content: expect.stringContaining('Log Channel'),
+                ephemeral: true,
+            });
+        });
+
+        it('should show warning when no log channel configured', async () => {
+            interaction.options.getSubcommandGroup.mockReturnValue('logs');
+            interaction.options.getSubcommand.mockReturnValue('show');
+            interaction.guildId = 'guild123';
+            Config.findOne.mockResolvedValue(null);
+
+            await config.execute(interaction, context);
+
+            expect(interaction.reply).toHaveBeenCalledWith({
+                content: expect.stringContaining('No log channel is configured'),
+                ephemeral: true,
+            });
+        });
+
+        it('should show warning when log channel no longer exists', async () => {
+            interaction.options.getSubcommandGroup.mockReturnValue('logs');
+            interaction.options.getSubcommand.mockReturnValue('show');
+            interaction.guildId = 'guild123';
+            interaction.guild = {
+                channels: {
+                    cache: {
+                        get: jest.fn().mockReturnValue(undefined),
+                    },
+                },
+            };
+            Config.findOne.mockResolvedValue({ value: '987654321' });
+
+            await config.execute(interaction, context);
+
+            expect(interaction.reply).toHaveBeenCalledWith({
+                content: expect.stringContaining('no longer exists'),
+                ephemeral: true,
+            });
+        });
     });
 
     it('should reject non-owner users', async () => {

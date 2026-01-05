@@ -308,6 +308,7 @@ export async function getLogChannelId(
 /**
  * Gets the log channel for a guild if configured and accessible.
  * Returns null if not configured or bot lacks permissions.
+ * Fetches channel from Discord API if not in cache to handle deleted channels.
  */
 export async function getLogChannel(
     guild: Guild,
@@ -321,7 +322,23 @@ export async function getLogChannel(
         return null;
     }
 
-    const logChannel = guild.channels.cache.get(logChannelId) as TextChannel;
+    // Try cache first, then fetch from Discord API
+    let logChannel = guild.channels.cache.get(logChannelId) as TextChannel | undefined;
+
+    if (!logChannel) {
+        try {
+            // Fetch from Discord API to verify channel still exists
+            const fetchedChannel = await guild.channels.fetch(logChannelId);
+            if (fetchedChannel && fetchedChannel.isTextBased()) {
+                logChannel = fetchedChannel as TextChannel;
+            }
+        } catch {
+            // Channel doesn't exist or bot lacks access
+            log.warn({ logChannelId, guildId: guild.id }, 'Log channel not found - may have been deleted');
+            return null;
+        }
+    }
+
     if (!logChannel || !logChannel.isTextBased()) {
         log.warn({ logChannelId, guildId: guild.id }, 'Log channel not found or not text-based');
         return null;
