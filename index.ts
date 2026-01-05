@@ -201,12 +201,22 @@ async function startBot() {
     context.voiceService = voiceService;
     log.info({ category: 'service_initialization' }, 'Voice service initialized');
 
-    // Initialize scheduler service
-    schedulerService = new SchedulerService(client, context);
-    registerDefaultHandlers(schedulerService);
-    context.schedulerService = schedulerService;
-    await schedulerService.initialize();
-    log.info({ category: 'service_initialization' }, 'Scheduler service initialized');
+    // Initialize scheduler service (fail gracefully if table doesn't exist)
+    try {
+        schedulerService = new SchedulerService(client, context);
+        registerDefaultHandlers(schedulerService);
+        context.schedulerService = schedulerService;
+        await schedulerService.initialize();
+        log.info({ category: 'service_initialization' }, 'Scheduler service initialized');
+    } catch (schedulerError) {
+        log.warn({
+            error: schedulerError,
+            category: 'service_initialization',
+        }, 'Scheduler service failed to initialize - bot will continue without scheduled events');
+        Sentry.captureException(schedulerError, {
+            tags: { service: 'scheduler', phase: 'initialization' },
+        });
+    }
 
     // Final deployment success message
     log.info({
