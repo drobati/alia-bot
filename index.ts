@@ -4,7 +4,7 @@ import { initializeSentry } from './src/lib/sentry';
 initializeSentry();
 
 // Global handlers for unhandled errors - log but don't crash
-process.on('uncaughtException', (error) => {
+process.on('uncaughtException', error => {
     // eslint-disable-next-line no-console
     console.error('Uncaught Exception:', error);
     // Don't exit - let the bot continue running
