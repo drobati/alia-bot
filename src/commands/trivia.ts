@@ -2,6 +2,11 @@ import {
     SlashCommandBuilder,
     ChatInputCommandInteraction,
     EmbedBuilder,
+    ActionRowBuilder,
+    ButtonBuilder,
+    ButtonStyle,
+    ComponentType,
+    Message,
 } from "discord.js";
 import { Context } from "../types";
 
@@ -11,6 +16,17 @@ interface TriviaQuestion {
     correctIndex: number;
     category: string;
 }
+
+// Track active trivia games to prevent duplicates and store votes
+// Key: channelId, Value: game state
+interface TriviaGame {
+    correctIndex: number;
+    correctAnswer: string;
+    votes: Map<string, { optionIndex: number; username: string }>; // userId -> choice
+    messageId: string;
+}
+
+export const activeGames: Map<string, TriviaGame> = new Map();
 
 const TRIVIA_QUESTIONS: TriviaQuestion[] = [
     // Science
@@ -159,6 +175,34 @@ const CATEGORY_EMOJIS: Record<string, string> = {
 };
 
 const OPTION_LETTERS = ["A", "B", "C", "D"];
+const TRIVIA_DURATION_SECONDS = 30;
+
+// Fun messages for winners
+const WINNER_MESSAGES = [
+    "Big brain energy right here!",
+    "Somebody's been reading encyclopedias!",
+    "Einstein would be proud!",
+    "Galaxy brain moment!",
+    "The trivia gods smile upon you!",
+];
+
+// Fun roasts for losers
+const LOSER_MESSAGES = [
+    "Did you even try?",
+    "Google exists, you know...",
+    "Smooth brain energy detected.",
+    "Your teachers are disappointed.",
+    "Maybe stick to multiple choice... oh wait.",
+    "At least you're consistent... consistently wrong.",
+];
+
+// Messages for when nobody participates
+const NO_PARTICIPATION_MESSAGES = [
+    "Nobody played? Cowards, all of you.",
+    "The silence is deafening...",
+    "I guess trivia isn't cool anymore.",
+    "Hello? Is anyone out there?",
+];
 
 function getRandomQuestion(): TriviaQuestion {
     return TRIVIA_QUESTIONS[Math.floor(Math.random() * TRIVIA_QUESTIONS.length)];
@@ -178,16 +222,49 @@ function shuffleOptions(question: TriviaQuestion): { shuffledOptions: string[]; 
     return { shuffledOptions, newCorrectIndex };
 }
 
+function getRandomMessage(messages: string[]): string {
+    return messages[Math.floor(Math.random() * messages.length)];
+}
+
+function generateGameId(): string {
+    const chars = '0123456789abcdefghijklmnopqrstuvwxyz';
+    let result = '';
+    for (let i = 0; i < 8; i++) {
+        result += chars[Math.floor(Math.random() * chars.length)];
+    }
+    return result;
+}
+
 export default {
     data: new SlashCommandBuilder()
         .setName("trivia")
-        .setDescription("Test your knowledge with a trivia question"),
+        .setDescription("Test your knowledge with a trivia question - 30 seconds to vote!"),
 
     async execute(interaction: ChatInputCommandInteraction, context: Context) {
+        const channelId = interaction.channelId;
+
+        // Check if there's already an active game in this channel
+        if (activeGames.has(channelId)) {
+            await interaction.reply({
+                content: "There's already a trivia game in progress in this channel! Wait for it to finish.",
+                ephemeral: true,
+            });
+            return;
+        }
+
         const question = getRandomQuestion();
         const { shuffledOptions, newCorrectIndex } = shuffleOptions(question);
         const emoji = CATEGORY_EMOJIS[question.category] || "❓";
-        const correctLetter = OPTION_LETTERS[newCorrectIndex];
+        const gameId = generateGameId();
+
+        // Create the game state
+        const game: TriviaGame = {
+            correctIndex: newCorrectIndex,
+            correctAnswer: shuffledOptions[newCorrectIndex],
+            votes: new Map(),
+            messageId: '',
+        };
+        activeGames.set(channelId, game);
 
         const optionsText = shuffledOptions
             .map((opt, i) => `**${OPTION_LETTERS[i]}.** ${opt}`)
@@ -198,17 +275,162 @@ export default {
             .setTitle(`${emoji} ${question.category} Trivia`)
             .setDescription(`**${question.question}**\n\n${optionsText}`)
             .addFields({
-                name: "Answer",
-                value: `||${correctLetter}. ${shuffledOptions[newCorrectIndex]}||`,
+                name: "Time Remaining",
+                value: `⏱️ ${TRIVIA_DURATION_SECONDS} seconds`,
             })
-            .setFooter({ text: "Click the spoiler to reveal the answer!" })
+            .setFooter({ text: "Click a button to vote! Results in 30 seconds." })
             .setTimestamp();
 
-        await interaction.reply({ embeds: [embed] });
+        // Create answer buttons
+        const buttons = shuffledOptions.map((_, index) =>
+            new ButtonBuilder()
+                .setCustomId(`trivia_vote_${gameId}_${index}`)
+                .setLabel(`${OPTION_LETTERS[index]}`)
+                .setStyle(ButtonStyle.Primary),
+        );
 
-        context.log.info("trivia command used", {
+        const row = new ActionRowBuilder<ButtonBuilder>().addComponents(buttons);
+
+        const message = await interaction.reply({
+            embeds: [embed],
+            components: [row],
+            fetchReply: true,
+        }) as Message;
+
+        game.messageId = message.id;
+
+        context.log.info("trivia game started", {
             userId: interaction.user.id,
             category: question.category,
+            gameId,
+            channelId,
+        });
+
+        // Set up button collector for 30 seconds
+        const collector = message.createMessageComponentCollector({
+            componentType: ComponentType.Button,
+            time: TRIVIA_DURATION_SECONDS * 1000,
+        });
+
+        collector.on('collect', async buttonInteraction => {
+            // Parse the button customId: trivia_vote_{gameId}_{optionIndex}
+            const parts = buttonInteraction.customId.split('_');
+            if (parts.length !== 4) {
+                return;
+            }
+
+            const optionIndex = parseInt(parts[3]);
+            const userId = buttonInteraction.user.id;
+            const username = buttonInteraction.user.displayName || buttonInteraction.user.username;
+
+            // Check if user already voted
+            const existingVote = game.votes.get(userId);
+            if (existingVote) {
+                // Update their vote
+                existingVote.optionIndex = optionIndex;
+                await buttonInteraction.reply({
+                    content: `Vote changed to **${OPTION_LETTERS[optionIndex]}**!`,
+                    ephemeral: true,
+                });
+            } else {
+                // New vote
+                game.votes.set(userId, { optionIndex, username });
+                await buttonInteraction.reply({
+                    content: `Vote recorded for **${OPTION_LETTERS[optionIndex]}**!`,
+                    ephemeral: true,
+                });
+            }
+
+            context.log.info("trivia vote recorded", {
+                userId,
+                optionIndex,
+                gameId,
+            });
+        });
+
+        collector.on('end', async () => {
+            // Clean up the game state
+            activeGames.delete(channelId);
+
+            // Calculate results
+            const winners: string[] = [];
+            const losers: string[] = [];
+            const voteCounts: number[] = [0, 0, 0, 0];
+
+            for (const [, vote] of game.votes) {
+                voteCounts[vote.optionIndex]++;
+                if (vote.optionIndex === newCorrectIndex) {
+                    winners.push(vote.username);
+                } else {
+                    losers.push(vote.username);
+                }
+            }
+
+            // Build results embed
+            const resultsEmbed = new EmbedBuilder()
+                .setColor(0x2ecc71)
+                .setTitle(`${emoji} Trivia Results - ${question.category}`)
+                .setDescription(`**${question.question}**\n\n` +
+                    shuffledOptions.map((opt, i) => {
+                        const isCorrect = i === newCorrectIndex;
+                        const marker = isCorrect ? "✅" : "❌";
+                        const count = voteCounts[i];
+                        return `${marker} **${OPTION_LETTERS[i]}.** ${opt} - ${count} vote${count !== 1 ? 's' : ''}`;
+                    }).join("\n"))
+                .setTimestamp();
+
+            // Add winners field
+            if (winners.length > 0) {
+                resultsEmbed.addFields({
+                    name: "🏆 Winners",
+                    value: `${winners.join(", ")}\n*${getRandomMessage(WINNER_MESSAGES)}*`,
+                });
+            }
+
+            // Add losers field with roast
+            if (losers.length > 0) {
+                resultsEmbed.addFields({
+                    name: "💀 Wrong Answers Only",
+                    value: `${losers.join(", ")}\n*${getRandomMessage(LOSER_MESSAGES)}*`,
+                });
+            }
+
+            // Nobody played
+            if (game.votes.size === 0) {
+                resultsEmbed.addFields({
+                    name: "😶 No Participants",
+                    value: getRandomMessage(NO_PARTICIPATION_MESSAGES),
+                });
+            }
+
+            // Disable the buttons
+            const disabledButtons = shuffledOptions.map((_, index) => {
+                const isCorrect = index === newCorrectIndex;
+                return new ButtonBuilder()
+                    .setCustomId(`trivia_ended_${gameId}_${index}`)
+                    .setLabel(`${OPTION_LETTERS[index]}`)
+                    .setStyle(isCorrect ? ButtonStyle.Success : ButtonStyle.Secondary)
+                    .setDisabled(true);
+            });
+
+            const disabledRow = new ActionRowBuilder<ButtonBuilder>().addComponents(disabledButtons);
+
+            try {
+                await message.edit({
+                    embeds: [resultsEmbed],
+                    components: [disabledRow],
+                });
+            } catch (error) {
+                context.log.error("Failed to edit trivia results message", { error, gameId });
+            }
+
+            context.log.info("trivia game ended", {
+                gameId,
+                channelId,
+                totalVotes: game.votes.size,
+                winnersCount: winners.length,
+                losersCount: losers.length,
+            });
         });
     },
 };
