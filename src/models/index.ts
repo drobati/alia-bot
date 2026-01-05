@@ -14,6 +14,7 @@ import HoroscopeCache from "./horoscopeCache";
 import DndGame from "./dndGame";
 import VerificationCode from "./verificationCode";
 import ScheduledEvent from "./scheduledEvent";
+import UserDescriptions from "./userDescriptions";
 
 export default {
     Adlibs,
@@ -32,4 +33,5 @@ export default {
     DndGame,
     VerificationCode,
     ScheduledEvent,
+    UserDescriptions,
 };
