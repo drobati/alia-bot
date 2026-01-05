@@ -65,7 +65,7 @@ interface DrinkGame {
 export const activeGames: Map<string, DrinkGame> = new Map();
 
 const COCKTAIL_API_URL = "https://www.thecocktaildb.com/api/json/v1/1/random.php";
-const GAME_DURATION_SECONDS = 30;
+const GAME_DURATION_SECONDS = 45;
 const OPTION_LETTERS = ["A", "B", "C", "D"];
 
 // Fun messages for winners
@@ -162,7 +162,7 @@ async function fetchRandomDrinks(count: number): Promise<Drink[]> {
 const drinkCommand = {
     data: new SlashCommandBuilder()
         .setName("drink")
-        .setDescription("Guess the cocktail! 30 seconds to vote on the correct drink name."),
+        .setDescription("Guess the cocktail! 45 seconds to vote on the correct drink name."),
 
     async execute(interaction: ChatInputCommandInteraction, context: Context) {
         const { log } = context;
