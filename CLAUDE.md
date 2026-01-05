@@ -237,6 +237,12 @@ Brief description of this directory's role in the project.
 - Bug fixes: `fix/description-issue-number`
 - Documentation: `docs/description`
 
+**Git Rules for Claude:**
+- NEVER run `git push --force` or `git push --force-with-lease`
+- NEVER run `gh pr merge` - only the user merges PRs
+- NEVER use `--admin` flag to bypass branch protection
+- Stop after creating a PR and let the user review/merge
+
 ## Available Tools & Access
 
 **AWS CLI Access:**
