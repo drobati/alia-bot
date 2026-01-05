@@ -188,41 +188,17 @@ async function handleLogChannel(interaction: ChatInputCommandInteraction, contex
 }
 
 async function handleLogShow(interaction: ChatInputCommandInteraction, context: Context) {
-    Sentry.addBreadcrumb({
-        category: 'config.logs.show',
-        message: 'handleLogShow started',
-        level: 'info',
-    });
-
     const guildId = interaction.guildId;
 
     if (!guildId) {
-        Sentry.addBreadcrumb({
-            category: 'config.logs.show',
-            message: 'No guildId - replying with error',
-            level: 'warning',
-        });
         return interaction.reply({ content: "This command can only be used in a server.", ephemeral: true });
     }
-
-    Sentry.addBreadcrumb({
-        category: 'config.logs.show',
-        message: `Looking up config for guild ${guildId}`,
-        level: 'info',
-        data: { guildId },
-    });
 
     const key = `log_channel_${guildId}`;
 
     let config;
     try {
         config = await context.tables.Config.findOne({ where: { key } });
-        Sentry.addBreadcrumb({
-            category: 'config.logs.show',
-            message: `Config lookup result: ${config ? 'found' : 'not found'}`,
-            level: 'info',
-            data: { key, hasConfig: !!config, configValue: config?.value },
-        });
     } catch (dbError) {
         Sentry.captureException(dbError, {
             tags: { command: 'config', subcommand: 'logs show' },
@@ -236,11 +212,6 @@ async function handleLogShow(interaction: ChatInputCommandInteraction, context: 
     }
 
     if (!config?.value) {
-        Sentry.addBreadcrumb({
-            category: 'config.logs.show',
-            message: 'No log channel configured - replying',
-            level: 'info',
-        });
         return interaction.reply({
             content: "No log channel is configured for this server.\n"
                 + "Use `/config logs channel` to set one.",
@@ -252,13 +223,6 @@ async function handleLogShow(interaction: ChatInputCommandInteraction, context: 
     const guild = interaction.guild;
     const channel = guild?.channels.cache.get(config.value);
 
-    Sentry.addBreadcrumb({
-        category: 'config.logs.show',
-        message: `Channel lookup: ${channel ? 'found' : 'not found'}`,
-        level: 'info',
-        data: { channelId: config.value, hasGuild: !!guild, hasChannel: !!channel },
-    });
-
     if (!channel) {
         return interaction.reply({
             content: `⚠️ **Warning**: Log channel is configured to ID \`${config.value}\`, `
@@ -268,30 +232,11 @@ async function handleLogShow(interaction: ChatInputCommandInteraction, context: 
         });
     }
 
-    Sentry.addBreadcrumb({
-        category: 'config.logs.show',
-        message: 'Sending success reply',
-        level: 'info',
-    });
-
     await interaction.reply({
         content: `**Current Log Settings**\n`
             + `📋 Log Channel: <#${config.value}> (\`${config.value}\`)\n`
             + `✅ Channel exists and is accessible`,
         ephemeral: true,
-    });
-
-    Sentry.addBreadcrumb({
-        category: 'config.logs.show',
-        message: 'handleLogShow completed successfully',
-        level: 'info',
-    });
-
-    // Force capture completion message to see the full breadcrumb trail
-    Sentry.captureMessage('handleLogShow completed', {
-        level: 'info',
-        tags: { command: 'config', subcommand: 'logs show', debug: 'completion' },
-        extra: { guildId, channelId: config.value },
     });
 }
 
@@ -481,34 +426,6 @@ export default {
         const { log } = context;
         const subcommandGroup = interaction.options.getSubcommandGroup();
         const subcommand = interaction.options.getSubcommand();
-
-        // Add Sentry context for debugging
-        Sentry.setTag('command', 'config');
-        Sentry.setTag('subcommandGroup', subcommandGroup || 'none');
-        Sentry.setTag('subcommand', subcommand);
-        Sentry.addBreadcrumb({
-            category: 'config',
-            message: `Config command executed: ${subcommandGroup}/${subcommand}`,
-            level: 'info',
-            data: { subcommandGroup, subcommand, userId: interaction.user.id },
-        });
-
-        // Force capture a message to ensure breadcrumbs are visible in Sentry
-        // This guarantees we see the debugging info even when no error is thrown
-        Sentry.captureMessage(`Config command debug: ${subcommandGroup}/${subcommand}`, {
-            level: 'info',
-            tags: {
-                command: 'config',
-                subcommandGroup: subcommandGroup || 'none',
-                subcommand,
-                debug: 'true',
-            },
-            extra: {
-                userId: interaction.user.id,
-                guildId: interaction.guildId,
-                interactionId: interaction.id,
-            },
-        });
 
         log.info({
             subcommandGroup,
