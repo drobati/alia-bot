@@ -167,36 +167,33 @@ async function startBot() {
         event: 'login',
     });
 
-    // Send deployment info to #deploy channel (if configured)
-    const deployChannelId = process.env.DEPLOY_CHANNEL_ID || '847239885146333215';
-    try {
-        const deployChannel = await client.channels.fetch(deployChannelId);
-        if (deployChannel?.isTextBased() && 'send' in deployChannel) {
-            const shortSha = COMMIT_SHA.substring(0, 7);
-            await deployChannel.send(`🚀 **Bot Deployed**\n` +
-                `**Version:** ${VERSION}\n` +
-                `**Commit:** ${shortSha}\n` +
-                `**Environment:** ${process.env.NODE_ENV}\n` +
-                `**Timestamp:** ${new Date().toISOString()}`);
-        }
-    } catch {
-        // Deploy notifications are optional - log as warning, not error
-        log.warn({
-            deployChannelId,
-            category: 'deployment_notification',
-        }, 'Deploy channel not accessible - skipping deploy notification');
-    }
+    // NOTE: Deployment notification is handled in events/ready.ts using safelyFindChannel
+    // which is more reliable than direct channel.fetch() during startup
 
     // Initialize motivational scheduler after successful login
-    motivationalScheduler = new MotivationalScheduler(client, context);
-    context.motivationalScheduler = motivationalScheduler;
-    await motivationalScheduler.initialize();
-    log.info({ category: 'service_initialization' }, 'Motivational scheduler initialized');
+    try {
+        motivationalScheduler = new MotivationalScheduler(client, context);
+        context.motivationalScheduler = motivationalScheduler;
+        await motivationalScheduler.initialize();
+        log.info({ category: 'service_initialization' }, 'Motivational scheduler initialized');
+    } catch (motivationalError) {
+        log.warn({
+            error: motivationalError,
+            category: 'service_initialization',
+        }, 'Motivational scheduler failed to initialize - bot will continue without motivational messages');
+    }
 
     // Initialize voice service
-    voiceService = new VoiceService(context);
-    context.voiceService = voiceService;
-    log.info({ category: 'service_initialization' }, 'Voice service initialized');
+    try {
+        voiceService = new VoiceService(context);
+        context.voiceService = voiceService;
+        log.info({ category: 'service_initialization' }, 'Voice service initialized');
+    } catch (voiceError) {
+        log.warn({
+            error: voiceError,
+            category: 'service_initialization',
+        }, 'Voice service failed to initialize - bot will continue without voice features');
+    }
 
     // NOTE: SchedulerService is initialized in the ready event AFTER table sync
 
