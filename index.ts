@@ -12,8 +12,6 @@ import { readdirSync, readFileSync } from "fs";
 import { BotCommand, Context, BotEvent, ExtendedClient } from "./src/utils/types";
 import { MotivationalScheduler } from './src/services/motivationalScheduler';
 import { VoiceService } from './src/services/voice';
-import { SchedulerService } from './src/services/schedulerService';
-import { registerDefaultHandlers } from './src/services/eventHandlers';
 import { captureOwnerIdDebug, Sentry } from './src/lib/sentry';
 import { logger } from './src/utils/logger';
 
@@ -63,7 +61,6 @@ const context: Context = {
 
 let motivationalScheduler: MotivationalScheduler;
 let voiceService: VoiceService;
-let schedulerService: SchedulerService;
 
 // Load database models
 Object.keys(models).forEach(key => {
@@ -201,22 +198,7 @@ async function startBot() {
     context.voiceService = voiceService;
     log.info({ category: 'service_initialization' }, 'Voice service initialized');
 
-    // Initialize scheduler service (fail gracefully if table doesn't exist)
-    try {
-        schedulerService = new SchedulerService(client, context);
-        registerDefaultHandlers(schedulerService);
-        context.schedulerService = schedulerService;
-        await schedulerService.initialize();
-        log.info({ category: 'service_initialization' }, 'Scheduler service initialized');
-    } catch (schedulerError) {
-        log.warn({
-            error: schedulerError,
-            category: 'service_initialization',
-        }, 'Scheduler service failed to initialize - bot will continue without scheduled events');
-        Sentry.captureException(schedulerError, {
-            tags: { service: 'scheduler', phase: 'initialization' },
-        });
-    }
+    // NOTE: SchedulerService is initialized in the ready event AFTER table sync
 
     // Final deployment success message
     log.info({
@@ -234,8 +216,8 @@ process.on('SIGINT', () => {
     if (motivationalScheduler) {
         motivationalScheduler.shutdown();
     }
-    if (schedulerService) {
-        schedulerService.shutdown();
+    if (context.schedulerService) {
+        context.schedulerService.shutdown();
         log.info('Scheduler service shut down');
     }
     if (voiceService) {
@@ -251,8 +233,8 @@ process.on('SIGTERM', () => {
     if (motivationalScheduler) {
         motivationalScheduler.shutdown();
     }
-    if (schedulerService) {
-        schedulerService.shutdown();
+    if (context.schedulerService) {
+        context.schedulerService.shutdown();
         log.info('Scheduler service shut down');
     }
     if (voiceService) {
