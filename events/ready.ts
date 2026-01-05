@@ -73,20 +73,27 @@ const clientReadyEvent: BotEvent = {
             log.info({ tables: tableKeys, errors: syncErrors.length, category: 'database' }, 'Database tables synced');
 
             // Initialize scheduler service AFTER tables are synced
-            try {
-                const schedulerService = new SchedulerService(client, context);
-                registerDefaultHandlers(schedulerService);
-                context.schedulerService = schedulerService;
-                await schedulerService.initialize();
-                log.info({ category: 'service_initialization' }, 'Scheduler service initialized');
-            } catch (schedulerError) {
+            // Skip if ScheduledEvent table doesn't exist (migration not run yet)
+            if (!tables.ScheduledEvent) {
                 log.warn({
-                    error: schedulerError,
                     category: 'service_initialization',
-                }, 'Scheduler service failed to initialize - bot will continue without scheduled events');
-                Sentry.captureException(schedulerError, {
-                    tags: { service: 'scheduler', phase: 'initialization' },
-                });
+                }, 'Skipping scheduler service - ScheduledEvent table not available (run migration first)');
+            } else {
+                try {
+                    const schedulerService = new SchedulerService(client, context);
+                    registerDefaultHandlers(schedulerService);
+                    context.schedulerService = schedulerService;
+                    await schedulerService.initialize();
+                    log.info({ category: 'service_initialization' }, 'Scheduler service initialized');
+                } catch (schedulerError) {
+                    log.warn({
+                        error: schedulerError,
+                        category: 'service_initialization',
+                    }, 'Scheduler service failed to initialize - bot will continue without scheduled events');
+                    Sentry.captureException(schedulerError, {
+                        tags: { service: 'scheduler', phase: 'initialization' },
+                    });
+                }
             }
         } catch (tableSyncError) {
             log.error({ error: tableSyncError, category: 'database' }, 'Critical error during table sync');
