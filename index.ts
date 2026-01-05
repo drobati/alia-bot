@@ -255,8 +255,10 @@ process.on('SIGTERM', () => {
     process.exit(0);
 });
 
-startBot().catch(error => {
+startBot().catch(async error => {
     log.error({ error: error.message, stack: error.stack }, 'Failed to start bot');
     Sentry.captureException(error);
+    // Wait for Sentry to flush events before exiting
+    await Sentry.flush(5000);
     process.exit(1);
 });
