@@ -221,7 +221,7 @@ describe("commands/drink", () => {
             );
 
             expect(timeField).toBeDefined();
-            expect(timeField.value).toContain("30 seconds");
+            expect(timeField.value).toContain("45 seconds");
         });
 
         it("should log game started", async () => {
@@ -314,7 +314,7 @@ describe("commands/drink", () => {
 
             expect(mockMessage.createMessageComponentCollector).toHaveBeenCalledWith({
                 componentType: 2,
-                time: 30000,
+                time: 45000,
             });
         });
 

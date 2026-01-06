@@ -316,7 +316,7 @@ describe('Assistant Response System', () => {
         it('should skip messages below confidence threshold', async () => {
             mockClassifierInstance.classify.mockReturnValue({
                 intent: 'general-knowledge',
-                confidence: 0.5,
+                confidence: 0.4,
                 method: 'bayesian',
             });
 
@@ -326,8 +326,8 @@ describe('Assistant Response System', () => {
             expect(mockContext.log.info).toHaveBeenCalledWith(
                 'Assistant confidence below threshold, no response',
                 expect.objectContaining({
-                    confidence: 0.5,
-                    confidenceThreshold: 0.7,
+                    confidence: 0.4,
+                    confidenceThreshold: 0.5,
                     stage: 'confidence_filtered',
                 }),
             );
@@ -592,7 +592,7 @@ describe('Assistant Response System', () => {
                     intent: 'technical-question',
                     confidence: 0.892,
                     method: 'bayesian',
-                    confidenceThreshold: 0.7,
+                    confidenceThreshold: 0.5,
                     meetsThreshold: true,
                     timestamp: expect.any(String),
                 }),

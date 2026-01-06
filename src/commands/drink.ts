@@ -65,7 +65,7 @@ interface DrinkGame {
 export const activeGames: Map<string, DrinkGame> = new Map();
 
 const COCKTAIL_API_URL = "https://www.thecocktaildb.com/api/json/v1/1/random.php";
-const GAME_DURATION_SECONDS = 30;
+const GAME_DURATION_SECONDS = 45;
 const OPTION_LETTERS = ["A", "B", "C", "D"];
 
 // Fun messages for winners
@@ -162,7 +162,7 @@ async function fetchRandomDrinks(count: number): Promise<Drink[]> {
 const drinkCommand = {
     data: new SlashCommandBuilder()
         .setName("drink")
-        .setDescription("Guess the cocktail! 30 seconds to vote on the correct drink name."),
+        .setDescription("Guess the cocktail! 45 seconds to vote on the correct drink name."),
 
     async execute(interaction: ChatInputCommandInteraction, context: Context) {
         const { log } = context;
@@ -341,8 +341,22 @@ const drinkCommand = {
                             const votes = count !== 1 ? 's' : '';
                             return `${marker} **${OPTION_LETTERS[i]}.** ${name} - ${count} vote${votes}`;
                         }).join("\n"))
-                    .setThumbnail(correctDrink.strDrinkThumb)
+                    .setImage(correctDrink.strDrinkThumb)
                     .setTimestamp();
+
+                // Add the recipe so people can make the drink
+                resultsEmbed.addFields(
+                    {
+                        name: "📋 Ingredients",
+                        value: ingredientsList || "No ingredients listed",
+                        inline: true,
+                    },
+                    {
+                        name: "🥃 Glass",
+                        value: correctDrink.strGlass || "Any glass",
+                        inline: true,
+                    },
+                );
 
                 if (winners.length > 0) {
                     resultsEmbed.addFields({
