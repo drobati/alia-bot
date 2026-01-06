@@ -116,8 +116,8 @@ export default async (message: Message, context: Context): Promise<boolean> => {
         const intent = classificationResult.intent;
         const confidence = classificationResult.confidence;
         const method = classificationResult.method;
-        // Layer 2: Improved thresholds - since we have direct addressing, we can be more selective
-        const CONFIDENCE_THRESHOLD = 0.7; // Higher threshold since direct addressing filters intent
+        // Layer 2: Relaxed threshold to respond more often when directly addressed
+        const CONFIDENCE_THRESHOLD = 0.5;
 
         // Log classification results
         const classificationData = {
