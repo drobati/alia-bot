@@ -95,8 +95,87 @@ jobs:
           docker build -t $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG .
           docker push $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
 
-  Deploy_ECS:
+  Run_Migrations:
     needs: [Version_Tag, Build]
+    runs-on: ubuntu-latest
+    environment: production
+    permissions:
+      id-token: write
+
+    steps:
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v1
+        with:
+          role-to-assume: ${{ secrets.ROLE_TO_ASSUME }}
+          role-session-name: ${{ secrets.ROLE_SESSION_NAME }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Login to Amazon ECR
+        id: login-ecr
+        uses: aws-actions/amazon-ecr-login@v1
+
+      - name: Register migration task definition
+        id: register-task
+        env:
+          ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
+          IMAGE_TAG: ${{ needs.Build.outputs.image_tag }}
+        run: |
+          # Get the current task definition and modify it for migrations
+          aws ecs describe-task-definition --task-definition alia-bot-task \
+            --query taskDefinition > task-def.json
+
+          # Update the image and remove service-specific settings
+          jq --arg IMAGE "$ECR_REGISTRY/${{ env.ECR_REPOSITORY }}:$IMAGE_TAG" '
+            .containerDefinitions[0].image = $IMAGE |
+            .containerDefinitions[0].portMappings = [] |
+            .containerDefinitions[0].command = ["npm", "run", "sequelize-cli", "--", "db:migrate"] |
+            del(.taskDefinitionArn, .revision, .status, .requiresAttributes,
+                .compatibilities, .registeredAt, .registeredBy)
+          ' task-def.json > migration-task-def.json
+
+          # Register the migration task definition
+          TASK_DEF_ARN=$(aws ecs register-task-definition \
+            --cli-input-json file://migration-task-def.json \
+            --query 'taskDefinition.taskDefinitionArn' \
+            --output text)
+          echo "task_def_arn=$TASK_DEF_ARN" >> $GITHUB_OUTPUT
+
+      - name: Run migration task
+        id: run-task
+        run: |
+          # Run the migration task
+          TASK_ARN=$(aws ecs run-task \
+            --cluster alia-bot-cluster \
+            --task-definition ${{ steps.register-task.outputs.task_def_arn }} \
+            --count 1 \
+            --query 'tasks[0].taskArn' \
+            --output text)
+          echo "task_arn=$TASK_ARN" >> $GITHUB_OUTPUT
+          echo "Started migration task: $TASK_ARN"
+
+      - name: Wait for migration to complete
+        run: |
+          echo "Waiting for migration task to complete..."
+          aws ecs wait tasks-stopped \
+            --cluster alia-bot-cluster \
+            --tasks ${{ steps.run-task.outputs.task_arn }}
+
+          # Check if the task succeeded
+          EXIT_CODE=$(aws ecs describe-tasks \
+            --cluster alia-bot-cluster \
+            --tasks ${{ steps.run-task.outputs.task_arn }} \
+            --query 'tasks[0].containers[0].exitCode' \
+            --output text)
+
+          echo "Migration task exit code: $EXIT_CODE"
+          if [ "$EXIT_CODE" != "0" ]; then
+            echo "Migration failed with exit code $EXIT_CODE"
+            exit 1
+          fi
+          echo "Migration completed successfully!"
+
+  Deploy_ECS:
+    needs: [Version_Tag, Build, Run_Migrations]
     runs-on: ubuntu-latest
     environment: production
     permissions:
