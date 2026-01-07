@@ -134,6 +134,15 @@ const messageCreateEvent: BotEvent = {
                     messageLength: message.content.length,
                 });
             }
+
+            // Process message for Sparks currency (independent of response handling)
+            if (context.sparksService) {
+                try {
+                    await context.sparksService.processMessage(message);
+                } catch (sparksError) {
+                    context.log.error('Sparks processing failed', { error: sparksError });
+                }
+            }
         } catch (error) {
             if (error instanceof Error) {
                 log.error(error.message);
