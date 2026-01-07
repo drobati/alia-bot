@@ -8,12 +8,16 @@ module.exports = {
         port: process.env.MYSQLDB_LOCAL_PORT || 3307,
         dialect: 'mysql',
     },
-    prod: {
+    test: {
+        dialect: 'sqlite',
+        storage: ':memory:',
+    },
+    production: {
         username: 'root',
-        password: process.env.MYSQLDB_ROOT_PASSWORD,
-        database: process.env.MYSQLDB_DATABASE,
-        host: 'localhost',
-        port: 3307,
+        password: process.env.DB_PASSWORD,
+        database: 'aliadb',
+        host: process.env.DB_HOST,
+        port: 3306,
         dialect: 'mysql',
     },
 };
