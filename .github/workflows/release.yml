@@ -124,13 +124,13 @@ jobs:
           aws ecs describe-task-definition --task-definition alia-bot-task \
             --query taskDefinition > task-def.json
 
-          # Update the image, reduce memory, add NODE_ENV, and remove service-specific settings
+          # Update the image, reduce memory, and remove service-specific settings
+          # Note: NODE_ENV is already set via SSM secrets in the base task definition
           jq --arg IMAGE "$ECR_REGISTRY/${{ env.ECR_REPOSITORY }}:$IMAGE_TAG" '
             .containerDefinitions[0].image = $IMAGE |
             .containerDefinitions[0].memory = 256 |
             .containerDefinitions[0].portMappings = [] |
             .containerDefinitions[0].command = ["npm", "run", "sequelize-cli", "--", "db:migrate"] |
-            .containerDefinitions[0].environment += [{"name": "NODE_ENV", "value": "production"}] |
             del(.taskDefinitionArn, .revision, .status, .requiresAttributes,
                 .compatibilities, .registeredAt, .registeredBy)
           ' task-def.json > migration-task-def.json
