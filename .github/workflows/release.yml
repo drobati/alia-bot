@@ -125,8 +125,10 @@ jobs:
             --query taskDefinition > task-def.json
 
           # Update the image, reduce memory, and remove service-specific settings
+          # Use a SEPARATE task family for migrations to avoid polluting the service task definition
           # Note: NODE_ENV is already set via SSM secrets in the base task definition
           jq --arg IMAGE "$ECR_REGISTRY/${{ env.ECR_REPOSITORY }}:$IMAGE_TAG" '
+            .family = "alia-bot-migration-task" |
             .containerDefinitions[0].image = $IMAGE |
             .containerDefinitions[0].memory = 256 |
             .containerDefinitions[0].portMappings = [] |
