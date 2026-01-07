@@ -95,11 +95,27 @@ jobs:
           docker build -t $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG .
           docker push $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
 
-      - name: Save clean task definition before migrations
+      - name: Save clean task definition from running service
         run: |
-          # Save the current task definition BEFORE migrations can pollute it
-          aws ecs describe-task-definition --task-definition alia-bot-task \
+          # Get the task definition currently used by the SERVICE (not "latest" which may be polluted)
+          SERVICE_TASK_DEF=$(aws ecs describe-services \
+            --cluster alia-bot-cluster \
+            --services alia-bot-service \
+            --query 'services[0].taskDefinition' \
+            --output text)
+          echo "Service is using: $SERVICE_TASK_DEF"
+
+          # Fetch that specific task definition
+          aws ecs describe-task-definition --task-definition "$SERVICE_TASK_DEF" \
             --query taskDefinition > task-definition.json
+
+          # Verify it doesn't have a migration command
+          COMMAND=$(jq -r '.containerDefinitions[0].command // "null"' task-definition.json)
+          echo "Task definition command: $COMMAND"
+          if [ "$COMMAND" != "null" ]; then
+            echo "WARNING: Service task definition has a command set, this may cause issues"
+          fi
+
           echo "Saved task definition revision: $(jq -r '.revision' task-definition.json)"
 
       - name: Upload task definition artifact
