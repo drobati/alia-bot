@@ -124,9 +124,10 @@ jobs:
           aws ecs describe-task-definition --task-definition alia-bot-task \
             --query taskDefinition > task-def.json
 
-          # Update the image and remove service-specific settings
+          # Update the image, reduce memory, and remove service-specific settings
           jq --arg IMAGE "$ECR_REGISTRY/${{ env.ECR_REPOSITORY }}:$IMAGE_TAG" '
             .containerDefinitions[0].image = $IMAGE |
+            .containerDefinitions[0].memory = 256 |
             .containerDefinitions[0].portMappings = [] |
             .containerDefinitions[0].command = ["npm", "run", "sequelize-cli", "--", "db:migrate"] |
             del(.taskDefinitionArn, .revision, .status, .requiresAttributes,
@@ -143,13 +144,27 @@ jobs:
       - name: Run migration task
         id: run-task
         run: |
-          # Run the migration task
-          TASK_ARN=$(aws ecs run-task \
+          # Run the migration task and capture full response
+          RESPONSE=$(aws ecs run-task \
             --cluster alia-bot-cluster \
             --task-definition ${{ steps.register-task.outputs.task_def_arn }} \
-            --count 1 \
-            --query 'tasks[0].taskArn' \
-            --output text)
+            --count 1)
+
+          # Check for failures
+          FAILURES=$(echo "$RESPONSE" | jq -r '.failures | length')
+          if [ "$FAILURES" != "0" ]; then
+            echo "Failed to start migration task:"
+            echo "$RESPONSE" | jq '.failures'
+            exit 1
+          fi
+
+          TASK_ARN=$(echo "$RESPONSE" | jq -r '.tasks[0].taskArn')
+          if [ "$TASK_ARN" == "null" ] || [ -z "$TASK_ARN" ]; then
+            echo "No task ARN returned. Full response:"
+            echo "$RESPONSE"
+            exit 1
+          fi
+
           echo "task_arn=$TASK_ARN" >> $GITHUB_OUTPUT
           echo "Started migration task: $TASK_ARN"
 
