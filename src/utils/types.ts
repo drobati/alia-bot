@@ -32,6 +32,20 @@ export interface SchedulerService {
     shutdown: () => void;
 }
 
+// Forward declaration for SparksService
+export interface SparksService {
+    getOrCreateUser: (guildId: string, discordId: string, username?: string) => Promise<any>;
+    getBalance: (guildId: string, discordId: string) => Promise<any>;
+    getRecentTransactions: (guildId: string, discordId: string, limit?: number) => Promise<any[]>;
+    processMessage: (message: any) => Promise<any>;
+    addSparks: (
+        guildId: string, discordId: string, amount: number, description: string, refType?: string
+    ) => Promise<boolean>;
+    removeSparks: (
+        guildId: string, discordId: string, amount: number, description: string, refType?: string
+    ) => Promise<boolean>;
+}
+
 // Re-export types from dedicated type files
 export { BotCommand, ExtendedClient, BotEvent, MessageResponse } from '../types/discord';
 export { DatabaseTables } from '../types/database';
@@ -46,6 +60,7 @@ export interface Context {
     motivationalScheduler?: MotivationalScheduler;
     voiceService?: VoiceService;
     schedulerService?: SchedulerService;
+    sparksService?: SparksService;
     client?: any; // Discord client for sending messages
 }
 

@@ -13,8 +13,11 @@ RUN npm install
 # Compile TypeScript to JavaScript
 RUN npm run build
 
+# Make entrypoint script executable
+RUN chmod +x scripts/docker-entrypoint.sh
+
 # Expose the port the app runs on
 EXPOSE 8080
 
-# Start the app
-CMD ["npm", "start"]
+# Run migrations and start the app
+ENTRYPOINT ["scripts/docker-entrypoint.sh"]

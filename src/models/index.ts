@@ -15,6 +15,10 @@ import DndGame from "./dndGame";
 import VerificationCode from "./verificationCode";
 import ScheduledEvent from "./scheduledEvent";
 import UserDescriptions from "./userDescriptions";
+import SparksUser from "./sparksUser";
+import SparksBalance from "./sparksBalance";
+import SparksLedger from "./sparksLedger";
+import SparksEngagement from "./sparksEngagement";
 
 export default {
     Adlibs,
@@ -34,4 +38,8 @@ export default {
     VerificationCode,
     ScheduledEvent,
     UserDescriptions,
+    SparksUser,
+    SparksBalance,
+    SparksLedger,
+    SparksEngagement,
 };
