@@ -95,6 +95,20 @@ jobs:
           docker build -t $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG .
           docker push $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
 
+      - name: Save clean task definition before migrations
+        run: |
+          # Save the current task definition BEFORE migrations can pollute it
+          aws ecs describe-task-definition --task-definition alia-bot-task \
+            --query taskDefinition > task-definition.json
+          echo "Saved task definition revision: $(jq -r '.revision' task-definition.json)"
+
+      - name: Upload task definition artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: task-definition
+          path: task-definition.json
+          retention-days: 1
+
   Run_Migrations:
     needs: [Version_Tag, Build]
     runs-on: ubuntu-latest
@@ -114,27 +128,40 @@ jobs:
         id: login-ecr
         uses: aws-actions/amazon-ecr-login@v1
 
-      - name: Run migration task
-        id: run-task
+      - name: Register migration task definition
+        id: register-task
         env:
           ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
           IMAGE_TAG: ${{ needs.Build.outputs.image_tag }}
         run: |
-          # Run migration using --overrides instead of registering a new task definition
-          # This avoids polluting the service task definition with migration commands
-          IMAGE="$ECR_REGISTRY/${{ env.ECR_REPOSITORY }}:$IMAGE_TAG"
+          # Get the current task definition and modify it for migrations
+          # Note: This will create a new revision with the migration command, but
+          # Deploy_ECS uses the saved artifact from Build step, so it won't be affected
+          aws ecs describe-task-definition --task-definition alia-bot-task \
+            --query taskDefinition > task-def.json
+
+          jq --arg IMAGE "$ECR_REGISTRY/${{ env.ECR_REPOSITORY }}:$IMAGE_TAG" '
+            .containerDefinitions[0].image = $IMAGE |
+            .containerDefinitions[0].memory = 256 |
+            .containerDefinitions[0].portMappings = [] |
+            .containerDefinitions[0].command = ["npm", "run", "sequelize-cli", "--", "db:migrate"] |
+            del(.taskDefinitionArn, .revision, .status, .requiresAttributes,
+                .compatibilities, .registeredAt, .registeredBy)
+          ' task-def.json > migration-task-def.json
+
+          TASK_DEF_ARN=$(aws ecs register-task-definition \
+            --cli-input-json file://migration-task-def.json \
+            --query 'taskDefinition.taskDefinitionArn' \
+            --output text)
+          echo "task_def_arn=$TASK_DEF_ARN" >> $GITHUB_OUTPUT
+
+      - name: Run migration task
+        id: run-task
+        run: |
           RESPONSE=$(aws ecs run-task \
             --cluster alia-bot-cluster \
-            --task-definition alia-bot-task \
-            --count 1 \
-            --overrides "{
-              \"containerOverrides\": [{
-                \"name\": \"alia-bot-container\",
-                \"image\": \"$IMAGE\",
-                \"command\": [\"npm\", \"run\", \"sequelize-cli\", \"--\", \"db:migrate\"],
-                \"memory\": 256
-              }]
-            }")
+            --task-definition ${{ steps.register-task.outputs.task_def_arn }} \
+            --count 1)
 
           # Check for failures
           FAILURES=$(echo "$RESPONSE" | jq -r '.failures | length')
@@ -207,9 +234,10 @@ jobs:
         id: login-ecr
         uses: aws-actions/amazon-ecr-login@v1
 
-      - name: Download task definition
-        run: |
-          aws ecs describe-task-definition --task-definition alia-bot-task --query taskDefinition > task-definition.json
+      - name: Download clean task definition artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: task-definition
 
       - name: Add SENTRY_DSN to task definition
         run: |
