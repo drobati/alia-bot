@@ -1,6 +1,7 @@
 import Adlibs from "./adlibs";
 import Config from "./config";
 import CustomDice from "./customDice";
+import DotaUsers from "./dotaUsers";
 import Louds from "./louds";
 import Memories from "./memories";
 import MotivationalConfig from "./motivationalConfig";
@@ -24,6 +25,7 @@ export default {
     Adlibs,
     Config,
     CustomDice,
+    DotaUsers,
     Louds,
     Memories,
     MotivationalConfig,
