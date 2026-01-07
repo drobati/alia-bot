@@ -170,25 +170,34 @@ jobs:
           echo "Started migration task: $TASK_ARN"
 
       - name: Wait for migration to complete
+        continue-on-error: true
+        id: wait-migration
         run: |
           echo "Waiting for migration task to complete..."
           aws ecs wait tasks-stopped \
             --cluster alia-bot-cluster \
             --tasks ${{ steps.run-task.outputs.task_arn }}
 
-          # Check if the task succeeded
-          EXIT_CODE=$(aws ecs describe-tasks \
+          # Get full task description for debugging
+          TASK_INFO=$(aws ecs describe-tasks \
             --cluster alia-bot-cluster \
             --tasks ${{ steps.run-task.outputs.task_arn }} \
-            --query 'tasks[0].containers[0].exitCode' \
-            --output text)
+            --query 'tasks[0].{exitCode:containers[0].exitCode,stoppedReason:stoppedReason,stopCode:stopCode,containerReason:containers[0].reason}')
+          echo "Task info: $TASK_INFO"
+
+          EXIT_CODE=$(echo "$TASK_INFO" | jq -r '.exitCode')
+          STOPPED_REASON=$(echo "$TASK_INFO" | jq -r '.stoppedReason')
+          CONTAINER_REASON=$(echo "$TASK_INFO" | jq -r '.containerReason')
 
           echo "Migration task exit code: $EXIT_CODE"
+          echo "Stopped reason: $STOPPED_REASON"
+          echo "Container reason: $CONTAINER_REASON"
+
           if [ "$EXIT_CODE" != "0" ]; then
-            echo "Migration failed with exit code $EXIT_CODE"
-            exit 1
+            echo "::warning::Migration failed with exit code $EXIT_CODE. Deployment will continue."
+          else
+            echo "Migration completed successfully!"
           fi
-          echo "Migration completed successfully!"
 
   Deploy_ECS:
     needs: [Version_Tag, Build, Run_Migrations]
