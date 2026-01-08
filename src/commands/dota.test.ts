@@ -32,7 +32,7 @@ describe('Dota Command', () => {
         it('should have subcommands', () => {
             const json = dota.data.toJSON();
             expect(json.options).toBeDefined();
-            expect(json.options!.length).toBe(15);
+            expect(json.options!.length).toBe(16);
         });
 
         it('should have help subcommand', () => {
@@ -1615,6 +1615,24 @@ describe('Dota Command', () => {
                             return null;
                         },
                     },
+                    user: { id: 'notowner', username: 'testuser' },
+                    commandName: 'dota',
+                    reply: jest.fn(),
+                };
+
+                await dota.execute(mockInteraction, mockContext);
+
+                expect(mockInteraction.reply).toHaveBeenCalledWith({
+                    content: expect.stringContaining('restricted to the bot owner'),
+                    ephemeral: true,
+                });
+            });
+        });
+
+        describe('syncpositions subcommand', () => {
+            it('should reject non-owner users', async () => {
+                const mockInteraction = {
+                    options: { getSubcommand: () => 'syncpositions' },
                     user: { id: 'notowner', username: 'testuser' },
                     commandName: 'dota',
                     reply: jest.fn(),
