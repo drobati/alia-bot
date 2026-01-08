@@ -2,6 +2,7 @@ import { EmbedBuilder, SlashCommandBuilder } from "discord.js";
 import opendota, { ModePreset } from "../lib/apis/opendota";
 import { checkOwnerPermission } from "../utils/permissions";
 import { Op } from "sequelize";
+import { HERO_POSITIONS } from "../lib/dota-positions";
 
 // Valid positions for hero filtering
 const VALID_POSITIONS = ['pos1', 'pos2', 'pos3', 'pos4', 'pos5'] as const;
@@ -1213,6 +1214,73 @@ async function handleSetPosition(interaction: any, { tables, log }: any) {
     }
 }
 
+async function handleSyncPositions(interaction: any, { tables, log }: any) {
+    try {
+        // Check owner permission
+        await checkOwnerPermission(interaction);
+
+        await interaction.deferReply({ ephemeral: true });
+
+        // Get all heroes from database
+        const heroes = await tables.DotaHeroes.findAll();
+
+        if (heroes.length === 0) {
+            await interaction.editReply({
+                content: '❌ No heroes in database. Run `/dota sync` first to populate heroes.',
+            });
+            return;
+        }
+
+        let updated = 0;
+        let skipped = 0;
+
+        // Update each hero with positions from mapping
+        for (const hero of heroes) {
+            const positions = HERO_POSITIONS[hero.localized_name];
+
+            if (positions && positions.length > 0) {
+                // Only update if positions changed
+                const currentPositions = hero.positions || [];
+                if (JSON.stringify(currentPositions.sort()) !== JSON.stringify(positions.sort())) {
+                    await hero.update({ positions });
+                    updated++;
+                } else {
+                    skipped++;
+                }
+            } else {
+                skipped++;
+            }
+        }
+
+        log.info({ updated, skipped, total: heroes.length, category: 'dota' }, 'Hero positions synced');
+
+        // Count heroes with positions
+        const heroesWithPositions = await tables.DotaHeroes.count({
+            where: {
+                positions: { [Op.ne]: '[]' },
+            },
+        });
+
+        await interaction.editReply({
+            content: `✅ Hero positions synced!\n` +
+                `**Updated:** ${updated} heroes\n` +
+                `**Unchanged:** ${skipped} heroes\n` +
+                `**Total with positions:** ${heroesWithPositions} heroes`,
+        });
+    } catch (error: any) {
+        if (error.message === 'Unauthorized: User is not bot owner') {
+            return; // Already replied in checkOwnerPermission
+        }
+        log.error({ err: error, category: 'dota' }, 'Error syncing hero positions');
+        const reply = { content: 'An error occurred while syncing hero positions.', ephemeral: true };
+        if (interaction.deferred) {
+            await interaction.editReply(reply);
+        } else {
+            await interaction.reply(reply);
+        }
+    }
+}
+
 async function handleCompare(interaction: any, { tables, log }: any) {
     const user1 = interaction.options.getUser('user1');
     const user2 = interaction.options.getUser('user2');
@@ -1473,7 +1541,10 @@ export default {
             .addStringOption((option: any) => option
                 .setName('positions')
                 .setDescription('Comma-separated positions (e.g., pos1,pos2)')
-                .setRequired(true))),
+                .setRequired(true)))
+        .addSubcommand((subcommand: any) => subcommand
+            .setName('syncpositions')
+            .setDescription('Sync hero positions from built-in mapping (owner only)')),
 
     async execute(interaction: any, context: any) {
         const action = interaction.options.getSubcommand();
@@ -1522,6 +1593,9 @@ export default {
                 break;
             case 'setposition':
                 await handleSetPosition(interaction, context);
+                break;
+            case 'syncpositions':
+                await handleSyncPositions(interaction, context);
                 break;
             default:
                 await interaction.reply({
