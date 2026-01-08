@@ -1,6 +1,7 @@
 import Adlibs from "./adlibs";
 import Config from "./config";
 import CustomDice from "./customDice";
+import DotaHeroes from "./dotaHeroes";
 import DotaUsers from "./dotaUsers";
 import Louds from "./louds";
 import Memories from "./memories";
@@ -25,6 +26,7 @@ export default {
     Adlibs,
     Config,
     CustomDice,
+    DotaHeroes,
     DotaUsers,
     Louds,
     Memories,
