@@ -43,6 +43,94 @@ export interface WinLoss {
     lose: number;
 }
 
+export interface HeroStats {
+    hero_id: number;
+    last_played: number;
+    games: number;
+    win: number;
+    with_games: number;
+    with_win: number;
+    against_games: number;
+    against_win: number;
+}
+
+export interface RecentMatch {
+    match_id: number;
+    player_slot: number;
+    radiant_win: boolean;
+    hero_id: number;
+    duration: number;
+    game_mode: number;
+    lobby_type: number;
+    start_time: number;
+    kills: number;
+    deaths: number;
+    assists: number;
+    average_rank?: number;
+    party_size?: number;
+}
+
+export interface PlayerTotals {
+    field: string;
+    n: number;
+    sum: number;
+}
+
+export interface Peer {
+    account_id: number;
+    last_played: number;
+    win: number;
+    games: number;
+    with_win: number;
+    with_games: number;
+    against_win: number;
+    against_games: number;
+    with_gpm_sum: number;
+    with_xpm_sum: number;
+    personaname?: string;
+    avatar?: string;
+}
+
+export interface MatchPlayer {
+    account_id: number;
+    player_slot: number;
+    hero_id: number;
+    kills: number;
+    deaths: number;
+    assists: number;
+    last_hits: number;
+    denies: number;
+    gold_per_min: number;
+    xp_per_min: number;
+    level: number;
+    net_worth: number;
+    personaname?: string;
+    isRadiant: boolean;
+}
+
+export interface MatchDetails {
+    match_id: number;
+    duration: number;
+    start_time: number;
+    radiant_win: boolean;
+    radiant_score: number;
+    dire_score: number;
+    game_mode: number;
+    lobby_type: number;
+    players: MatchPlayer[];
+}
+
+export interface HeroConstant {
+    id: number;
+    name: string;
+    localized_name: string;
+    primary_attr: string;
+    attack_type: string;
+    roles: string[];
+    img: string;
+    icon: string;
+}
+
 /**
  * OpenDota "significant" parameter controls Turbo inclusion:
  * - significant=0: Include ALL games (including Turbo)
@@ -158,9 +246,191 @@ const normalizeSteamId = (steamId: string): string => {
     return steamId;
 };
 
+/**
+ * Get player hero stats
+ * @param accountId Steam 32-bit account ID
+ */
+const getHeroes = async (
+    accountId: string,
+    options?: { significant?: number },
+): Promise<HeroStats[]> => {
+    const params = new URLSearchParams();
+    if (options?.significant !== undefined) {
+        params.append('significant', options.significant.toString());
+    }
+
+    const cacheKey = `heroes:${accountId}:${params.toString()}`;
+    const cached = getCached(cacheKey);
+    if (cached) {return cached;}
+
+    try {
+        const queryString = params.toString();
+        const url = `${OPENDOTA_BASE_URL}/players/${accountId}/heroes${queryString ? '?' + queryString : ''}`;
+        const response = await axios.get(url, { timeout: 10000 });
+        setCache(cacheKey, response.data);
+        return response.data;
+    } catch (error: any) {
+        if (error.response?.status === 404) {
+            return [];
+        }
+        throw error;
+    }
+};
+
+/**
+ * Get player recent matches
+ * @param accountId Steam 32-bit account ID
+ * @param limit Number of matches to return (default 20)
+ */
+const getRecentMatches = async (
+    accountId: string,
+    limit: number = 20,
+): Promise<RecentMatch[]> => {
+    const cacheKey = `recent:${accountId}:${limit}`;
+    const cached = getCached(cacheKey);
+    if (cached) {return cached;}
+
+    try {
+        const url = `${OPENDOTA_BASE_URL}/players/${accountId}/recentMatches`;
+        const response = await axios.get(url, { timeout: 10000 });
+        const data = response.data.slice(0, limit);
+        setCache(cacheKey, data);
+        return data;
+    } catch (error: any) {
+        if (error.response?.status === 404) {
+            return [];
+        }
+        throw error;
+    }
+};
+
+/**
+ * Get player totals/aggregates
+ * @param accountId Steam 32-bit account ID
+ */
+const getTotals = async (
+    accountId: string,
+    options?: { significant?: number },
+): Promise<PlayerTotals[]> => {
+    const params = new URLSearchParams();
+    if (options?.significant !== undefined) {
+        params.append('significant', options.significant.toString());
+    }
+
+    const cacheKey = `totals:${accountId}:${params.toString()}`;
+    const cached = getCached(cacheKey);
+    if (cached) {return cached;}
+
+    try {
+        const queryString = params.toString();
+        const url = `${OPENDOTA_BASE_URL}/players/${accountId}/totals${queryString ? '?' + queryString : ''}`;
+        const response = await axios.get(url, { timeout: 10000 });
+        setCache(cacheKey, response.data);
+        return response.data;
+    } catch (error: any) {
+        if (error.response?.status === 404) {
+            return [];
+        }
+        throw error;
+    }
+};
+
+/**
+ * Get player peers (people they play with)
+ * @param accountId Steam 32-bit account ID
+ */
+const getPeers = async (
+    accountId: string,
+    options?: { significant?: number },
+): Promise<Peer[]> => {
+    const params = new URLSearchParams();
+    if (options?.significant !== undefined) {
+        params.append('significant', options.significant.toString());
+    }
+
+    const cacheKey = `peers:${accountId}:${params.toString()}`;
+    const cached = getCached(cacheKey);
+    if (cached) {return cached;}
+
+    try {
+        const queryString = params.toString();
+        const url = `${OPENDOTA_BASE_URL}/players/${accountId}/peers${queryString ? '?' + queryString : ''}`;
+        const response = await axios.get(url, { timeout: 10000 });
+        setCache(cacheKey, response.data);
+        return response.data;
+    } catch (error: any) {
+        if (error.response?.status === 404) {
+            return [];
+        }
+        throw error;
+    }
+};
+
+/**
+ * Get match details
+ * @param matchId Match ID
+ */
+const getMatch = async (matchId: string): Promise<MatchDetails | null> => {
+    const cacheKey = `match:${matchId}`;
+    const cached = getCached(cacheKey);
+    if (cached) {return cached;}
+
+    try {
+        const url = `${OPENDOTA_BASE_URL}/matches/${matchId}`;
+        const response = await axios.get(url, { timeout: 15000 });
+        setCache(cacheKey, response.data);
+        return response.data;
+    } catch (error: any) {
+        if (error.response?.status === 404) {
+            return null;
+        }
+        throw error;
+    }
+};
+
+// Hero constants cache (longer TTL since heroes rarely change)
+let heroConstants: Record<number, HeroConstant> | null = null;
+let heroConstantsExpires = 0;
+const HERO_CACHE_TTL = 24 * 60 * 60 * 1000; // 24 hours
+
+/**
+ * Get hero constants (names, attributes, etc.)
+ */
+const getHeroConstants = async (): Promise<Record<number, HeroConstant>> => {
+    if (heroConstants && heroConstantsExpires > Date.now()) {
+        return heroConstants;
+    }
+
+    try {
+        const url = `${OPENDOTA_BASE_URL}/constants/heroes`;
+        const response = await axios.get(url, { timeout: 10000 });
+        heroConstants = response.data;
+        heroConstantsExpires = Date.now() + HERO_CACHE_TTL;
+        return response.data;
+    } catch (error: any) {
+        // Return empty object if failed, don't crash
+        return {};
+    }
+};
+
+/**
+ * Get hero name by ID
+ */
+const getHeroName = async (heroId: number): Promise<string> => {
+    const heroes = await getHeroConstants();
+    return heroes[heroId]?.localized_name || `Hero ${heroId}`;
+};
+
 export default {
     getPlayer,
     getWinLoss,
+    getHeroes,
+    getRecentMatches,
+    getTotals,
+    getPeers,
+    getMatch,
+    getHeroConstants,
+    getHeroName,
     validateSteamId,
     normalizeSteamId,
     convertSteamId64To32,

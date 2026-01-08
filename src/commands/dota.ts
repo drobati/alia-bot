@@ -394,6 +394,503 @@ async function handleLeaderboard(interaction: any, { tables, log }: any) {
     }
 }
 
+async function handleHeroes(interaction: any, { tables, log }: any) {
+    const targetUser = interaction.options.getUser('user') || interaction.user;
+    const discordId = targetUser.id;
+    const guildId = interaction.guild?.id;
+
+    if (!guildId) {
+        await interaction.reply({ content: 'This command can only be used in a server.', ephemeral: true });
+        return;
+    }
+
+    try {
+        const record = await tables.DotaUsers.findOne({
+            where: { discord_id: discordId, guild_id: guildId },
+        });
+
+        if (!record) {
+            const isOwn = targetUser.id === interaction.user.id;
+            await interaction.reply({
+                content: isOwn
+                    ? 'You are not registered. Use `/dota register` to register your Steam ID.'
+                    : `${targetUser.username} is not registered for the Dota leaderboard.`,
+                ephemeral: true,
+            });
+            return;
+        }
+
+        await interaction.deferReply();
+
+        const [heroes, playerData] = await Promise.all([
+            opendota.getHeroes(record.steam_id, { significant: 0 }),
+            opendota.getPlayer(record.steam_id),
+        ]);
+
+        // Filter to heroes with games and sort by games played
+        const playedHeroes = heroes
+            .filter(h => h.games > 0)
+            .sort((a, b) => b.games - a.games)
+            .slice(0, 10);
+
+        if (playedHeroes.length === 0) {
+            await interaction.editReply({ content: 'No hero data found.' });
+            return;
+        }
+
+        // Get hero names
+        const heroNames = await Promise.all(
+            playedHeroes.map(h => opendota.getHeroName(h.hero_id)),
+        );
+
+        const embed = new EmbedBuilder()
+            .setTitle(`🦸 ${playerData?.profile?.personaname || 'Player'}'s Top Heroes`)
+            .setColor(0x7c4dff)
+            .setThumbnail(playerData?.profile?.avatarfull || '');
+
+        let heroText = '';
+        playedHeroes.forEach((hero, i) => {
+            const winRate = hero.games > 0 ? ((hero.win / hero.games) * 100).toFixed(1) : '0';
+            const medal = i < 3 ? ['🥇', '🥈', '🥉'][i] : `${i + 1}.`;
+            heroText += `${medal} **${heroNames[i]}** - ${hero.games} games (${winRate}% WR)\n`;
+        });
+
+        embed.addFields([{ name: '📊 Most Played', value: heroText, inline: false }]);
+        embed.setFooter({ text: `Steam ID: ${record.steam_id}` });
+
+        await interaction.editReply({ embeds: [embed] });
+    } catch (error) {
+        log.error({ err: error, discordId, category: 'dota' }, 'Error fetching heroes');
+        const reply = { content: 'An error occurred while fetching hero data.', ephemeral: true };
+        interaction.deferred ? await interaction.editReply(reply) : await interaction.reply(reply);
+    }
+}
+
+async function handleRecent(interaction: any, { tables, log }: any) {
+    const targetUser = interaction.options.getUser('user') || interaction.user;
+    const discordId = targetUser.id;
+    const guildId = interaction.guild?.id;
+
+    if (!guildId) {
+        await interaction.reply({ content: 'This command can only be used in a server.', ephemeral: true });
+        return;
+    }
+
+    try {
+        const record = await tables.DotaUsers.findOne({
+            where: { discord_id: discordId, guild_id: guildId },
+        });
+
+        if (!record) {
+            const isOwn = targetUser.id === interaction.user.id;
+            await interaction.reply({
+                content: isOwn
+                    ? 'You are not registered. Use `/dota register` to register your Steam ID.'
+                    : `${targetUser.username} is not registered for the Dota leaderboard.`,
+                ephemeral: true,
+            });
+            return;
+        }
+
+        await interaction.deferReply();
+
+        const [matches, playerData] = await Promise.all([
+            opendota.getRecentMatches(record.steam_id, 10),
+            opendota.getPlayer(record.steam_id),
+        ]);
+
+        if (matches.length === 0) {
+            await interaction.editReply({ content: 'No recent matches found.' });
+            return;
+        }
+
+        const heroNames = await Promise.all(
+            matches.map(m => opendota.getHeroName(m.hero_id)),
+        );
+
+        const embed = new EmbedBuilder()
+            .setTitle(`📜 ${playerData?.profile?.personaname || 'Player'}'s Recent Matches`)
+            .setColor(0x00bcd4)
+            .setThumbnail(playerData?.profile?.avatarfull || '');
+
+        let matchText = '';
+        matches.forEach((match, i) => {
+            const isRadiant = match.player_slot < 128;
+            const won = isRadiant === match.radiant_win;
+            const result = won ? '✅' : '❌';
+            const kda = `${match.kills}/${match.deaths}/${match.assists}`;
+            const duration = Math.floor(match.duration / 60);
+            matchText += `${result} **${heroNames[i]}** - ${kda} (${duration}m)\n`;
+        });
+
+        embed.addFields([{ name: '🎮 Last 10 Games', value: matchText, inline: false }]);
+
+        // Calculate recent stats
+        const wins = matches.filter(m => (m.player_slot < 128) === m.radiant_win).length;
+        const avgKills = (matches.reduce((a, m) => a + m.kills, 0) / matches.length).toFixed(1);
+        const avgDeaths = (matches.reduce((a, m) => a + m.deaths, 0) / matches.length).toFixed(1);
+        const avgAssists = (matches.reduce((a, m) => a + m.assists, 0) / matches.length).toFixed(1);
+
+        const losses = matches.length - wins;
+        embed.addFields([{
+            name: '📈 Recent Stats',
+            value: `**Record:** ${wins}W/${losses}L | **Avg KDA:** ${avgKills}/${avgDeaths}/${avgAssists}`,
+            inline: false,
+        }]);
+
+        await interaction.editReply({ embeds: [embed] });
+    } catch (error) {
+        log.error({ err: error, discordId, category: 'dota' }, 'Error fetching recent matches');
+        const reply = { content: 'An error occurred while fetching recent matches.', ephemeral: true };
+        interaction.deferred ? await interaction.editReply(reply) : await interaction.reply(reply);
+    }
+}
+
+async function handleTotals(interaction: any, { tables, log }: any) {
+    const targetUser = interaction.options.getUser('user') || interaction.user;
+    const discordId = targetUser.id;
+    const guildId = interaction.guild?.id;
+
+    if (!guildId) {
+        await interaction.reply({ content: 'This command can only be used in a server.', ephemeral: true });
+        return;
+    }
+
+    try {
+        const record = await tables.DotaUsers.findOne({
+            where: { discord_id: discordId, guild_id: guildId },
+        });
+
+        if (!record) {
+            const isOwn = targetUser.id === interaction.user.id;
+            await interaction.reply({
+                content: isOwn
+                    ? 'You are not registered. Use `/dota register` to register your Steam ID.'
+                    : `${targetUser.username} is not registered for the Dota leaderboard.`,
+                ephemeral: true,
+            });
+            return;
+        }
+
+        await interaction.deferReply();
+
+        const [totals, playerData] = await Promise.all([
+            opendota.getTotals(record.steam_id, { significant: 0 }),
+            opendota.getPlayer(record.steam_id),
+        ]);
+
+        if (totals.length === 0) {
+            await interaction.editReply({ content: 'No stats data found.' });
+            return;
+        }
+
+        const getTotal = (field: string) => totals.find(t => t.field === field);
+        const getAvg = (field: string) => {
+            const t = getTotal(field);
+            return t && t.n > 0 ? (t.sum / t.n).toFixed(1) : 'N/A';
+        };
+
+        const kills = getTotal('kills');
+        const deaths = getTotal('deaths');
+        const assists = getTotal('assists');
+        const gamesPlayed = kills?.n || 0;
+
+        const embed = new EmbedBuilder()
+            .setTitle(`📊 ${playerData?.profile?.personaname || 'Player'}'s Lifetime Stats`)
+            .setColor(0xff9800)
+            .setThumbnail(playerData?.profile?.avatarfull || '');
+
+        embed.addFields([
+            { name: '🎮 Games Parsed', value: gamesPlayed.toLocaleString(), inline: true },
+            { name: '⚔️ Total Kills', value: kills?.sum.toLocaleString() || 'N/A', inline: true },
+            { name: '💀 Total Deaths', value: deaths?.sum.toLocaleString() || 'N/A', inline: true },
+            { name: '🤝 Total Assists', value: assists?.sum.toLocaleString() || 'N/A', inline: true },
+            { name: '📈 Avg Kills', value: getAvg('kills'), inline: true },
+            { name: '📉 Avg Deaths', value: getAvg('deaths'), inline: true },
+            { name: '💰 Avg GPM', value: getAvg('gold_per_min'), inline: true },
+            { name: '✨ Avg XPM', value: getAvg('xp_per_min'), inline: true },
+            { name: '🌾 Avg Last Hits', value: getAvg('last_hits'), inline: true },
+        ]);
+
+        // Calculate total time played
+        const duration = getTotal('duration');
+        if (duration) {
+            const totalHours = Math.floor(duration.sum / 3600);
+            embed.addFields([{
+                name: '⏱️ Total Time Played',
+                value: `${totalHours.toLocaleString()} hours`,
+                inline: true,
+            }]);
+        }
+
+        embed.setFooter({ text: `Steam ID: ${record.steam_id}` });
+        await interaction.editReply({ embeds: [embed] });
+    } catch (error) {
+        log.error({ err: error, discordId, category: 'dota' }, 'Error fetching totals');
+        const reply = { content: 'An error occurred while fetching stats.', ephemeral: true };
+        interaction.deferred ? await interaction.editReply(reply) : await interaction.reply(reply);
+    }
+}
+
+async function handlePeers(interaction: any, { tables, log }: any) {
+    const targetUser = interaction.options.getUser('user') || interaction.user;
+    const discordId = targetUser.id;
+    const guildId = interaction.guild?.id;
+
+    if (!guildId) {
+        await interaction.reply({ content: 'This command can only be used in a server.', ephemeral: true });
+        return;
+    }
+
+    try {
+        const record = await tables.DotaUsers.findOne({
+            where: { discord_id: discordId, guild_id: guildId },
+        });
+
+        if (!record) {
+            const isOwn = targetUser.id === interaction.user.id;
+            await interaction.reply({
+                content: isOwn
+                    ? 'You are not registered. Use `/dota register` to register your Steam ID.'
+                    : `${targetUser.username} is not registered for the Dota leaderboard.`,
+                ephemeral: true,
+            });
+            return;
+        }
+
+        await interaction.deferReply();
+
+        const [peers, playerData] = await Promise.all([
+            opendota.getPeers(record.steam_id, { significant: 0 }),
+            opendota.getPlayer(record.steam_id),
+        ]);
+
+        // Filter to peers with at least 5 games and sort by games
+        const topPeers = peers
+            .filter(p => p.with_games >= 5 && p.personaname)
+            .sort((a, b) => b.with_games - a.with_games)
+            .slice(0, 10);
+
+        if (topPeers.length === 0) {
+            await interaction.editReply({ content: 'No peer data found (need 5+ games with someone).' });
+            return;
+        }
+
+        const embed = new EmbedBuilder()
+            .setTitle(`👥 ${playerData?.profile?.personaname || 'Player'}'s Top Teammates`)
+            .setColor(0x4caf50)
+            .setThumbnail(playerData?.profile?.avatarfull || '');
+
+        let peerText = '';
+        topPeers.forEach((peer, i) => {
+            const winRate = peer.with_games > 0
+                ? ((peer.with_win / peer.with_games) * 100).toFixed(1)
+                : '0';
+            const medal = i < 3 ? ['🥇', '🥈', '🥉'][i] : `${i + 1}.`;
+            peerText += `${medal} **${peer.personaname}** - ${peer.with_games} games (${winRate}% WR)\n`;
+        });
+
+        embed.addFields([{ name: '🎮 Most Games Together', value: peerText, inline: false }]);
+        embed.setFooter({ text: `Steam ID: ${record.steam_id}` });
+
+        await interaction.editReply({ embeds: [embed] });
+    } catch (error) {
+        log.error({ err: error, discordId, category: 'dota' }, 'Error fetching peers');
+        const reply = { content: 'An error occurred while fetching peer data.', ephemeral: true };
+        interaction.deferred ? await interaction.editReply(reply) : await interaction.reply(reply);
+    }
+}
+
+async function handleMatch(interaction: any, { log }: any) {
+    const matchId = interaction.options.getString('match_id');
+
+    try {
+        await interaction.deferReply();
+
+        const match = await opendota.getMatch(matchId);
+
+        if (!match) {
+            await interaction.editReply({ content: `Match ${matchId} not found.` });
+            return;
+        }
+
+        const heroNames: Record<number, string> = {};
+        const uniqueHeroIds = [...new Set(match.players.map(p => p.hero_id))];
+        await Promise.all(uniqueHeroIds.map(async id => {
+            heroNames[id] = await opendota.getHeroName(id);
+        }));
+
+        const duration = Math.floor(match.duration / 60);
+        const radiantWin = match.radiant_win;
+
+        const embed = new EmbedBuilder()
+            .setTitle(`🎮 Match ${matchId}`)
+            .setColor(radiantWin ? 0x4caf50 : 0xf44336)
+            .setDescription(`**Duration:** ${duration}m | **Winner:** ${radiantWin ? '🟢 Radiant' : '🔴 Dire'}`);
+
+        // Radiant team
+        const radiant = match.players.filter(p => p.player_slot < 128);
+        let radiantText = '';
+        radiant.forEach(p => {
+            const kda = `${p.kills}/${p.deaths}/${p.assists}`;
+            const name = p.personaname || 'Anonymous';
+            radiantText += `**${heroNames[p.hero_id]}** (${name}) - ${kda}\n`;
+        });
+        embed.addFields([{
+            name: `🟢 Radiant ${radiantWin ? '(Winner)' : ''}`,
+            value: radiantText || 'No data',
+            inline: true,
+        }]);
+
+        // Dire team
+        const dire = match.players.filter(p => p.player_slot >= 128);
+        let direText = '';
+        dire.forEach(p => {
+            const kda = `${p.kills}/${p.deaths}/${p.assists}`;
+            const name = p.personaname || 'Anonymous';
+            direText += `**${heroNames[p.hero_id]}** (${name}) - ${kda}\n`;
+        });
+        embed.addFields([{
+            name: `🔴 Dire ${!radiantWin ? '(Winner)' : ''}`,
+            value: direText || 'No data',
+            inline: true,
+        }]);
+
+        embed.setFooter({ text: `Score: ${match.radiant_score || 0} - ${match.dire_score || 0}` });
+
+        await interaction.editReply({ embeds: [embed] });
+    } catch (error) {
+        log.error({ err: error, matchId, category: 'dota' }, 'Error fetching match');
+        const reply = { content: 'An error occurred while fetching match data.', ephemeral: true };
+        interaction.deferred ? await interaction.editReply(reply) : await interaction.reply(reply);
+    }
+}
+
+async function handleRandom(interaction: any, { log }: any) {
+    try {
+        const heroes = await opendota.getHeroConstants();
+        const heroList = Object.values(heroes).filter(h => h.localized_name);
+
+        if (heroList.length === 0) {
+            await interaction.reply({ content: 'Could not fetch hero list.', ephemeral: true });
+            return;
+        }
+
+        const randomHero = heroList[Math.floor(Math.random() * heroList.length)];
+
+        const embed = new EmbedBuilder()
+            .setTitle('🎲 Random Hero')
+            .setColor(0x9c27b0)
+            .setDescription(`Your hero is: **${randomHero.localized_name}**`)
+            .addFields([
+                { name: '⚔️ Attribute', value: randomHero.primary_attr.toUpperCase(), inline: true },
+                { name: '🗡️ Attack', value: randomHero.attack_type, inline: true },
+                { name: '🎭 Roles', value: randomHero.roles.join(', ') || 'N/A', inline: false },
+            ])
+            .setThumbnail(`https://cdn.cloudflare.steamstatic.com${randomHero.img}`);
+
+        await interaction.reply({ embeds: [embed] });
+    } catch (error) {
+        log.error({ err: error, category: 'dota' }, 'Error getting random hero');
+        await interaction.reply({ content: 'An error occurred while picking a random hero.', ephemeral: true });
+    }
+}
+
+async function handleCompare(interaction: any, { tables, log }: any) {
+    const user1 = interaction.options.getUser('user1');
+    const user2 = interaction.options.getUser('user2');
+    const guildId = interaction.guild?.id;
+
+    if (!guildId) {
+        await interaction.reply({ content: 'This command can only be used in a server.', ephemeral: true });
+        return;
+    }
+
+    try {
+        const [record1, record2] = await Promise.all([
+            tables.DotaUsers.findOne({ where: { discord_id: user1.id, guild_id: guildId } }),
+            tables.DotaUsers.findOne({ where: { discord_id: user2.id, guild_id: guildId } }),
+        ]);
+
+        if (!record1 || !record2) {
+            const missing = !record1 ? user1.username : user2.username;
+            await interaction.reply({
+                content: `${missing} is not registered for the Dota leaderboard.`,
+                ephemeral: true,
+            });
+            return;
+        }
+
+        await interaction.deferReply();
+
+        const [player1, player2, wl1, wl2, totals1, totals2] = await Promise.all([
+            opendota.getPlayer(record1.steam_id),
+            opendota.getPlayer(record2.steam_id),
+            opendota.getWinLoss(record1.steam_id, { significant: 0 }),
+            opendota.getWinLoss(record2.steam_id, { significant: 0 }),
+            opendota.getTotals(record1.steam_id, { significant: 0 }),
+            opendota.getTotals(record2.steam_id, { significant: 0 }),
+        ]);
+
+        const getAvg = (totals: any[], field: string) => {
+            const t = totals.find(x => x.field === field);
+            return t && t.n > 0 ? (t.sum / t.n).toFixed(1) : 'N/A';
+        };
+
+        const wr1 = wl1 ? ((wl1.win / (wl1.win + wl1.lose)) * 100).toFixed(1) : 'N/A';
+        const wr2 = wl2 ? ((wl2.win / (wl2.win + wl2.lose)) * 100).toFixed(1) : 'N/A';
+
+        const name1 = player1?.profile?.personaname || user1.username;
+        const name2 = player2?.profile?.personaname || user2.username;
+
+        const embed = new EmbedBuilder()
+            .setTitle(`⚔️ ${name1} vs ${name2}`)
+            .setColor(0xe91e63);
+
+        const makeComparison = (label: string, v1: string, v2: string) =>
+            `**${label}**\n${v1} vs ${v2}`;
+
+        embed.addFields([
+            {
+                name: '📊 Win Rate',
+                value: makeComparison('', `${wr1}%`, `${wr2}%`),
+                inline: true,
+            },
+            {
+                name: '🎮 Total Games',
+                value: makeComparison('', `${wl1 ? wl1.win + wl1.lose : 0}`, `${wl2 ? wl2.win + wl2.lose : 0}`),
+                inline: true,
+            },
+            {
+                name: '⚔️ Avg Kills',
+                value: makeComparison('', getAvg(totals1, 'kills'), getAvg(totals2, 'kills')),
+                inline: true,
+            },
+            {
+                name: '💀 Avg Deaths',
+                value: makeComparison('', getAvg(totals1, 'deaths'), getAvg(totals2, 'deaths')),
+                inline: true,
+            },
+            {
+                name: '💰 Avg GPM',
+                value: makeComparison('', getAvg(totals1, 'gold_per_min'), getAvg(totals2, 'gold_per_min')),
+                inline: true,
+            },
+            {
+                name: '✨ Avg XPM',
+                value: makeComparison('', getAvg(totals1, 'xp_per_min'), getAvg(totals2, 'xp_per_min')),
+                inline: true,
+            },
+        ]);
+
+        await interaction.editReply({ embeds: [embed] });
+    } catch (error) {
+        log.error({ err: error, category: 'dota' }, 'Error comparing players');
+        const reply = { content: 'An error occurred while comparing players.', ephemeral: true };
+        interaction.deferred ? await interaction.editReply(reply) : await interaction.reply(reply);
+    }
+}
+
 export default {
     data: new SlashCommandBuilder()
         .setName('dota')
@@ -442,7 +939,56 @@ export default {
                 .addChoices(
                     { name: 'All Modes (incl. Turbo)', value: 'all' },
                     { name: 'Ranked Only', value: 'ranked' },
-                ))),
+                )))
+        .addSubcommand((subcommand: any) => subcommand
+            .setName('heroes')
+            .setDescription('View top played heroes')
+            .addUserOption((option: any) => option
+                .setName('user')
+                .setDescription('User to view (defaults to yourself)')
+                .setRequired(false)))
+        .addSubcommand((subcommand: any) => subcommand
+            .setName('recent')
+            .setDescription('View recent matches')
+            .addUserOption((option: any) => option
+                .setName('user')
+                .setDescription('User to view (defaults to yourself)')
+                .setRequired(false)))
+        .addSubcommand((subcommand: any) => subcommand
+            .setName('totals')
+            .setDescription('View lifetime stats')
+            .addUserOption((option: any) => option
+                .setName('user')
+                .setDescription('User to view (defaults to yourself)')
+                .setRequired(false)))
+        .addSubcommand((subcommand: any) => subcommand
+            .setName('peers')
+            .setDescription('View top teammates')
+            .addUserOption((option: any) => option
+                .setName('user')
+                .setDescription('User to view (defaults to yourself)')
+                .setRequired(false)))
+        .addSubcommand((subcommand: any) => subcommand
+            .setName('match')
+            .setDescription('View match details')
+            .addStringOption((option: any) => option
+                .setName('match_id')
+                .setDescription('Match ID to look up')
+                .setRequired(true)))
+        .addSubcommand((subcommand: any) => subcommand
+            .setName('random')
+            .setDescription('Get a random hero to play'))
+        .addSubcommand((subcommand: any) => subcommand
+            .setName('compare')
+            .setDescription('Compare two players')
+            .addUserOption((option: any) => option
+                .setName('user1')
+                .setDescription('First player')
+                .setRequired(true))
+            .addUserOption((option: any) => option
+                .setName('user2')
+                .setDescription('Second player')
+                .setRequired(true))),
     async execute(interaction: any, context: any) {
         const action = interaction.options.getSubcommand();
         switch (action) {
@@ -457,6 +1003,27 @@ export default {
                 break;
             case 'leaderboard':
                 await handleLeaderboard(interaction, context);
+                break;
+            case 'heroes':
+                await handleHeroes(interaction, context);
+                break;
+            case 'recent':
+                await handleRecent(interaction, context);
+                break;
+            case 'totals':
+                await handleTotals(interaction, context);
+                break;
+            case 'peers':
+                await handlePeers(interaction, context);
+                break;
+            case 'match':
+                await handleMatch(interaction, context);
+                break;
+            case 'random':
+                await handleRandom(interaction, context);
+                break;
+            case 'compare':
+                await handleCompare(interaction, context);
                 break;
             default:
                 await interaction.reply({
