@@ -25,7 +25,7 @@ describe('Dota Command', () => {
         it('should have subcommands', () => {
             const json = dota.data.toJSON();
             expect(json.options).toBeDefined();
-            expect(json.options!.length).toBe(4);
+            expect(json.options!.length).toBe(11);
         });
 
         it('should have register subcommand', () => {
