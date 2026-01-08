@@ -43,6 +43,46 @@ export interface WinLoss {
     lose: number;
 }
 
+// Game mode IDs for Dota 2
+export const GAME_MODES = {
+    ALL_PICK: 1,
+    CAPTAINS_MODE: 2,
+    RANDOM_DRAFT: 3,
+    SINGLE_DRAFT: 4,
+    ALL_RANDOM: 5,
+    INTRO: 6,
+    DIRETIDE: 7,
+    REVERSE_CAPTAINS_MODE: 8,
+    GREEVILING: 9,
+    TUTORIAL: 10,
+    MID_ONLY: 11,
+    LEAST_PLAYED: 12,
+    LIMITED_HEROES: 13,
+    COMPENDIUM_MATCHMAKING: 14,
+    CUSTOM: 15,
+    CAPTAINS_DRAFT: 16,
+    BALANCED_DRAFT: 17,
+    ABILITY_DRAFT: 18,
+    EVENT: 19,
+    ALL_RANDOM_DEATHMATCH: 20,
+    SOLO_MID: 21,
+    ALL_PICK_RANKED: 22,
+    TURBO: 23,
+    MUTATION: 24,
+} as const;
+
+export type GameModeKey = keyof typeof GAME_MODES;
+
+// Preset game mode filters
+export const MODE_PRESETS = {
+    turbo: [GAME_MODES.TURBO],
+    ranked: [GAME_MODES.ALL_PICK_RANKED, GAME_MODES.CAPTAINS_MODE],
+    allpick: [GAME_MODES.ALL_PICK, GAME_MODES.ALL_PICK_RANKED],
+    all: [], // Empty means no filter - all modes
+} as const;
+
+export type ModePreset = keyof typeof MODE_PRESETS;
+
 /**
  * Get player profile and basic stats
  * @param accountId Steam 32-bit account ID
@@ -69,15 +109,21 @@ const getPlayer = async (accountId: string): Promise<PlayerData | null> => {
 /**
  * Get player win/loss record
  * @param accountId Steam 32-bit account ID
- * @param options Optional filters (date range)
+ * @param options Optional filters (date range, game modes)
  */
 const getWinLoss = async (
     accountId: string,
-    options?: { date?: number },
+    options?: { date?: number; gameModes?: number[] },
 ): Promise<WinLoss | null> => {
     const params = new URLSearchParams();
     if (options?.date) {
         params.append('date', options.date.toString());
+    }
+    if (options?.gameModes && options.gameModes.length > 0) {
+        // OpenDota accepts multiple game_mode params
+        options.gameModes.forEach(mode => {
+            params.append('game_mode', mode.toString());
+        });
     }
 
     const cacheKey = `wl:${accountId}:${params.toString()}`;
@@ -85,7 +131,8 @@ const getWinLoss = async (
     if (cached) {return cached;}
 
     try {
-        const url = `${OPENDOTA_BASE_URL}/players/${accountId}/wl${params.toString() ? '?' + params.toString() : ''}`;
+        const queryString = params.toString();
+        const url = `${OPENDOTA_BASE_URL}/players/${accountId}/wl${queryString ? '?' + queryString : ''}`;
         const response = await axios.get(url, {
             timeout: 10000,
         });
@@ -146,4 +193,6 @@ export default {
     normalizeSteamId,
     convertSteamId64To32,
     isSteamId64,
+    GAME_MODES,
+    MODE_PRESETS,
 };
