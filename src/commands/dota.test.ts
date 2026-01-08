@@ -8,10 +8,8 @@ jest.mock('../lib/apis/opendota', () => ({
         getPlayer: jest.fn().mockResolvedValue(null),
         getWinLoss: jest.fn().mockResolvedValue(null),
         MODE_PRESETS: {
-            turbo: [23],
-            ranked: [22, 2],
-            allpick: [1, 22],
-            all: [],
+            all: { significant: 0 },      // All games including Turbo
+            ranked: { significant: 1 },   // Excludes Turbo
         },
     },
 }));
@@ -50,7 +48,7 @@ describe('Dota Command', () => {
             expect(profile).toBeDefined();
             const modeOption = profile!.options.find((opt: any) => opt.name === 'mode');
             expect(modeOption).toBeDefined();
-            expect(modeOption.choices).toHaveLength(4);
+            expect(modeOption.choices).toHaveLength(2);
         });
 
         it('should have leaderboard subcommand with timeframe and mode options', () => {
@@ -61,7 +59,7 @@ describe('Dota Command', () => {
             expect(leaderboard!.options[0].choices).toHaveLength(3);
             const modeOption = leaderboard!.options.find((opt: any) => opt.name === 'mode');
             expect(modeOption).toBeDefined();
-            expect(modeOption.choices).toHaveLength(4);
+            expect(modeOption.choices).toHaveLength(2);
         });
     });
 
@@ -409,12 +407,12 @@ describe('Dota Command', () => {
                 });
             });
 
-            it('should filter by turbo mode when specified', async () => {
+            it('should filter by ranked mode when specified', async () => {
                 const mockInteraction = {
                     options: {
                         getSubcommand: () => 'profile',
                         getUser: () => null,
-                        getString: (name: string) => name === 'mode' ? 'turbo' : null,
+                        getString: (name: string) => name === 'mode' ? 'ranked' : null,
                     },
                     user: { id: 'discord123' },
                     guild: { id: 'guild123' },
@@ -431,10 +429,39 @@ describe('Dota Command', () => {
 
                 await dota.execute(mockInteraction, mockContext);
 
-                // Verify getWinLoss was called with turbo game mode
+                // Verify getWinLoss was called with significant=1 (excludes Turbo)
                 expect(mockedOpendota.getWinLoss).toHaveBeenCalledWith(
                     '123456789',
-                    expect.objectContaining({ gameModes: [23] }),
+                    expect.objectContaining({ significant: 1 }),
+                );
+            });
+
+            it('should include Turbo by default (all mode)', async () => {
+                const mockInteraction = {
+                    options: {
+                        getSubcommand: () => 'profile',
+                        getUser: () => null,
+                        getString: () => null, // default to 'all'
+                    },
+                    user: { id: 'discord123' },
+                    guild: { id: 'guild123' },
+                    reply: jest.fn(),
+                    deferReply: jest.fn(),
+                    editReply: jest.fn(),
+                };
+
+                mockContext.tables.DotaUsers.findOne.mockResolvedValue({
+                    steam_id: '123456789',
+                });
+
+                mockedOpendota.getPlayer.mockResolvedValue({});
+
+                await dota.execute(mockInteraction, mockContext);
+
+                // Verify getWinLoss was called with significant=0 (includes Turbo)
+                expect(mockedOpendota.getWinLoss).toHaveBeenCalledWith(
+                    '123456789',
+                    expect.objectContaining({ significant: 0 }),
                 );
             });
         });
@@ -600,11 +627,11 @@ describe('Dota Command', () => {
                 });
             });
 
-            it('should filter by turbo mode when specified', async () => {
+            it('should filter by ranked mode when specified', async () => {
                 const mockInteraction = {
                     options: {
                         getSubcommand: () => 'leaderboard',
-                        getString: createGetString('month', 'turbo'),
+                        getString: createGetString('month', 'ranked'),
                     },
                     guild: { id: 'guild123' },
                     reply: jest.fn(),
@@ -620,10 +647,37 @@ describe('Dota Command', () => {
 
                 await dota.execute(mockInteraction, mockContext);
 
-                // Verify getWinLoss was called with turbo game mode
+                // Verify getWinLoss was called with significant=1 (excludes Turbo)
                 expect(mockedOpendota.getWinLoss).toHaveBeenCalledWith(
                     '111',
-                    expect.objectContaining({ gameModes: [23] }),
+                    expect.objectContaining({ significant: 1 }),
+                );
+            });
+
+            it('should include Turbo by default (all mode)', async () => {
+                const mockInteraction = {
+                    options: {
+                        getSubcommand: () => 'leaderboard',
+                        getString: createGetString('month', null), // default to 'all'
+                    },
+                    guild: { id: 'guild123' },
+                    reply: jest.fn(),
+                    deferReply: jest.fn(),
+                    editReply: jest.fn(),
+                };
+
+                mockContext.tables.DotaUsers.findAll.mockResolvedValue([
+                    { discord_id: 'user1', steam_id: '111', steam_username: 'Player1' },
+                ]);
+
+                mockedOpendota.getWinLoss.mockResolvedValue({ win: 10, lose: 5 });
+
+                await dota.execute(mockInteraction, mockContext);
+
+                // Verify getWinLoss was called with significant=0 (includes Turbo)
+                expect(mockedOpendota.getWinLoss).toHaveBeenCalledWith(
+                    '111',
+                    expect.objectContaining({ significant: 0 }),
                 );
             });
         });

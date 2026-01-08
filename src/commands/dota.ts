@@ -10,14 +10,12 @@ const TIMEFRAMES: Record<string, { days: number; label: string }> = {
 
 // Game mode options for profile/leaderboard
 const GAME_MODE_LABELS: Record<ModePreset, string> = {
-    all: 'All Modes',
-    turbo: 'Turbo',
-    ranked: 'Ranked',
-    allpick: 'All Pick',
+    all: 'All Modes (incl. Turbo)',
+    ranked: 'Ranked Only',
 };
 
-// Helper to get game modes array from preset
-const getGameModes = (preset: ModePreset): number[] => [...opendota.MODE_PRESETS[preset]];
+// Helper to get significant param from preset
+const getModeOptions = (preset: ModePreset): { significant: number } => opendota.MODE_PRESETS[preset];
 
 async function handleRegister(interaction: any, { tables, log }: any) {
     const steamIdInput = interaction.options.getString('steam_id');
@@ -166,15 +164,15 @@ async function handleProfile(interaction: any, { tables, log }: any) {
 
         await interaction.deferReply();
 
-        const gameModes = getGameModes(modeKey);
+        const modeOptions = getModeOptions(modeKey);
         const modeLabel = GAME_MODE_LABELS[modeKey];
 
         // Fetch player data from OpenDota
         const [playerData, wlAll, wlMonth, wlWeek] = await Promise.all([
             opendota.getPlayer(record.steam_id),
-            opendota.getWinLoss(record.steam_id, { gameModes }),
-            opendota.getWinLoss(record.steam_id, { date: 30, gameModes }),
-            opendota.getWinLoss(record.steam_id, { date: 7, gameModes }),
+            opendota.getWinLoss(record.steam_id, { ...modeOptions }),
+            opendota.getWinLoss(record.steam_id, { date: 30, ...modeOptions }),
+            opendota.getWinLoss(record.steam_id, { date: 7, ...modeOptions }),
         ]);
 
         if (!playerData || !playerData.profile) {
@@ -213,8 +211,8 @@ async function handleProfile(interaction: any, { tables, log }: any) {
                 },
             ]);
 
-        // Add MMR estimate if available (only show for ranked/all modes)
-        if (playerData.mmr_estimate?.estimate && (modeKey === 'all' || modeKey === 'ranked')) {
+        // Add MMR estimate if available
+        if (playerData.mmr_estimate?.estimate) {
             embed.addFields([{
                 name: '🏆 Estimated MMR',
                 value: playerData.mmr_estimate.estimate.toString(),
@@ -222,8 +220,8 @@ async function handleProfile(interaction: any, { tables, log }: any) {
             }]);
         }
 
-        // Add rank tier if available (only show for ranked/all modes)
-        if (playerData.rank_tier && (modeKey === 'all' || modeKey === 'ranked')) {
+        // Add rank tier if available
+        if (playerData.rank_tier) {
             const medals = ['', 'Herald', 'Guardian', 'Crusader', 'Archon', 'Legend', 'Ancient', 'Divine', 'Immortal'];
             const medalIndex = Math.floor(playerData.rank_tier / 10);
             const stars = playerData.rank_tier % 10;
@@ -268,7 +266,7 @@ async function handleLeaderboard(interaction: any, { tables, log }: any) {
     }
 
     const timeframe = TIMEFRAMES[timeframeKey];
-    const gameModes = getGameModes(modeKey);
+    const modeOptions = getModeOptions(modeKey);
     const modeLabel = GAME_MODE_LABELS[modeKey];
 
     try {
@@ -302,8 +300,8 @@ async function handleLeaderboard(interaction: any, { tables, log }: any) {
         for (const user of users) {
             try {
                 const options = timeframe.days > 0
-                    ? { date: timeframe.days, gameModes }
-                    : { gameModes };
+                    ? { date: timeframe.days, ...modeOptions }
+                    : { ...modeOptions };
                 const wl = await opendota.getWinLoss(user.steam_id, options);
 
                 if (wl && (wl.win + wl.lose) > 0) {
@@ -422,10 +420,8 @@ export default {
                 .setDescription('Game mode to filter stats')
                 .setRequired(false)
                 .addChoices(
-                    { name: 'All Modes', value: 'all' },
-                    { name: 'Turbo', value: 'turbo' },
-                    { name: 'Ranked', value: 'ranked' },
-                    { name: 'All Pick', value: 'allpick' },
+                    { name: 'All Modes (incl. Turbo)', value: 'all' },
+                    { name: 'Ranked Only', value: 'ranked' },
                 )))
         .addSubcommand((subcommand: any) => subcommand
             .setName('leaderboard')
@@ -444,10 +440,8 @@ export default {
                 .setDescription('Game mode to filter stats')
                 .setRequired(false)
                 .addChoices(
-                    { name: 'All Modes', value: 'all' },
-                    { name: 'Turbo', value: 'turbo' },
-                    { name: 'Ranked', value: 'ranked' },
-                    { name: 'All Pick', value: 'allpick' },
+                    { name: 'All Modes (incl. Turbo)', value: 'all' },
+                    { name: 'Ranked Only', value: 'ranked' },
                 ))),
     async execute(interaction: any, context: any) {
         const action = interaction.options.getSubcommand();
