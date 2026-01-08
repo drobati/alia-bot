@@ -32,7 +32,7 @@ describe('Dota Command', () => {
         it('should have subcommands', () => {
             const json = dota.data.toJSON();
             expect(json.options).toBeDefined();
-            expect(json.options!.length).toBe(13);
+            expect(json.options!.length).toBe(15);
         });
 
         it('should have help subcommand', () => {
@@ -92,6 +92,11 @@ describe('Dota Command', () => {
                     findOne: jest.fn(),
                     findAll: jest.fn(),
                     create: jest.fn(),
+                },
+                DotaHeroes: {
+                    findOne: jest.fn(),
+                    findAll: jest.fn(),
+                    findOrCreate: jest.fn(),
                 },
             },
             log: {
@@ -1128,7 +1133,7 @@ describe('Dota Command', () => {
         });
 
         describe('random subcommand', () => {
-            it('should display random hero successfully', async () => {
+            it('should display random hero from database', async () => {
                 const mockInteraction = {
                     options: {
                         getSubcommand: () => 'random',
@@ -1137,6 +1142,41 @@ describe('Dota Command', () => {
                     reply: jest.fn(),
                 };
 
+                // Mock database returning heroes
+                mockContext.tables.DotaHeroes.findAll.mockResolvedValue([
+                    {
+                        hero_id: 1,
+                        name: 'npc_dota_hero_antimage',
+                        localized_name: 'Anti-Mage',
+                        primary_attr: 'agi',
+                        attack_type: 'Melee',
+                        roles: ['Carry', 'Escape'],
+                        positions: ['pos1'],
+                        img: '/apps/dota2/images/heroes/antimage_full.png',
+                        icon: '/apps/dota2/images/heroes/antimage_icon.png',
+                    },
+                ]);
+
+                await dota.execute(mockInteraction, mockContext);
+
+                expect(mockInteraction.reply).toHaveBeenCalledWith({
+                    embeds: expect.any(Array),
+                });
+            });
+
+            it('should fall back to API when database is empty', async () => {
+                const mockInteraction = {
+                    options: {
+                        getSubcommand: () => 'random',
+                        getString: () => null,
+                    },
+                    reply: jest.fn(),
+                };
+
+                // Database returns empty
+                mockContext.tables.DotaHeroes.findAll.mockResolvedValue([]);
+
+                // API returns heroes
                 mockedOpendota.getHeroConstants.mockResolvedValue({
                     1: {
                         id: 1,
@@ -1157,7 +1197,7 @@ describe('Dota Command', () => {
                 });
             });
 
-            it('should handle no hero data', async () => {
+            it('should prompt to run sync when database is empty and API fails', async () => {
                 const mockInteraction = {
                     options: {
                         getSubcommand: () => 'random',
@@ -1166,17 +1206,77 @@ describe('Dota Command', () => {
                     reply: jest.fn(),
                 };
 
+                // Database returns empty
+                mockContext.tables.DotaHeroes.findAll.mockResolvedValue([]);
+
+                // API returns empty too
                 mockedOpendota.getHeroConstants.mockResolvedValue({});
 
                 await dota.execute(mockInteraction, mockContext);
 
                 expect(mockInteraction.reply).toHaveBeenCalledWith({
-                    content: 'Could not fetch hero list.',
+                    content: expect.stringContaining('/dota sync'),
                     ephemeral: true,
                 });
             });
 
-            it('should handle API errors', async () => {
+            it('should filter by attribute', async () => {
+                const mockInteraction = {
+                    options: {
+                        getSubcommand: () => 'random',
+                        getString: (name: string) => name === 'attribute' ? 'str' : null,
+                    },
+                    reply: jest.fn(),
+                };
+
+                // Mock database with filtered results
+                mockContext.tables.DotaHeroes.findAll.mockResolvedValue([
+                    {
+                        hero_id: 2,
+                        localized_name: 'Axe',
+                        primary_attr: 'str',
+                        attack_type: 'Melee',
+                        roles: ['Initiator', 'Durable'],
+                        positions: ['pos3'],
+                        img: '/apps/dota2/images/heroes/axe_full.png',
+                    },
+                ]);
+
+                await dota.execute(mockInteraction, mockContext);
+
+                expect(mockContext.tables.DotaHeroes.findAll).toHaveBeenCalledWith({
+                    where: { primary_attr: 'str' },
+                });
+                expect(mockInteraction.reply).toHaveBeenCalledWith({
+                    embeds: expect.any(Array),
+                });
+            });
+
+            it('should handle no matching heroes', async () => {
+                const mockInteraction = {
+                    options: {
+                        getSubcommand: () => 'random',
+                        getString: (name: string) => {
+                            if (name === 'attribute') {return 'str';}
+                            if (name === 'role') {return 'Support';}
+                            return null;
+                        },
+                    },
+                    reply: jest.fn(),
+                };
+
+                // No heroes match the filter combination
+                mockContext.tables.DotaHeroes.findAll.mockResolvedValue([]);
+
+                await dota.execute(mockInteraction, mockContext);
+
+                expect(mockInteraction.reply).toHaveBeenCalledWith({
+                    content: expect.stringContaining('No heroes match your filters'),
+                    ephemeral: true,
+                });
+            });
+
+            it('should handle database errors', async () => {
                 const mockInteraction = {
                     options: {
                         getSubcommand: () => 'random',
@@ -1185,7 +1285,7 @@ describe('Dota Command', () => {
                     reply: jest.fn(),
                 };
 
-                mockedOpendota.getHeroConstants.mockRejectedValue(new Error('API error'));
+                mockContext.tables.DotaHeroes.findAll.mockRejectedValue(new Error('DB error'));
 
                 await dota.execute(mockInteraction, mockContext);
 
@@ -1483,6 +1583,101 @@ describe('Dota Command', () => {
                 expect(linksField.value).toContain('Steam Profile');
                 expect(linksField.value).toContain('OpenDota');
                 expect(linksField.value).toContain('Dotabuff');
+            });
+        });
+
+        describe('sync subcommand', () => {
+            it('should reject non-owner users', async () => {
+                const mockInteraction = {
+                    options: { getSubcommand: () => 'sync' },
+                    user: { id: 'notowner', username: 'testuser' },
+                    commandName: 'dota',
+                    reply: jest.fn(),
+                };
+
+                await dota.execute(mockInteraction, mockContext);
+
+                expect(mockInteraction.reply).toHaveBeenCalledWith({
+                    content: expect.stringContaining('restricted to the bot owner'),
+                    ephemeral: true,
+                });
+            });
+        });
+
+        describe('setposition subcommand', () => {
+            it('should reject non-owner users', async () => {
+                const mockInteraction = {
+                    options: {
+                        getSubcommand: () => 'setposition',
+                        getString: (name: string) => {
+                            if (name === 'hero') {return 'Axe';}
+                            if (name === 'positions') {return 'pos3';}
+                            return null;
+                        },
+                    },
+                    user: { id: 'notowner', username: 'testuser' },
+                    commandName: 'dota',
+                    reply: jest.fn(),
+                };
+
+                await dota.execute(mockInteraction, mockContext);
+
+                expect(mockInteraction.reply).toHaveBeenCalledWith({
+                    content: expect.stringContaining('restricted to the bot owner'),
+                    ephemeral: true,
+                });
+            });
+        });
+
+        describe('autocomplete', () => {
+            it('should provide hero name suggestions', async () => {
+                const mockInteraction = {
+                    options: {
+                        getFocused: () => ({ name: 'hero', value: 'ax' }),
+                    },
+                    respond: jest.fn(),
+                };
+
+                mockContext.tables.DotaHeroes.findAll.mockResolvedValue([
+                    { localized_name: 'Axe' },
+                    { localized_name: 'Anti-Mage' },
+                ]);
+
+                await dota.autocomplete(mockInteraction, mockContext);
+
+                expect(mockInteraction.respond).toHaveBeenCalledWith([
+                    { name: 'Axe', value: 'Axe' },
+                ]);
+            });
+
+            it('should handle empty database', async () => {
+                const mockInteraction = {
+                    options: {
+                        getFocused: () => ({ name: 'hero', value: '' }),
+                    },
+                    respond: jest.fn(),
+                };
+
+                mockContext.tables.DotaHeroes.findAll.mockResolvedValue([]);
+
+                await dota.autocomplete(mockInteraction, mockContext);
+
+                expect(mockInteraction.respond).toHaveBeenCalledWith([]);
+            });
+
+            it('should handle database errors gracefully', async () => {
+                const mockInteraction = {
+                    options: {
+                        getFocused: () => ({ name: 'hero', value: 'test' }),
+                    },
+                    respond: jest.fn(),
+                };
+
+                mockContext.tables.DotaHeroes.findAll.mockRejectedValue(new Error('DB error'));
+
+                await dota.autocomplete(mockInteraction, mockContext);
+
+                expect(mockInteraction.respond).toHaveBeenCalledWith([]);
             });
         });
     });

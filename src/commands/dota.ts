@@ -1,5 +1,28 @@
 import { EmbedBuilder, SlashCommandBuilder } from "discord.js";
 import opendota, { ModePreset } from "../lib/apis/opendota";
+import { checkOwnerPermission } from "../utils/permissions";
+import { Op } from "sequelize";
+
+// Valid positions for hero filtering
+const VALID_POSITIONS = ['pos1', 'pos2', 'pos3', 'pos4', 'pos5'] as const;
+type Position = typeof VALID_POSITIONS[number];
+
+// Attribute display labels
+const ATTR_LABELS: Record<string, string> = {
+    str: 'Strength',
+    agi: 'Agility',
+    int: 'Intelligence',
+    all: 'Universal',
+};
+
+// Position display labels
+const POSITION_LABELS: Record<Position, string> = {
+    pos1: 'Position 1 (Carry)',
+    pos2: 'Position 2 (Mid)',
+    pos3: 'Position 3 (Offlane)',
+    pos4: 'Position 4 (Soft Support)',
+    pos5: 'Position 5 (Hard Support)',
+};
 
 // Help text for the /dota help command
 const HELP_TEXT = {
@@ -807,28 +830,141 @@ async function handleMatch(interaction: any, { log }: any) {
     }
 }
 
-async function handleRandom(interaction: any, { log }: any) {
+async function handleRandom(interaction: any, { tables, log }: any) {
     try {
-        const heroes = await opendota.getHeroConstants();
-        const heroList = Object.values(heroes).filter(h => h.localized_name);
+        // Get filter options
+        const attributeFilter = interaction.options.getString('attribute');
+        const attackFilter = interaction.options.getString('attack');
+        const roleFilter = interaction.options.getString('role');
+        const positionFilter = interaction.options.getString('position');
 
-        if (heroList.length === 0) {
-            await interaction.reply({ content: 'Could not fetch hero list.', ephemeral: true });
+        // Track applied filters for display
+        const appliedFilters: string[] = [];
+
+        // Build WHERE clause for database query
+        const whereClause: any = {};
+
+        if (attributeFilter) {
+            whereClause.primary_attr = attributeFilter;
+            appliedFilters.push(`Attribute: ${ATTR_LABELS[attributeFilter] || attributeFilter}`);
+        }
+
+        if (attackFilter) {
+            whereClause.attack_type = attackFilter;
+            appliedFilters.push(`Attack: ${attackFilter}`);
+        }
+
+        // Query heroes from database
+        let heroes = await tables.DotaHeroes.findAll({ where: whereClause });
+
+        // If no heroes in database, fall back to API
+        if (heroes.length === 0 && Object.keys(whereClause).length === 0) {
+            log.warn({ category: 'dota' }, 'No heroes in database, falling back to API');
+            const apiHeroes = await opendota.getHeroConstants();
+            const heroList = Object.values(apiHeroes).filter(h => h.localized_name);
+
+            if (heroList.length === 0) {
+                await interaction.reply({
+                    content: 'No heroes found. Please run `/dota sync` first to populate the hero database.',
+                    ephemeral: true,
+                });
+                return;
+            }
+
+            const randomHero = heroList[Math.floor(Math.random() * heroList.length)];
+            const embed = new EmbedBuilder()
+                .setTitle('🎲 Random Hero')
+                .setColor(0x9c27b0)
+                .setDescription(`Your hero is: **${randomHero.localized_name}**`)
+                .addFields([
+                    {
+                        name: '⚔️ Attribute',
+                        value: ATTR_LABELS[randomHero.primary_attr] || randomHero.primary_attr.toUpperCase(),
+                        inline: true,
+                    },
+                    { name: '🗡️ Attack', value: randomHero.attack_type, inline: true },
+                    { name: '🎭 Roles', value: randomHero.roles.join(', ') || 'N/A', inline: false },
+                ])
+                .setThumbnail(`https://cdn.cloudflare.steamstatic.com${randomHero.img}`)
+                .setFooter({ text: '⚠️ Run /dota sync to enable filtering' });
+
+            await interaction.reply({ embeds: [embed] });
             return;
         }
 
-        const randomHero = heroList[Math.floor(Math.random() * heroList.length)];
+        // Apply role filter (JSON array field - filter in JS)
+        if (roleFilter) {
+            heroes = heroes.filter((h: any) => {
+                const roles = h.roles || [];
+                return roles.includes(roleFilter);
+            });
+            appliedFilters.push(`Role: ${roleFilter}`);
+        }
+
+        // Apply position filter (JSON array field - filter in JS)
+        if (positionFilter) {
+            heroes = heroes.filter((h: any) => {
+                const positions = h.positions || [];
+                return positions.includes(positionFilter);
+            });
+            appliedFilters.push(`Position: ${POSITION_LABELS[positionFilter as Position] || positionFilter}`);
+        }
+
+        // Handle empty result
+        if (heroes.length === 0) {
+            const filterText = appliedFilters.length > 0
+                ? `\n**Filters:** ${appliedFilters.join(' | ')}`
+                : '';
+            await interaction.reply({
+                content: `No heroes match your filters.${filterText}\n\n` +
+                    `Try removing some filters or using different combinations.`,
+                ephemeral: true,
+            });
+            return;
+        }
+
+        // Pick random hero from filtered list
+        const randomHero = heroes[Math.floor(Math.random() * heroes.length)];
+        const heroRoles = randomHero.roles || [];
+        const heroPositions = (randomHero.positions || []) as Position[];
 
         const embed = new EmbedBuilder()
             .setTitle('🎲 Random Hero')
             .setColor(0x9c27b0)
             .setDescription(`Your hero is: **${randomHero.localized_name}**`)
             .addFields([
-                { name: '⚔️ Attribute', value: randomHero.primary_attr.toUpperCase(), inline: true },
+                {
+                    name: '⚔️ Attribute',
+                    value: ATTR_LABELS[randomHero.primary_attr] || randomHero.primary_attr.toUpperCase(),
+                    inline: true,
+                },
                 { name: '🗡️ Attack', value: randomHero.attack_type, inline: true },
-                { name: '🎭 Roles', value: randomHero.roles.join(', ') || 'N/A', inline: false },
-            ])
-            .setThumbnail(`https://cdn.cloudflare.steamstatic.com${randomHero.img}`);
+                { name: '🎭 Roles', value: heroRoles.join(', ') || 'N/A', inline: false },
+            ]);
+
+        // Add positions if set
+        if (heroPositions.length > 0) {
+            embed.addFields([{
+                name: '📍 Positions',
+                value: heroPositions.map((p: Position) => POSITION_LABELS[p] || p).join(', '),
+                inline: false,
+            }]);
+        }
+
+        // Add filters applied section if any
+        if (appliedFilters.length > 0) {
+            embed.addFields([{
+                name: '🔍 Filters Applied',
+                value: appliedFilters.join(' | '),
+                inline: false,
+            }]);
+        }
+
+        // Set thumbnail and footer
+        if (randomHero.img) {
+            embed.setThumbnail(`https://cdn.cloudflare.steamstatic.com${randomHero.img}`);
+        }
+        embed.setFooter({ text: `Selected from ${heroes.length} hero${heroes.length !== 1 ? 'es' : ''}` });
 
         await interaction.reply({ embeds: [embed] });
     } catch (error) {
@@ -927,6 +1063,151 @@ async function handleSteamId(interaction: any, { tables, log }: any) {
         log.error({ err: error, discordId, category: 'dota' }, 'Error fetching Steam ID');
         await interaction.reply({
             content: 'An error occurred while looking up the Steam ID.',
+            ephemeral: true,
+        });
+    }
+}
+
+async function handleSync(interaction: any, { tables, log }: any) {
+    try {
+        // Check owner permission
+        await checkOwnerPermission(interaction);
+
+        await interaction.deferReply({ ephemeral: true });
+
+        // Fetch heroes from OpenDota API
+        const heroes = await opendota.getHeroConstants();
+        const heroList = Object.values(heroes).filter(h => h.localized_name);
+
+        if (heroList.length === 0) {
+            await interaction.editReply({ content: 'Could not fetch hero list from OpenDota API.' });
+            return;
+        }
+
+        let created = 0;
+        let updated = 0;
+
+        // Upsert each hero (preserve existing position data)
+        for (const hero of heroList) {
+            const [record, wasCreated] = await tables.DotaHeroes.findOrCreate({
+                where: { hero_id: hero.id },
+                defaults: {
+                    hero_id: hero.id,
+                    name: hero.name,
+                    localized_name: hero.localized_name,
+                    primary_attr: hero.primary_attr,
+                    attack_type: hero.attack_type,
+                    roles: hero.roles || [],
+                    positions: [],
+                    img: hero.img,
+                    icon: hero.icon,
+                },
+            });
+
+            if (wasCreated) {
+                created++;
+            } else {
+                // Update existing record but preserve positions
+                await record.update({
+                    name: hero.name,
+                    localized_name: hero.localized_name,
+                    primary_attr: hero.primary_attr,
+                    attack_type: hero.attack_type,
+                    roles: hero.roles || [],
+                    img: hero.img,
+                    icon: hero.icon,
+                });
+                updated++;
+            }
+        }
+
+        log.info({ created, updated, total: heroList.length, category: 'dota' }, 'Hero database synced');
+
+        await interaction.editReply({
+            content: `✅ Hero database synced successfully!\n` +
+                `**Created:** ${created} heroes\n` +
+                `**Updated:** ${updated} heroes\n` +
+                `**Total:** ${heroList.length} heroes`,
+        });
+    } catch (error: any) {
+        if (error.message === 'Unauthorized: User is not bot owner') {
+            return; // Already replied in checkOwnerPermission
+        }
+        log.error({ err: error, category: 'dota' }, 'Error syncing hero database');
+        const reply = { content: 'An error occurred while syncing the hero database.', ephemeral: true };
+        if (interaction.deferred) {
+            await interaction.editReply(reply);
+        } else {
+            await interaction.reply(reply);
+        }
+    }
+}
+
+async function handleSetPosition(interaction: any, { tables, log }: any) {
+    try {
+        // Check owner permission
+        await checkOwnerPermission(interaction);
+
+        const heroName = interaction.options.getString('hero');
+        const positionsInput = interaction.options.getString('positions');
+
+        // Parse and validate positions
+        const positions = positionsInput
+            .split(',')
+            .map((p: string) => p.trim().toLowerCase())
+            .filter((p: string) => p.length > 0);
+
+        const invalidPositions = positions.filter((p: string) => !VALID_POSITIONS.includes(p as Position));
+        if (invalidPositions.length > 0) {
+            await interaction.reply({
+                content: `❌ Invalid positions: ${invalidPositions.join(', ')}\n` +
+                    `Valid positions are: ${VALID_POSITIONS.join(', ')}`,
+                ephemeral: true,
+            });
+            return;
+        }
+
+        // Find the hero in database
+        const hero = await tables.DotaHeroes.findOne({
+            where: {
+                localized_name: { [Op.like]: heroName },
+            },
+        });
+
+        if (!hero) {
+            await interaction.reply({
+                content: `❌ Hero "${heroName}" not found in database.\n` +
+                    `Make sure to run \`/dota sync\` first to populate the hero database.`,
+                ephemeral: true,
+            });
+            return;
+        }
+
+        // Update hero positions
+        await hero.update({ positions });
+
+        log.info({
+            heroId: hero.hero_id,
+            heroName: hero.localized_name,
+            positions,
+            category: 'dota',
+        }, 'Hero positions updated');
+
+        const positionDisplay = positions.length > 0
+            ? positions.map((p: Position) => POSITION_LABELS[p] || p).join(', ')
+            : 'None';
+
+        await interaction.reply({
+            content: `✅ Updated **${hero.localized_name}** positions to: ${positionDisplay}`,
+            ephemeral: true,
+        });
+    } catch (error: any) {
+        if (error.message === 'Unauthorized: User is not bot owner') {
+            return; // Already replied in checkOwnerPermission
+        }
+        log.error({ err: error, category: 'dota' }, 'Error setting hero position');
+        await interaction.reply({
+            content: 'An error occurred while setting hero position.',
             ephemeral: true,
         });
     }
@@ -1113,7 +1394,50 @@ export default {
                 .setRequired(true)))
         .addSubcommand((subcommand: any) => subcommand
             .setName('random')
-            .setDescription('Get a random hero to play'))
+            .setDescription('Get a random hero to play')
+            .addStringOption((option: any) => option
+                .setName('attribute')
+                .setDescription('Filter by primary attribute')
+                .setRequired(false)
+                .addChoices(
+                    { name: 'Strength', value: 'str' },
+                    { name: 'Agility', value: 'agi' },
+                    { name: 'Intelligence', value: 'int' },
+                    { name: 'Universal', value: 'all' },
+                ))
+            .addStringOption((option: any) => option
+                .setName('attack')
+                .setDescription('Filter by attack type')
+                .setRequired(false)
+                .addChoices(
+                    { name: 'Melee', value: 'Melee' },
+                    { name: 'Ranged', value: 'Ranged' },
+                ))
+            .addStringOption((option: any) => option
+                .setName('role')
+                .setDescription('Filter by hero role')
+                .setRequired(false)
+                .addChoices(
+                    { name: 'Carry', value: 'Carry' },
+                    { name: 'Support', value: 'Support' },
+                    { name: 'Nuker', value: 'Nuker' },
+                    { name: 'Disabler', value: 'Disabler' },
+                    { name: 'Durable', value: 'Durable' },
+                    { name: 'Escape', value: 'Escape' },
+                    { name: 'Pusher', value: 'Pusher' },
+                    { name: 'Initiator', value: 'Initiator' },
+                ))
+            .addStringOption((option: any) => option
+                .setName('position')
+                .setDescription('Filter by lane position')
+                .setRequired(false)
+                .addChoices(
+                    { name: 'Position 1 (Safelane Carry)', value: 'pos1' },
+                    { name: 'Position 2 (Mid)', value: 'pos2' },
+                    { name: 'Position 3 (Offlane)', value: 'pos3' },
+                    { name: 'Position 4 (Soft Support)', value: 'pos4' },
+                    { name: 'Position 5 (Hard Support)', value: 'pos5' },
+                )))
         .addSubcommand((subcommand: any) => subcommand
             .setName('compare')
             .setDescription('Compare two players')
@@ -1134,7 +1458,22 @@ export default {
             .addUserOption((option: any) => option
                 .setName('user')
                 .setDescription('User to look up (defaults to yourself)')
-                .setRequired(false))),
+                .setRequired(false)))
+        .addSubcommand((subcommand: any) => subcommand
+            .setName('sync')
+            .setDescription('Sync hero database from OpenDota API (owner only)'))
+        .addSubcommand((subcommand: any) => subcommand
+            .setName('setposition')
+            .setDescription('Set a hero\'s lane positions (owner only)')
+            .addStringOption((option: any) => option
+                .setName('hero')
+                .setDescription('Hero name')
+                .setRequired(true)
+                .setAutocomplete(true))
+            .addStringOption((option: any) => option
+                .setName('positions')
+                .setDescription('Comma-separated positions (e.g., pos1,pos2)')
+                .setRequired(true))),
 
     async execute(interaction: any, context: any) {
         const action = interaction.options.getSubcommand();
@@ -1178,12 +1517,51 @@ export default {
             case 'steamid':
                 await handleSteamId(interaction, context);
                 break;
+            case 'sync':
+                await handleSync(interaction, context);
+                break;
+            case 'setposition':
+                await handleSetPosition(interaction, context);
+                break;
             default:
                 await interaction.reply({
                     content: 'Unknown subcommand.',
                     ephemeral: true,
                 });
                 break;
+        }
+    },
+
+    async autocomplete(interaction: any, context: any) {
+        const focusedOption = interaction.options.getFocused(true);
+
+        if (focusedOption.name === 'hero') {
+            const searchValue = focusedOption.value.toLowerCase();
+            const { tables } = context;
+
+            try {
+                // Get all heroes from database
+                const heroes = await tables.DotaHeroes.findAll({
+                    attributes: ['localized_name'],
+                    order: [['localized_name', 'ASC']],
+                });
+
+                // Filter by search value and limit to 25 results
+                const filtered = heroes
+                    .map((h: any) => h.localized_name)
+                    .filter((name: string) => name.toLowerCase().includes(searchValue))
+                    .slice(0, 25);
+
+                await interaction.respond(
+                    filtered.map((name: string) => ({
+                        name: name,
+                        value: name,
+                    })),
+                );
+            } catch {
+                // If database query fails, return empty list
+                await interaction.respond([]);
+            }
         }
     },
 };
