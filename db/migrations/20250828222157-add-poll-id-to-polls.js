@@ -3,6 +3,13 @@
 /** @type {import('sequelize-cli').Migration} */
 module.exports = {
   async up (queryInterface, Sequelize) {
+    // Check if column already exists (idempotent migration)
+    const tableDescription = await queryInterface.describeTable('polls');
+    if (tableDescription.poll_id) {
+      console.log('Column "poll_id" already exists, skipping...');
+      return;
+    }
+
     await queryInterface.addColumn('polls', 'poll_id', {
       type: Sequelize.STRING(8),
       allowNull: false,

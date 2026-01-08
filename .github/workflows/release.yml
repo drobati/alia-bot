@@ -95,6 +95,36 @@ jobs:
           docker build -t $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG .
           docker push $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
 
+      - name: Save clean task definition from running service
+        run: |
+          # Get the task definition currently used by the SERVICE (not "latest" which may be polluted)
+          SERVICE_TASK_DEF=$(aws ecs describe-services \
+            --cluster alia-bot-cluster \
+            --services alia-bot-service \
+            --query 'services[0].taskDefinition' \
+            --output text)
+          echo "Service is using: $SERVICE_TASK_DEF"
+
+          # Fetch that specific task definition
+          aws ecs describe-task-definition --task-definition "$SERVICE_TASK_DEF" \
+            --query taskDefinition > task-definition.json
+
+          # Verify it doesn't have a migration command
+          COMMAND=$(jq -r '.containerDefinitions[0].command // "null"' task-definition.json)
+          echo "Task definition command: $COMMAND"
+          if [ "$COMMAND" != "null" ]; then
+            echo "WARNING: Service task definition has a command set, this may cause issues"
+          fi
+
+          echo "Saved task definition revision: $(jq -r '.revision' task-definition.json)"
+
+      - name: Upload task definition artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: task-definition
+          path: task-definition.json
+          retention-days: 1
+
   Run_Migrations:
     needs: [Version_Tag, Build]
     runs-on: ubuntu-latest
@@ -121,11 +151,11 @@ jobs:
           IMAGE_TAG: ${{ needs.Build.outputs.image_tag }}
         run: |
           # Get the current task definition and modify it for migrations
+          # Note: This will create a new revision with the migration command, but
+          # Deploy_ECS uses the saved artifact from Build step, so it won't be affected
           aws ecs describe-task-definition --task-definition alia-bot-task \
             --query taskDefinition > task-def.json
 
-          # Update the image, reduce memory, and remove service-specific settings
-          # Note: NODE_ENV is already set via SSM secrets in the base task definition
           jq --arg IMAGE "$ECR_REGISTRY/${{ env.ECR_REPOSITORY }}:$IMAGE_TAG" '
             .containerDefinitions[0].image = $IMAGE |
             .containerDefinitions[0].memory = 256 |
@@ -135,7 +165,6 @@ jobs:
                 .compatibilities, .registeredAt, .registeredBy)
           ' task-def.json > migration-task-def.json
 
-          # Register the migration task definition
           TASK_DEF_ARN=$(aws ecs register-task-definition \
             --cli-input-json file://migration-task-def.json \
             --query 'taskDefinition.taskDefinitionArn' \
@@ -145,7 +174,6 @@ jobs:
       - name: Run migration task
         id: run-task
         run: |
-          # Run the migration task and capture full response
           RESPONSE=$(aws ecs run-task \
             --cluster alia-bot-cluster \
             --task-definition ${{ steps.register-task.outputs.task_def_arn }} \
@@ -222,9 +250,10 @@ jobs:
         id: login-ecr
         uses: aws-actions/amazon-ecr-login@v1
 
-      - name: Download task definition
-        run: |
-          aws ecs describe-task-definition --task-definition alia-bot-task --query taskDefinition > task-definition.json
+      - name: Download clean task definition artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: task-definition
 
       - name: Add SENTRY_DSN to task definition
         run: |
