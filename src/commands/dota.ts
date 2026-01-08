@@ -1293,10 +1293,14 @@ async function handleSearch(interaction: any, { tables, log }: any) {
             whereClause.localized_name = { [Op.like]: `%${heroName}%` };
         }
 
+        // When filtering by position status, we need all heroes first
+        // Only apply limit when not filtering or searching by name
+        const needsAllHeroes = filter && !heroName;
+
         const heroes = await tables.DotaHeroes.findAll({
             where: whereClause,
             order: [['localized_name', 'ASC']],
-            limit: 25,
+            ...(needsAllHeroes ? {} : { limit: 25 }),
         });
 
         if (heroes.length === 0) {
@@ -1323,10 +1327,14 @@ async function handleSearch(interaction: any, { tables, log }: any) {
             });
         }
 
+        // Limit results after filtering
+        const totalMatched = filteredHeroes.length;
+        filteredHeroes = filteredHeroes.slice(0, 25);
+
         if (filteredHeroes.length === 0) {
             const filterMsg = filter === 'no_positions'
-                ? 'All matched heroes have positions set.'
-                : 'No matched heroes have positions set.';
+                ? 'All heroes have positions set! 🎉'
+                : 'No heroes have positions set. Run `/dota syncpositions` first.';
             await interaction.reply({ content: filterMsg, ephemeral: true });
             return;
         }
@@ -1385,8 +1393,8 @@ async function handleSearch(interaction: any, { tables, log }: any) {
             heroList += `**${hero.localized_name}** - ${posStr}\n`;
         }
 
-        const countSuffix = heroes.length > filteredHeroes.length
-            ? ` of ${heroes.length}`
+        const countSuffix = totalMatched > filteredHeroes.length
+            ? ` of ${totalMatched}`
             : '';
         embed.addFields([{
             name: `Heroes (${filteredHeroes.length}${countSuffix})`,
@@ -1394,8 +1402,8 @@ async function handleSearch(interaction: any, { tables, log }: any) {
             inline: false,
         }]);
 
-        if (heroes.length >= 25) {
-            embed.setFooter({ text: 'Results limited to 25. Use a more specific search.' });
+        if (totalMatched > 25) {
+            embed.setFooter({ text: `Showing 25 of ${totalMatched} results.` });
         }
 
         await interaction.reply({ embeds: [embed] });
