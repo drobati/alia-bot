@@ -7,6 +7,12 @@ jest.mock('../lib/apis/opendota', () => ({
         normalizeSteamId: jest.fn((id: string) => id),
         getPlayer: jest.fn().mockResolvedValue(null),
         getWinLoss: jest.fn().mockResolvedValue(null),
+        MODE_PRESETS: {
+            turbo: [23],
+            ranked: [22, 2],
+            allpick: [1, 22],
+            all: [],
+        },
     },
 }));
 
@@ -38,18 +44,24 @@ describe('Dota Command', () => {
             expect(unregister).toBeDefined();
         });
 
-        it('should have profile subcommand', () => {
+        it('should have profile subcommand with mode option', () => {
             const json = dota.data.toJSON();
-            const profile = json.options!.find((opt: any) => opt.name === 'profile');
+            const profile = json.options!.find((opt: any) => opt.name === 'profile') as any;
             expect(profile).toBeDefined();
+            const modeOption = profile!.options.find((opt: any) => opt.name === 'mode');
+            expect(modeOption).toBeDefined();
+            expect(modeOption.choices).toHaveLength(4);
         });
 
-        it('should have leaderboard subcommand with timeframe option', () => {
+        it('should have leaderboard subcommand with timeframe and mode options', () => {
             const json = dota.data.toJSON();
             const leaderboard = json.options!.find((opt: any) => opt.name === 'leaderboard') as any;
             expect(leaderboard).toBeDefined();
             expect(leaderboard!.options[0].name).toBe('timeframe');
             expect(leaderboard!.options[0].choices).toHaveLength(3);
+            const modeOption = leaderboard!.options.find((opt: any) => opt.name === 'mode');
+            expect(modeOption).toBeDefined();
+            expect(modeOption.choices).toHaveLength(4);
         });
     });
 
@@ -282,6 +294,7 @@ describe('Dota Command', () => {
                     options: {
                         getSubcommand: () => 'profile',
                         getUser: () => null,
+                        getString: () => null,
                     },
                     user: { id: 'discord123' },
                     guild: null,
@@ -301,6 +314,7 @@ describe('Dota Command', () => {
                     options: {
                         getSubcommand: () => 'profile',
                         getUser: () => null,
+                        getString: () => null,
                     },
                     user: { id: 'discord123', username: 'TestUser' },
                     guild: { id: 'guild123' },
@@ -323,6 +337,7 @@ describe('Dota Command', () => {
                     options: {
                         getSubcommand: () => 'profile',
                         getUser: () => otherUser,
+                        getString: () => null,
                     },
                     user: { id: 'discord123' },
                     guild: { id: 'guild123' },
@@ -344,6 +359,7 @@ describe('Dota Command', () => {
                     options: {
                         getSubcommand: () => 'profile',
                         getUser: () => null,
+                        getString: () => null,
                     },
                     user: { id: 'discord123' },
                     guild: { id: 'guild123' },
@@ -370,6 +386,7 @@ describe('Dota Command', () => {
                     options: {
                         getSubcommand: () => 'profile',
                         getUser: () => null,
+                        getString: () => null,
                     },
                     user: { id: 'discord123' },
                     guild: { id: 'guild123' },
@@ -391,14 +408,51 @@ describe('Dota Command', () => {
                     content: 'An error occurred while fetching the profile. Please try again later.',
                 });
             });
+
+            it('should filter by turbo mode when specified', async () => {
+                const mockInteraction = {
+                    options: {
+                        getSubcommand: () => 'profile',
+                        getUser: () => null,
+                        getString: (name: string) => name === 'mode' ? 'turbo' : null,
+                    },
+                    user: { id: 'discord123' },
+                    guild: { id: 'guild123' },
+                    reply: jest.fn(),
+                    deferReply: jest.fn(),
+                    editReply: jest.fn(),
+                };
+
+                mockContext.tables.DotaUsers.findOne.mockResolvedValue({
+                    steam_id: '123456789',
+                });
+
+                mockedOpendota.getPlayer.mockResolvedValue({});
+
+                await dota.execute(mockInteraction, mockContext);
+
+                // Verify getWinLoss was called with turbo game mode
+                expect(mockedOpendota.getWinLoss).toHaveBeenCalledWith(
+                    '123456789',
+                    expect.objectContaining({ gameModes: [23] }),
+                );
+            });
         });
 
         describe('leaderboard subcommand', () => {
+            // Helper to create getString mock for leaderboard
+            const createGetString = (timeframe: string, mode: string | null = null) =>
+                (name: string) => {
+                    if (name === 'timeframe') {return timeframe;}
+                    if (name === 'mode') {return mode;}
+                    return null;
+                };
+
             it('should reject when not in a guild', async () => {
                 const mockInteraction = {
                     options: {
                         getSubcommand: () => 'leaderboard',
-                        getString: () => 'month',
+                        getString: createGetString('month'),
                     },
                     guild: null,
                     reply: jest.fn(),
@@ -416,7 +470,7 @@ describe('Dota Command', () => {
                 const mockInteraction = {
                     options: {
                         getSubcommand: () => 'leaderboard',
-                        getString: () => 'month',
+                        getString: createGetString('month'),
                     },
                     guild: { id: 'guild123' },
                     reply: jest.fn(),
@@ -436,7 +490,7 @@ describe('Dota Command', () => {
                 const mockInteraction = {
                     options: {
                         getSubcommand: () => 'leaderboard',
-                        getString: () => 'week',
+                        getString: createGetString('week'),
                     },
                     guild: { id: 'guild123' },
                     reply: jest.fn(),
@@ -465,7 +519,7 @@ describe('Dota Command', () => {
                 const mockInteraction = {
                     options: {
                         getSubcommand: () => 'leaderboard',
-                        getString: () => 'all',
+                        getString: createGetString('all'),
                     },
                     guild: { id: 'guild123' },
                     reply: jest.fn(),
@@ -482,7 +536,7 @@ describe('Dota Command', () => {
                 await dota.execute(mockInteraction, mockContext);
 
                 expect(mockInteraction.editReply).toHaveBeenCalledWith({
-                    content: expect.stringContaining('No players have games recorded'),
+                    content: expect.stringContaining('No players have'),
                 });
             });
 
@@ -490,7 +544,7 @@ describe('Dota Command', () => {
                 const mockInteraction = {
                     options: {
                         getSubcommand: () => 'leaderboard',
-                        getString: () => 'month',
+                        getString: createGetString('month'),
                     },
                     guild: { id: 'guild123' },
                     reply: jest.fn(),
@@ -512,7 +566,7 @@ describe('Dota Command', () => {
                 const mockInteraction = {
                     options: {
                         getSubcommand: () => 'leaderboard',
-                        getString: () => 'month',
+                        getString: createGetString('month'),
                     },
                     guild: { id: 'guild123' },
                     reply: jest.fn(),
@@ -544,6 +598,33 @@ describe('Dota Command', () => {
                         }),
                     ]),
                 });
+            });
+
+            it('should filter by turbo mode when specified', async () => {
+                const mockInteraction = {
+                    options: {
+                        getSubcommand: () => 'leaderboard',
+                        getString: createGetString('month', 'turbo'),
+                    },
+                    guild: { id: 'guild123' },
+                    reply: jest.fn(),
+                    deferReply: jest.fn(),
+                    editReply: jest.fn(),
+                };
+
+                mockContext.tables.DotaUsers.findAll.mockResolvedValue([
+                    { discord_id: 'user1', steam_id: '111', steam_username: 'Player1' },
+                ]);
+
+                mockedOpendota.getWinLoss.mockResolvedValue({ win: 10, lose: 5 });
+
+                await dota.execute(mockInteraction, mockContext);
+
+                // Verify getWinLoss was called with turbo game mode
+                expect(mockedOpendota.getWinLoss).toHaveBeenCalledWith(
+                    '111',
+                    expect.objectContaining({ gameModes: [23] }),
+                );
             });
         });
 

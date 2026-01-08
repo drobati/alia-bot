@@ -1,5 +1,5 @@
 import { EmbedBuilder, SlashCommandBuilder } from "discord.js";
-import opendota from "../lib/apis/opendota";
+import opendota, { ModePreset } from "../lib/apis/opendota";
 
 // Timeframe options for leaderboard
 const TIMEFRAMES: Record<string, { days: number; label: string }> = {
@@ -7,6 +7,17 @@ const TIMEFRAMES: Record<string, { days: number; label: string }> = {
     month: { days: 30, label: 'Past Month' },
     all: { days: 0, label: 'All Time' },
 };
+
+// Game mode options for profile/leaderboard
+const GAME_MODE_LABELS: Record<ModePreset, string> = {
+    all: 'All Modes',
+    turbo: 'Turbo',
+    ranked: 'Ranked',
+    allpick: 'All Pick',
+};
+
+// Helper to get game modes array from preset
+const getGameModes = (preset: ModePreset): number[] => [...opendota.MODE_PRESETS[preset]];
 
 async function handleRegister(interaction: any, { tables, log }: any) {
     const steamIdInput = interaction.options.getString('steam_id');
@@ -125,6 +136,7 @@ async function handleUnregister(interaction: any, { tables, log }: any) {
 
 async function handleProfile(interaction: any, { tables, log }: any) {
     const targetUser = interaction.options.getUser('user') || interaction.user;
+    const modeKey = (interaction.options.getString('mode') || 'all') as ModePreset;
     const discordId = targetUser.id;
     const guildId = interaction.guild?.id;
 
@@ -154,12 +166,15 @@ async function handleProfile(interaction: any, { tables, log }: any) {
 
         await interaction.deferReply();
 
+        const gameModes = getGameModes(modeKey);
+        const modeLabel = GAME_MODE_LABELS[modeKey];
+
         // Fetch player data from OpenDota
         const [playerData, wlAll, wlMonth, wlWeek] = await Promise.all([
             opendota.getPlayer(record.steam_id),
-            opendota.getWinLoss(record.steam_id),
-            opendota.getWinLoss(record.steam_id, { date: 30 }),
-            opendota.getWinLoss(record.steam_id, { date: 7 }),
+            opendota.getWinLoss(record.steam_id, { gameModes }),
+            opendota.getWinLoss(record.steam_id, { date: 30, gameModes }),
+            opendota.getWinLoss(record.steam_id, { date: 7, gameModes }),
         ]);
 
         if (!playerData || !playerData.profile) {
@@ -179,6 +194,7 @@ async function handleProfile(interaction: any, { tables, log }: any) {
             .setURL(playerData.profile.profileurl)
             .setThumbnail(playerData.profile.avatarfull)
             .setColor(0x1a1a2e)
+            .setDescription(`**Game Mode:** ${modeLabel}`)
             .addFields([
                 {
                     name: '📊 All Time',
@@ -197,8 +213,8 @@ async function handleProfile(interaction: any, { tables, log }: any) {
                 },
             ]);
 
-        // Add MMR estimate if available
-        if (playerData.mmr_estimate?.estimate) {
+        // Add MMR estimate if available (only show for ranked/all modes)
+        if (playerData.mmr_estimate?.estimate && (modeKey === 'all' || modeKey === 'ranked')) {
             embed.addFields([{
                 name: '🏆 Estimated MMR',
                 value: playerData.mmr_estimate.estimate.toString(),
@@ -206,8 +222,8 @@ async function handleProfile(interaction: any, { tables, log }: any) {
             }]);
         }
 
-        // Add rank tier if available
-        if (playerData.rank_tier) {
+        // Add rank tier if available (only show for ranked/all modes)
+        if (playerData.rank_tier && (modeKey === 'all' || modeKey === 'ranked')) {
             const medals = ['', 'Herald', 'Guardian', 'Crusader', 'Archon', 'Legend', 'Ancient', 'Divine', 'Immortal'];
             const medalIndex = Math.floor(playerData.rank_tier / 10);
             const stars = playerData.rank_tier % 10;
@@ -240,6 +256,7 @@ async function handleProfile(interaction: any, { tables, log }: any) {
 
 async function handleLeaderboard(interaction: any, { tables, log }: any) {
     const timeframeKey = interaction.options.getString('timeframe') || 'month';
+    const modeKey = (interaction.options.getString('mode') || 'all') as ModePreset;
     const guildId = interaction.guild?.id;
 
     if (!guildId) {
@@ -251,6 +268,8 @@ async function handleLeaderboard(interaction: any, { tables, log }: any) {
     }
 
     const timeframe = TIMEFRAMES[timeframeKey];
+    const gameModes = getGameModes(modeKey);
+    const modeLabel = GAME_MODE_LABELS[modeKey];
 
     try {
         // Get all registered users in this guild
@@ -260,7 +279,8 @@ async function handleLeaderboard(interaction: any, { tables, log }: any) {
 
         if (users.length === 0) {
             await interaction.reply({
-                content: 'No users are registered for the Dota leaderboard yet. Use `/dota register` to be the first!',
+                content: 'No users are registered for the Dota leaderboard yet. ' +
+                    'Use `/dota register` to be the first!',
                 ephemeral: true,
             });
             return;
@@ -281,9 +301,10 @@ async function handleLeaderboard(interaction: any, { tables, log }: any) {
         // Fetch stats for each player (with rate limiting consideration)
         for (const user of users) {
             try {
-                const wl = timeframe.days > 0
-                    ? await opendota.getWinLoss(user.steam_id, { date: timeframe.days })
-                    : await opendota.getWinLoss(user.steam_id);
+                const options = timeframe.days > 0
+                    ? { date: timeframe.days, gameModes }
+                    : { gameModes };
+                const wl = await opendota.getWinLoss(user.steam_id, options);
 
                 if (wl && (wl.win + wl.lose) > 0) {
                     playerStats.push({
@@ -302,7 +323,8 @@ async function handleLeaderboard(interaction: any, { tables, log }: any) {
 
         if (playerStats.length === 0) {
             await interaction.editReply({
-                content: `No players have games recorded for ${timeframe.label.toLowerCase()}. Play some Dota!`,
+                content: `No players have ${modeLabel} games recorded for ` +
+                    `${timeframe.label.toLowerCase()}. Play some Dota!`,
             });
             return;
         }
@@ -319,7 +341,7 @@ async function handleLeaderboard(interaction: any, { tables, log }: any) {
         const embed = new EmbedBuilder()
             .setTitle(`🏆 Dota 2 Leaderboard - ${timeframe.label}`)
             .setColor(0xffd700)
-            .setDescription(`Ranked by win rate (minimum ${MIN_GAMES} games)`);
+            .setDescription(`**Mode:** ${modeLabel} | Ranked by win rate (minimum ${MIN_GAMES} games)`);
 
         // Build leaderboard string
         let leaderboardText = '';
@@ -394,7 +416,17 @@ export default {
             .addUserOption((option: any) => option
                 .setName('user')
                 .setDescription('User to view (defaults to yourself)')
-                .setRequired(false)))
+                .setRequired(false))
+            .addStringOption((option: any) => option
+                .setName('mode')
+                .setDescription('Game mode to filter stats')
+                .setRequired(false)
+                .addChoices(
+                    { name: 'All Modes', value: 'all' },
+                    { name: 'Turbo', value: 'turbo' },
+                    { name: 'Ranked', value: 'ranked' },
+                    { name: 'All Pick', value: 'allpick' },
+                )))
         .addSubcommand((subcommand: any) => subcommand
             .setName('leaderboard')
             .setDescription('View the server Dota 2 leaderboard')
@@ -406,6 +438,16 @@ export default {
                     { name: 'Past Week', value: 'week' },
                     { name: 'Past Month', value: 'month' },
                     { name: 'All Time', value: 'all' },
+                ))
+            .addStringOption((option: any) => option
+                .setName('mode')
+                .setDescription('Game mode to filter stats')
+                .setRequired(false)
+                .addChoices(
+                    { name: 'All Modes', value: 'all' },
+                    { name: 'Turbo', value: 'turbo' },
+                    { name: 'Ranked', value: 'ranked' },
+                    { name: 'All Pick', value: 'allpick' },
                 ))),
     async execute(interaction: any, context: any) {
         const action = interaction.options.getSubcommand();
