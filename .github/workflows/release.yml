@@ -95,8 +95,140 @@ jobs:
           docker build -t $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG .
           docker push $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
 
-  Deploy_ECS:
+      - name: Save clean task definition from running service
+        run: |
+          # Get the task definition currently used by the SERVICE (not "latest" which may be polluted)
+          SERVICE_TASK_DEF=$(aws ecs describe-services \
+            --cluster alia-bot-cluster \
+            --services alia-bot-service \
+            --query 'services[0].taskDefinition' \
+            --output text)
+          echo "Service is using: $SERVICE_TASK_DEF"
+
+          # Fetch that specific task definition
+          aws ecs describe-task-definition --task-definition "$SERVICE_TASK_DEF" \
+            --query taskDefinition > task-definition.json
+
+          # Verify it doesn't have a migration command
+          COMMAND=$(jq -r '.containerDefinitions[0].command // "null"' task-definition.json)
+          echo "Task definition command: $COMMAND"
+          if [ "$COMMAND" != "null" ]; then
+            echo "WARNING: Service task definition has a command set, this may cause issues"
+          fi
+
+          echo "Saved task definition revision: $(jq -r '.revision' task-definition.json)"
+
+      - name: Upload task definition artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: task-definition
+          path: task-definition.json
+          retention-days: 1
+
+  Run_Migrations:
     needs: [Version_Tag, Build]
+    runs-on: ubuntu-latest
+    environment: production
+    permissions:
+      id-token: write
+
+    steps:
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v1
+        with:
+          role-to-assume: ${{ secrets.ROLE_TO_ASSUME }}
+          role-session-name: ${{ secrets.ROLE_SESSION_NAME }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Login to Amazon ECR
+        id: login-ecr
+        uses: aws-actions/amazon-ecr-login@v1
+
+      - name: Register migration task definition
+        id: register-task
+        env:
+          ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
+          IMAGE_TAG: ${{ needs.Build.outputs.image_tag }}
+        run: |
+          # Get the current task definition and modify it for migrations
+          # Note: This will create a new revision with the migration command, but
+          # Deploy_ECS uses the saved artifact from Build step, so it won't be affected
+          aws ecs describe-task-definition --task-definition alia-bot-task \
+            --query taskDefinition > task-def.json
+
+          jq --arg IMAGE "$ECR_REGISTRY/${{ env.ECR_REPOSITORY }}:$IMAGE_TAG" '
+            .containerDefinitions[0].image = $IMAGE |
+            .containerDefinitions[0].memory = 256 |
+            .containerDefinitions[0].portMappings = [] |
+            .containerDefinitions[0].command = ["npm", "run", "sequelize-cli", "--", "db:migrate"] |
+            del(.taskDefinitionArn, .revision, .status, .requiresAttributes,
+                .compatibilities, .registeredAt, .registeredBy)
+          ' task-def.json > migration-task-def.json
+
+          TASK_DEF_ARN=$(aws ecs register-task-definition \
+            --cli-input-json file://migration-task-def.json \
+            --query 'taskDefinition.taskDefinitionArn' \
+            --output text)
+          echo "task_def_arn=$TASK_DEF_ARN" >> $GITHUB_OUTPUT
+
+      - name: Run migration task
+        id: run-task
+        run: |
+          RESPONSE=$(aws ecs run-task \
+            --cluster alia-bot-cluster \
+            --task-definition ${{ steps.register-task.outputs.task_def_arn }} \
+            --count 1)
+
+          # Check for failures
+          FAILURES=$(echo "$RESPONSE" | jq -r '.failures | length')
+          if [ "$FAILURES" != "0" ]; then
+            echo "Failed to start migration task:"
+            echo "$RESPONSE" | jq '.failures'
+            exit 1
+          fi
+
+          TASK_ARN=$(echo "$RESPONSE" | jq -r '.tasks[0].taskArn')
+          if [ "$TASK_ARN" == "null" ] || [ -z "$TASK_ARN" ]; then
+            echo "No task ARN returned. Full response:"
+            echo "$RESPONSE"
+            exit 1
+          fi
+
+          echo "task_arn=$TASK_ARN" >> $GITHUB_OUTPUT
+          echo "Started migration task: $TASK_ARN"
+
+      - name: Wait for migration to complete
+        continue-on-error: true
+        id: wait-migration
+        run: |
+          echo "Waiting for migration task to complete..."
+          aws ecs wait tasks-stopped \
+            --cluster alia-bot-cluster \
+            --tasks ${{ steps.run-task.outputs.task_arn }}
+
+          # Get full task description for debugging
+          TASK_INFO=$(aws ecs describe-tasks \
+            --cluster alia-bot-cluster \
+            --tasks ${{ steps.run-task.outputs.task_arn }} \
+            --query 'tasks[0].{exitCode:containers[0].exitCode,stoppedReason:stoppedReason,stopCode:stopCode,containerReason:containers[0].reason}')
+          echo "Task info: $TASK_INFO"
+
+          EXIT_CODE=$(echo "$TASK_INFO" | jq -r '.exitCode')
+          STOPPED_REASON=$(echo "$TASK_INFO" | jq -r '.stoppedReason')
+          CONTAINER_REASON=$(echo "$TASK_INFO" | jq -r '.containerReason')
+
+          echo "Migration task exit code: $EXIT_CODE"
+          echo "Stopped reason: $STOPPED_REASON"
+          echo "Container reason: $CONTAINER_REASON"
+
+          if [ "$EXIT_CODE" != "0" ]; then
+            echo "::warning::Migration failed with exit code $EXIT_CODE. Deployment will continue."
+          else
+            echo "Migration completed successfully!"
+          fi
+
+  Deploy_ECS:
+    needs: [Version_Tag, Build, Run_Migrations]
     runs-on: ubuntu-latest
     environment: production
     permissions:
@@ -118,9 +250,10 @@ jobs:
         id: login-ecr
         uses: aws-actions/amazon-ecr-login@v1
 
-      - name: Download task definition
-        run: |
-          aws ecs describe-task-definition --task-definition alia-bot-task --query taskDefinition > task-definition.json
+      - name: Download clean task definition artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: task-definition
 
       - name: Add SENTRY_DSN to task definition
         run: |
