@@ -50,7 +50,7 @@ export interface WinLoss {
 const getPlayer = async (accountId: string): Promise<PlayerData | null> => {
     const cacheKey = `player:${accountId}`;
     const cached = getCached(cacheKey);
-    if (cached) return cached;
+    if (cached) {return cached;}
 
     try {
         const response = await axios.get(`${OPENDOTA_BASE_URL}/players/${accountId}`, {
@@ -73,7 +73,7 @@ const getPlayer = async (accountId: string): Promise<PlayerData | null> => {
  */
 const getWinLoss = async (
     accountId: string,
-    options?: { date?: number }
+    options?: { date?: number },
 ): Promise<WinLoss | null> => {
     const params = new URLSearchParams();
     if (options?.date) {
@@ -82,7 +82,7 @@ const getWinLoss = async (
 
     const cacheKey = `wl:${accountId}:${params.toString()}`;
     const cached = getCached(cacheKey);
-    if (cached) return cached;
+    if (cached) {return cached;}
 
     try {
         const url = `${OPENDOTA_BASE_URL}/players/${accountId}/wl${params.toString() ? '?' + params.toString() : ''}`;
@@ -121,9 +121,7 @@ const convertSteamId64To32 = (steamId64: string): string => {
 /**
  * Check if string looks like a Steam 64-bit ID
  */
-const isSteamId64 = (steamId: string): boolean => {
-    return steamId.length === 17 && steamId.startsWith('7656');
-};
+const isSteamId64 = (steamId: string): boolean => steamId.length === 17 && steamId.startsWith('7656');
 
 /**
  * Parse and normalize Steam ID to 32-bit format

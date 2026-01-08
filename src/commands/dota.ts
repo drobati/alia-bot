@@ -32,7 +32,8 @@ async function handleRegister(interaction: any, { tables, log }: any) {
 
         if (existing) {
             await interaction.reply({
-                content: `You are already registered with Steam ID: ${existing.steam_id}. Use \`/dota unregister\` first if you want to change it.`,
+                content: `You are already registered with Steam ID: ${existing.steam_id}. ` +
+                    'Use `/dota unregister` first if you want to change it.',
                 ephemeral: true,
             });
             return;
@@ -45,7 +46,8 @@ async function handleRegister(interaction: any, { tables, log }: any) {
 
         if (!playerData || !playerData.profile) {
             await interaction.editReply({
-                content: 'Could not find a Dota 2 player with that Steam ID. Make sure you\'re using your Steam 32-bit or 64-bit ID.',
+                content: 'Could not find a Dota 2 player with that Steam ID. ' +
+                    'Make sure you\'re using your Steam 32-bit or 64-bit ID.',
             });
             return;
         }
@@ -168,7 +170,7 @@ async function handleProfile(interaction: any, { tables, log }: any) {
         }
 
         const calcWinRate = (wl: { win: number; lose: number } | null) => {
-            if (!wl || (wl.win + wl.lose) === 0) return 'N/A';
+            if (!wl || (wl.win + wl.lose) === 0) {return 'N/A';}
             return ((wl.win / (wl.win + wl.lose)) * 100).toFixed(1) + '%';
         };
 
@@ -325,7 +327,9 @@ async function handleLeaderboard(interaction: any, { tables, log }: any) {
 
         qualifiedPlayers.slice(0, 10).forEach((player, index) => {
             const medal = medals[index] || `${index + 1}.`;
-            leaderboardText += `${medal} **${player.steamUsername}** - ${player.winRate.toFixed(1)}% (${player.wins}W/${player.losses}L)\n`;
+            const winRate = player.winRate.toFixed(1);
+            leaderboardText += `${medal} **${player.steamUsername}** - ` +
+                `${winRate}% (${player.wins}W/${player.losses}L)\n`;
         });
 
         if (leaderboardText) {
@@ -340,7 +344,9 @@ async function handleLeaderboard(interaction: any, { tables, log }: any) {
         if (unqualifiedPlayers.length > 0) {
             let unqualifiedText = '';
             unqualifiedPlayers.slice(0, 5).forEach(player => {
-                unqualifiedText += `• ${player.steamUsername} - ${player.totalGames} games (${player.winRate.toFixed(1)}%)\n`;
+                const winRate = player.winRate.toFixed(1);
+                unqualifiedText += `• ${player.steamUsername} - ` +
+                    `${player.totalGames} games (${winRate}%)\n`;
             });
             embed.addFields([{
                 name: `⏳ Need ${MIN_GAMES}+ games to qualify`,

@@ -9,35 +9,35 @@ describe('Dota Command', () => {
         it('should have subcommands', () => {
             const json = dota.data.toJSON();
             expect(json.options).toBeDefined();
-            expect(json.options.length).toBe(4);
+            expect(json.options!.length).toBe(4);
         });
 
         it('should have register subcommand', () => {
             const json = dota.data.toJSON();
-            const register = json.options.find((opt: any) => opt.name === 'register');
+            const register = json.options!.find((opt: any) => opt.name === 'register') as any;
             expect(register).toBeDefined();
-            expect(register.options[0].name).toBe('steam_id');
-            expect(register.options[0].required).toBe(true);
+            expect(register!.options[0].name).toBe('steam_id');
+            expect(register!.options[0].required).toBe(true);
         });
 
         it('should have unregister subcommand', () => {
             const json = dota.data.toJSON();
-            const unregister = json.options.find((opt: any) => opt.name === 'unregister');
+            const unregister = json.options!.find((opt: any) => opt.name === 'unregister');
             expect(unregister).toBeDefined();
         });
 
         it('should have profile subcommand', () => {
             const json = dota.data.toJSON();
-            const profile = json.options.find((opt: any) => opt.name === 'profile');
+            const profile = json.options!.find((opt: any) => opt.name === 'profile');
             expect(profile).toBeDefined();
         });
 
         it('should have leaderboard subcommand with timeframe option', () => {
             const json = dota.data.toJSON();
-            const leaderboard = json.options.find((opt: any) => opt.name === 'leaderboard');
+            const leaderboard = json.options!.find((opt: any) => opt.name === 'leaderboard') as any;
             expect(leaderboard).toBeDefined();
-            expect(leaderboard.options[0].name).toBe('timeframe');
-            expect(leaderboard.options[0].choices).toHaveLength(3);
+            expect(leaderboard!.options[0].name).toBe('timeframe');
+            expect(leaderboard!.options[0].choices).toHaveLength(3);
         });
     });
 
