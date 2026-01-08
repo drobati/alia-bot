@@ -32,7 +32,22 @@ describe('Dota Command', () => {
         it('should have subcommands', () => {
             const json = dota.data.toJSON();
             expect(json.options).toBeDefined();
-            expect(json.options!.length).toBe(11);
+            expect(json.options!.length).toBe(13);
+        });
+
+        it('should have help subcommand', () => {
+            const json = dota.data.toJSON();
+            const help = json.options!.find((opt: any) => opt.name === 'help');
+            expect(help).toBeDefined();
+        });
+
+        it('should have steamid subcommand', () => {
+            const json = dota.data.toJSON();
+            const steamid = json.options!.find((opt: any) => opt.name === 'steamid') as any;
+            expect(steamid).toBeDefined();
+            const userOption = steamid!.options?.find((opt: any) => opt.name === 'user');
+            expect(userOption).toBeDefined();
+            expect(userOption.required).toBe(false);
         });
 
         it('should have register subcommand', () => {
@@ -1295,6 +1310,179 @@ describe('Dota Command', () => {
                     content: 'An error occurred while comparing players.',
                     ephemeral: true,
                 });
+            });
+        });
+
+        describe('help subcommand', () => {
+            it('should display help embed', async () => {
+                const mockInteraction = {
+                    options: { getSubcommand: () => 'help' },
+                    reply: jest.fn(),
+                };
+
+                await dota.execute(mockInteraction, mockContext);
+
+                expect(mockInteraction.reply).toHaveBeenCalledWith({
+                    embeds: expect.arrayContaining([
+                        expect.objectContaining({
+                            data: expect.objectContaining({
+                                title: expect.stringContaining('Setup Guide'),
+                            }),
+                        }),
+                    ]),
+                });
+            });
+
+            it('should include setup instructions and commands list', async () => {
+                const mockInteraction = {
+                    options: { getSubcommand: () => 'help' },
+                    reply: jest.fn(),
+                };
+
+                await dota.execute(mockInteraction, mockContext);
+
+                const call = mockInteraction.reply.mock.calls[0][0];
+                expect(call.embeds[0].data.fields).toHaveLength(2);
+                expect(call.embeds[0].data.fields[0].name).toBe('Setup Instructions');
+                expect(call.embeds[0].data.fields[1].name).toBe('Available Commands');
+            });
+        });
+
+        describe('steamid subcommand', () => {
+            it('should reject when not in a guild', async () => {
+                const mockInteraction = {
+                    options: {
+                        getSubcommand: () => 'steamid',
+                        getUser: () => null,
+                    },
+                    user: { id: 'discord123', username: 'testuser' },
+                    guild: null,
+                    reply: jest.fn(),
+                };
+
+                await dota.execute(mockInteraction, mockContext);
+
+                expect(mockInteraction.reply).toHaveBeenCalledWith({
+                    content: 'This command can only be used in a server.',
+                    ephemeral: true,
+                });
+            });
+
+            it('should show message when user not registered', async () => {
+                const mockInteraction = {
+                    options: {
+                        getSubcommand: () => 'steamid',
+                        getUser: () => null,
+                    },
+                    user: { id: 'discord123', username: 'testuser' },
+                    guild: { id: 'guild123' },
+                    reply: jest.fn(),
+                };
+
+                mockContext.tables.DotaUsers.findOne.mockResolvedValue(null);
+
+                await dota.execute(mockInteraction, mockContext);
+
+                expect(mockInteraction.reply).toHaveBeenCalledWith({
+                    content: expect.stringContaining('not registered'),
+                    ephemeral: true,
+                });
+            });
+
+            it('should display Steam ID info for registered user', async () => {
+                const mockInteraction = {
+                    options: {
+                        getSubcommand: () => 'steamid',
+                        getUser: () => null,
+                    },
+                    user: { id: 'discord123', username: 'testuser' },
+                    guild: { id: 'guild123' },
+                    reply: jest.fn(),
+                };
+
+                mockContext.tables.DotaUsers.findOne.mockResolvedValue({
+                    steam_id: '123456789',
+                    steam_username: 'TestPlayer',
+                });
+
+                await dota.execute(mockInteraction, mockContext);
+
+                expect(mockInteraction.reply).toHaveBeenCalledWith({
+                    embeds: expect.arrayContaining([
+                        expect.objectContaining({
+                            data: expect.objectContaining({
+                                title: expect.stringContaining('Steam ID'),
+                                fields: expect.arrayContaining([
+                                    expect.objectContaining({
+                                        name: 'Steam ID (32-bit)',
+                                        value: '`123456789`',
+                                    }),
+                                ]),
+                            }),
+                        }),
+                    ]),
+                });
+            });
+
+            it('should display Steam ID for another user', async () => {
+                const targetUser = { id: 'target123', username: 'TargetUser' };
+                const mockInteraction = {
+                    options: {
+                        getSubcommand: () => 'steamid',
+                        getUser: () => targetUser,
+                    },
+                    user: { id: 'discord123', username: 'testuser' },
+                    guild: { id: 'guild123' },
+                    reply: jest.fn(),
+                };
+
+                mockContext.tables.DotaUsers.findOne.mockResolvedValue({
+                    steam_id: '987654321',
+                    steam_username: 'TargetPlayer',
+                });
+
+                await dota.execute(mockInteraction, mockContext);
+
+                expect(mockContext.tables.DotaUsers.findOne).toHaveBeenCalledWith({
+                    where: { discord_id: 'target123', guild_id: 'guild123' },
+                });
+                expect(mockInteraction.reply).toHaveBeenCalledWith({
+                    embeds: expect.arrayContaining([
+                        expect.objectContaining({
+                            data: expect.objectContaining({
+                                title: expect.stringContaining('TargetPlayer'),
+                            }),
+                        }),
+                    ]),
+                });
+            });
+
+            it('should include links to Steam, OpenDota, and Dotabuff', async () => {
+                const mockInteraction = {
+                    options: {
+                        getSubcommand: () => 'steamid',
+                        getUser: () => null,
+                    },
+                    user: { id: 'discord123', username: 'testuser' },
+                    guild: { id: 'guild123' },
+                    reply: jest.fn(),
+                };
+
+                mockContext.tables.DotaUsers.findOne.mockResolvedValue({
+                    steam_id: '123456789',
+                    steam_username: 'TestPlayer',
+                });
+
+                await dota.execute(mockInteraction, mockContext);
+
+                const call = mockInteraction.reply.mock.calls[0][0];
+                const linksField = call.embeds[0].data.fields.find(
+                    (f: any) => f.name === 'Links',
+                );
+                expect(linksField).toBeDefined();
+                expect(linksField.value).toContain('Steam Profile');
+                expect(linksField.value).toContain('OpenDota');
+                expect(linksField.value).toContain('Dotabuff');
             });
         });
     });

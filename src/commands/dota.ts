@@ -1,6 +1,47 @@
 import { EmbedBuilder, SlashCommandBuilder } from "discord.js";
 import opendota, { ModePreset } from "../lib/apis/opendota";
 
+// Help text for the /dota help command
+const HELP_TEXT = {
+    title: 'Dota 2 Commands - Setup Guide',
+    description: 'To use Dota commands, you need to register your Steam ID and enable public match data.',
+    setup: [
+        '**Step 1: Enable Public Match Data**',
+        '• Open Dota 2 and go to Settings > Options > Advanced Options',
+        '• Enable "Expose Public Match Data"',
+        '• This allows OpenDota to track your matches',
+        '',
+        '**Step 2: Find Your Steam ID**',
+        '• Go to your Steam profile in a browser',
+        '• Your Steam ID is in the URL: `steamcommunity.com/profiles/[STEAM_ID]`',
+        '• Or use a site like steamid.io to look it up',
+        '• Both 32-bit and 64-bit Steam IDs work',
+        '',
+        '**Step 3: Register with the Bot**',
+        '• Use `/dota register <steam_id>` with your Steam ID',
+        '• The bot will verify your account exists',
+        '',
+        '**Step 4: Parse Your Matches (Optional)**',
+        '• Visit opendota.com and log in with Steam',
+        '• Click "Refresh" to parse your recent matches',
+        '• This gives you more detailed stats',
+    ].join('\n'),
+    commands: [
+        '`/dota register` - Link your Steam account',
+        '`/dota unregister` - Unlink your account',
+        '`/dota profile` - View your stats',
+        '`/dota leaderboard` - Server rankings',
+        '`/dota heroes` - Your most played heroes',
+        '`/dota recent` - Recent match history',
+        '`/dota totals` - Lifetime statistics',
+        '`/dota peers` - Top teammates',
+        '`/dota match` - Look up any match',
+        '`/dota compare` - Compare two players',
+        '`/dota random` - Pick a random hero',
+        '`/dota steamid` - Look up someone\'s Steam ID',
+    ].join('\n'),
+};
+
 // Timeframe options for leaderboard
 const TIMEFRAMES: Record<string, { days: number; label: string }> = {
     week: { days: 7, label: 'Past Week' },
@@ -796,6 +837,101 @@ async function handleRandom(interaction: any, { log }: any) {
     }
 }
 
+async function handleHelp(interaction: any) {
+    const embed = new EmbedBuilder()
+        .setTitle(HELP_TEXT.title)
+        .setColor(0x1a1a2e)
+        .setDescription(HELP_TEXT.description)
+        .addFields([
+            {
+                name: 'Setup Instructions',
+                value: HELP_TEXT.setup,
+                inline: false,
+            },
+            {
+                name: 'Available Commands',
+                value: HELP_TEXT.commands,
+                inline: false,
+            },
+        ])
+        .setFooter({ text: 'Data provided by OpenDota API' });
+
+    await interaction.reply({ embeds: [embed] });
+}
+
+async function handleSteamId(interaction: any, { tables, log }: any) {
+    const targetUser = interaction.options.getUser('user') || interaction.user;
+    const discordId = targetUser.id;
+    const guildId = interaction.guild?.id;
+
+    if (!guildId) {
+        await interaction.reply({
+            content: 'This command can only be used in a server.',
+            ephemeral: true,
+        });
+        return;
+    }
+
+    try {
+        const record = await tables.DotaUsers.findOne({
+            where: { discord_id: discordId, guild_id: guildId },
+        });
+
+        if (!record) {
+            const isOwn = targetUser.id === interaction.user.id;
+            await interaction.reply({
+                content: isOwn
+                    ? 'You are not registered. Use `/dota register` to register your Steam ID.'
+                    : `${targetUser.username} is not registered for the Dota leaderboard.`,
+                ephemeral: true,
+            });
+            return;
+        }
+
+        const steamId32 = record.steam_id;
+        const steamId64 = BigInt(steamId32) + BigInt('76561197960265728');
+        const steamProfileUrl = `https://steamcommunity.com/profiles/${steamId64}`;
+        const opendotaUrl = `https://www.opendota.com/players/${steamId32}`;
+        const dotabuffUrl = `https://www.dotabuff.com/players/${steamId32}`;
+
+        const embed = new EmbedBuilder()
+            .setTitle(`Steam ID for ${record.steam_username || targetUser.username}`)
+            .setColor(0x1a1a2e)
+            .addFields([
+                {
+                    name: 'Steam ID (32-bit)',
+                    value: `\`${steamId32}\``,
+                    inline: true,
+                },
+                {
+                    name: 'Steam ID (64-bit)',
+                    value: `\`${steamId64}\``,
+                    inline: true,
+                },
+                {
+                    name: 'Links',
+                    value: [
+                        `[Steam Profile](${steamProfileUrl})`,
+                        `[OpenDota](${opendotaUrl})`,
+                        `[Dotabuff](${dotabuffUrl})`,
+                    ].join(' • '),
+                    inline: false,
+                },
+            ])
+            .setFooter({ text: `Requested by ${interaction.user.username}` });
+
+        await interaction.reply({ embeds: [embed] });
+
+        log.info({ discordId, steamId: steamId32, category: 'dota' }, 'Steam ID lookup');
+    } catch (error) {
+        log.error({ err: error, discordId, category: 'dota' }, 'Error fetching Steam ID');
+        await interaction.reply({
+            content: 'An error occurred while looking up the Steam ID.',
+            ephemeral: true,
+        });
+    }
+}
+
 async function handleCompare(interaction: any, { tables, log }: any) {
     const user1 = interaction.options.getUser('user1');
     const user2 = interaction.options.getUser('user2');
@@ -988,7 +1124,18 @@ export default {
             .addUserOption((option: any) => option
                 .setName('user2')
                 .setDescription('Second player')
-                .setRequired(true))),
+                .setRequired(true)))
+        .addSubcommand((subcommand: any) => subcommand
+            .setName('help')
+            .setDescription('Show setup guide and available commands'))
+        .addSubcommand((subcommand: any) => subcommand
+            .setName('steamid')
+            .setDescription('Look up a user\'s Steam ID')
+            .addUserOption((option: any) => option
+                .setName('user')
+                .setDescription('User to look up (defaults to yourself)')
+                .setRequired(false))),
+
     async execute(interaction: any, context: any) {
         const action = interaction.options.getSubcommand();
         switch (action) {
@@ -1024,6 +1171,12 @@ export default {
                 break;
             case 'compare':
                 await handleCompare(interaction, context);
+                break;
+            case 'help':
+                await handleHelp(interaction);
+                break;
+            case 'steamid':
+                await handleSteamId(interaction, context);
                 break;
             default:
                 await interaction.reply({
