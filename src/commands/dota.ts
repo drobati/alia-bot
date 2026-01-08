@@ -1281,6 +1281,133 @@ async function handleSyncPositions(interaction: any, { tables, log }: any) {
     }
 }
 
+async function handleSearch(interaction: any, { tables, log }: any) {
+    try {
+        const heroName = interaction.options.getString('hero');
+        const filter = interaction.options.getString('filter');
+
+        // Build query
+        const whereClause: any = {};
+
+        if (heroName) {
+            whereClause.localized_name = { [Op.like]: `%${heroName}%` };
+        }
+
+        const heroes = await tables.DotaHeroes.findAll({
+            where: whereClause,
+            order: [['localized_name', 'ASC']],
+            limit: 25,
+        });
+
+        if (heroes.length === 0) {
+            await interaction.reply({
+                content: heroName
+                    ? `No heroes found matching "${heroName}". Run \`/dota sync\` if heroes aren't loaded.`
+                    : 'No heroes in database. Run `/dota sync` first.',
+                ephemeral: true,
+            });
+            return;
+        }
+
+        // Apply post-query filter for positions
+        let filteredHeroes = heroes;
+        if (filter === 'no_positions') {
+            filteredHeroes = heroes.filter((h: any) => {
+                const positions = h.positions || [];
+                return positions.length === 0;
+            });
+        } else if (filter === 'has_positions') {
+            filteredHeroes = heroes.filter((h: any) => {
+                const positions = h.positions || [];
+                return positions.length > 0;
+            });
+        }
+
+        if (filteredHeroes.length === 0) {
+            const filterMsg = filter === 'no_positions'
+                ? 'All matched heroes have positions set.'
+                : 'No matched heroes have positions set.';
+            await interaction.reply({ content: filterMsg, ephemeral: true });
+            return;
+        }
+
+        // If searching for a specific hero, show detailed view
+        if (heroName && filteredHeroes.length === 1) {
+            const hero = filteredHeroes[0];
+            const heroRoles = hero.roles || [];
+            const heroPositions = (hero.positions || []) as Position[];
+
+            const embed = new EmbedBuilder()
+                .setTitle(`🦸 ${hero.localized_name}`)
+                .setColor(0x7c4dff)
+                .addFields([
+                    {
+                        name: '⚔️ Attribute',
+                        value: ATTR_LABELS[hero.primary_attr] || hero.primary_attr.toUpperCase(),
+                        inline: true,
+                    },
+                    { name: '🗡️ Attack', value: hero.attack_type, inline: true },
+                    { name: '🎭 Roles', value: heroRoles.join(', ') || 'None', inline: false },
+                    {
+                        name: '📍 Positions',
+                        value: heroPositions.length > 0
+                            ? heroPositions.map((p: Position) => POSITION_LABELS[p] || p).join('\n')
+                            : '❌ Not set',
+                        inline: false,
+                    },
+                ]);
+
+            if (hero.img) {
+                embed.setThumbnail(`https://cdn.cloudflare.steamstatic.com${hero.img}`);
+            }
+
+            await interaction.reply({ embeds: [embed] });
+            return;
+        }
+
+        // List view for multiple heroes
+        const embed = new EmbedBuilder()
+            .setTitle('🔍 Hero Search Results')
+            .setColor(0x7c4dff);
+
+        if (filter) {
+            const filterLabel = filter === 'no_positions' ? 'Without Positions' : 'With Positions';
+            embed.setDescription(`**Filter:** ${filterLabel}`);
+        }
+
+        // Group heroes into chunks for display
+        let heroList = '';
+        for (const hero of filteredHeroes) {
+            const positions = hero.positions || [];
+            const posStr = positions.length > 0
+                ? positions.join(', ')
+                : '❌';
+            heroList += `**${hero.localized_name}** - ${posStr}\n`;
+        }
+
+        const countSuffix = heroes.length > filteredHeroes.length
+            ? ` of ${heroes.length}`
+            : '';
+        embed.addFields([{
+            name: `Heroes (${filteredHeroes.length}${countSuffix})`,
+            value: heroList || 'No heroes found',
+            inline: false,
+        }]);
+
+        if (heroes.length >= 25) {
+            embed.setFooter({ text: 'Results limited to 25. Use a more specific search.' });
+        }
+
+        await interaction.reply({ embeds: [embed] });
+    } catch (error) {
+        log.error({ err: error, category: 'dota' }, 'Error searching heroes');
+        await interaction.reply({
+            content: 'An error occurred while searching heroes.',
+            ephemeral: true,
+        });
+    }
+}
+
 async function handleCompare(interaction: any, { tables, log }: any) {
     const user1 = interaction.options.getUser('user1');
     const user2 = interaction.options.getUser('user2');
@@ -1544,7 +1671,23 @@ export default {
                 .setRequired(true)))
         .addSubcommand((subcommand: any) => subcommand
             .setName('syncpositions')
-            .setDescription('Sync hero positions from built-in mapping (owner only)')),
+            .setDescription('Sync hero positions from built-in mapping (owner only)'))
+        .addSubcommand((subcommand: any) => subcommand
+            .setName('search')
+            .setDescription('Search heroes and view their positions')
+            .addStringOption((option: any) => option
+                .setName('hero')
+                .setDescription('Hero name to search for')
+                .setRequired(false)
+                .setAutocomplete(true))
+            .addStringOption((option: any) => option
+                .setName('filter')
+                .setDescription('Filter results')
+                .setRequired(false)
+                .addChoices(
+                    { name: 'Without Positions', value: 'no_positions' },
+                    { name: 'With Positions', value: 'has_positions' },
+                ))),
 
     async execute(interaction: any, context: any) {
         const action = interaction.options.getSubcommand();
@@ -1596,6 +1739,9 @@ export default {
                 break;
             case 'syncpositions':
                 await handleSyncPositions(interaction, context);
+                break;
+            case 'search':
+                await handleSearch(interaction, context);
                 break;
             default:
                 await interaction.reply({
