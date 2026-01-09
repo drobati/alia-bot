@@ -1090,18 +1090,51 @@ async function handleSync(interaction: any, { tables, log }: any) {
 
         // Upsert each hero (preserve existing position data)
         for (const hero of heroList) {
+            // Build the hero data object with all stats
+            const heroData = {
+                hero_id: hero.id,
+                name: hero.name,
+                localized_name: hero.localized_name,
+                primary_attr: hero.primary_attr,
+                attack_type: hero.attack_type,
+                roles: hero.roles || [],
+                img: hero.img,
+                icon: hero.icon,
+                // Base stats
+                base_health: hero.base_health,
+                base_health_regen: hero.base_health_regen,
+                base_mana: hero.base_mana,
+                base_mana_regen: hero.base_mana_regen,
+                base_armor: hero.base_armor,
+                base_mr: hero.base_mr,
+                // Attributes
+                base_str: hero.base_str,
+                base_agi: hero.base_agi,
+                base_int: hero.base_int,
+                str_gain: hero.str_gain,
+                agi_gain: hero.agi_gain,
+                int_gain: hero.int_gain,
+                // Attack
+                base_attack_min: hero.base_attack_min,
+                base_attack_max: hero.base_attack_max,
+                attack_range: hero.attack_range,
+                projectile_speed: hero.projectile_speed,
+                attack_rate: hero.attack_rate,
+                attack_point: hero.attack_point,
+                // Movement/Vision
+                move_speed: hero.move_speed,
+                turn_rate: hero.turn_rate,
+                day_vision: hero.day_vision,
+                night_vision: hero.night_vision,
+                // Other
+                legs: hero.legs,
+            };
+
             const [record, wasCreated] = await tables.DotaHeroes.findOrCreate({
                 where: { hero_id: hero.id },
                 defaults: {
-                    hero_id: hero.id,
-                    name: hero.name,
-                    localized_name: hero.localized_name,
-                    primary_attr: hero.primary_attr,
-                    attack_type: hero.attack_type,
-                    roles: hero.roles || [],
+                    ...heroData,
                     positions: [],
-                    img: hero.img,
-                    icon: hero.icon,
                 },
             });
 
@@ -1109,15 +1142,7 @@ async function handleSync(interaction: any, { tables, log }: any) {
                 created++;
             } else {
                 // Update existing record but preserve positions
-                await record.update({
-                    name: hero.name,
-                    localized_name: hero.localized_name,
-                    primary_attr: hero.primary_attr,
-                    attack_type: hero.attack_type,
-                    roles: hero.roles || [],
-                    img: hero.img,
-                    icon: hero.icon,
-                });
+                await record.update(heroData);
                 updated++;
             }
         }
@@ -1293,14 +1318,10 @@ async function handleSearch(interaction: any, { tables, log }: any) {
             whereClause.localized_name = { [Op.like]: `%${heroName}%` };
         }
 
-        // When filtering by position status, we need all heroes first
-        // Only apply limit when not filtering or searching by name
-        const needsAllHeroes = filter && !heroName;
-
         const heroes = await tables.DotaHeroes.findAll({
             where: whereClause,
             order: [['localized_name', 'ASC']],
-            ...(needsAllHeroes ? {} : { limit: 25 }),
+            limit: 25,
         });
 
         if (heroes.length === 0) {
@@ -1327,14 +1348,10 @@ async function handleSearch(interaction: any, { tables, log }: any) {
             });
         }
 
-        // Limit results after filtering
-        const totalMatched = filteredHeroes.length;
-        filteredHeroes = filteredHeroes.slice(0, 25);
-
         if (filteredHeroes.length === 0) {
             const filterMsg = filter === 'no_positions'
-                ? 'All heroes have positions set! 🎉'
-                : 'No heroes have positions set. Run `/dota syncpositions` first.';
+                ? 'All matched heroes have positions set.'
+                : 'No matched heroes have positions set.';
             await interaction.reply({ content: filterMsg, ephemeral: true });
             return;
         }
@@ -1355,15 +1372,77 @@ async function handleSearch(interaction: any, { tables, log }: any) {
                         inline: true,
                     },
                     { name: '🗡️ Attack', value: hero.attack_type, inline: true },
-                    { name: '🎭 Roles', value: heroRoles.join(', ') || 'None', inline: false },
                     {
-                        name: '📍 Positions',
-                        value: heroPositions.length > 0
-                            ? heroPositions.map((p: Position) => POSITION_LABELS[p] || p).join('\n')
-                            : '❌ Not set',
-                        inline: false,
+                        name: '🦵 Legs',
+                        value: hero.legs?.toString() || 'N/A',
+                        inline: true,
                     },
                 ]);
+
+            // Add base stats if available
+            if (hero.base_str !== null) {
+                const attrStr = `STR: ${hero.base_str} (+${hero.str_gain})`;
+                const attrAgi = `AGI: ${hero.base_agi} (+${hero.agi_gain})`;
+                const attrInt = `INT: ${hero.base_int} (+${hero.int_gain})`;
+                embed.addFields([{
+                    name: '📊 Attributes',
+                    value: `${attrStr}\n${attrAgi}\n${attrInt}`,
+                    inline: true,
+                }]);
+            }
+
+            // Add combat stats
+            if (hero.base_attack_min !== null) {
+                const dmg = `${hero.base_attack_min}-${hero.base_attack_max}`;
+                const atkInfo = [
+                    `Damage: ${dmg}`,
+                    `Range: ${hero.attack_range}`,
+                    `BAT: ${hero.attack_rate}`,
+                ];
+                embed.addFields([{
+                    name: '⚔️ Attack',
+                    value: atkInfo.join('\n'),
+                    inline: true,
+                }]);
+            }
+
+            // Add defense stats
+            if (hero.base_armor !== null) {
+                const defInfo = [
+                    `Armor: ${hero.base_armor}`,
+                    `Magic Res: ${hero.base_mr}%`,
+                ];
+                embed.addFields([{
+                    name: '🛡️ Defense',
+                    value: defInfo.join('\n'),
+                    inline: true,
+                }]);
+            }
+
+            // Add movement/vision
+            if (hero.move_speed !== null) {
+                const moveInfo = [
+                    `Speed: ${hero.move_speed}`,
+                    `Vision: ${hero.day_vision}/${hero.night_vision}`,
+                ];
+                embed.addFields([{
+                    name: '👁️ Movement',
+                    value: moveInfo.join('\n'),
+                    inline: true,
+                }]);
+            }
+
+            // Add roles and positions
+            embed.addFields([
+                { name: '🎭 Roles', value: heroRoles.join(', ') || 'None', inline: false },
+                {
+                    name: '📍 Positions',
+                    value: heroPositions.length > 0
+                        ? heroPositions.map((p: Position) => POSITION_LABELS[p] || p).join(', ')
+                        : '❌ Not set',
+                    inline: false,
+                },
+            ]);
 
             if (hero.img) {
                 embed.setThumbnail(`https://cdn.cloudflare.steamstatic.com${hero.img}`);
@@ -1393,8 +1472,8 @@ async function handleSearch(interaction: any, { tables, log }: any) {
             heroList += `**${hero.localized_name}** - ${posStr}\n`;
         }
 
-        const countSuffix = totalMatched > filteredHeroes.length
-            ? ` of ${totalMatched}`
+        const countSuffix = heroes.length > filteredHeroes.length
+            ? ` of ${heroes.length}`
             : '';
         embed.addFields([{
             name: `Heroes (${filteredHeroes.length}${countSuffix})`,
@@ -1402,8 +1481,8 @@ async function handleSearch(interaction: any, { tables, log }: any) {
             inline: false,
         }]);
 
-        if (totalMatched > 25) {
-            embed.setFooter({ text: `Showing 25 of ${totalMatched} results.` });
+        if (heroes.length >= 25) {
+            embed.setFooter({ text: 'Results limited to 25. Use a more specific search.' });
         }
 
         await interaction.reply({ embeds: [embed] });

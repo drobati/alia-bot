@@ -129,6 +129,34 @@ export interface HeroConstant {
     roles: string[];
     img: string;
     icon: string;
+    // Base stats
+    base_health: number;
+    base_health_regen: number;
+    base_mana: number;
+    base_mana_regen: number;
+    base_armor: number;
+    base_mr: number;
+    // Attributes
+    base_str: number;
+    base_agi: number;
+    base_int: number;
+    str_gain: number;
+    agi_gain: number;
+    int_gain: number;
+    // Attack
+    base_attack_min: number;
+    base_attack_max: number;
+    attack_range: number;
+    projectile_speed: number;
+    attack_rate: number;
+    attack_point: number;
+    // Movement/Vision
+    move_speed: number;
+    turn_rate: number | null;
+    day_vision: number;
+    night_vision: number;
+    // Other
+    legs: number;
 }
 
 /**
