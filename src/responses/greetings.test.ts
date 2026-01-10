@@ -221,7 +221,7 @@ describe('response/greetings', () => {
             (Math.random as jest.Mock).mockReturnValue(lastIndex);
             await greetings(message, context);
             expect(mockChannelSend).toHaveBeenLastCalledWith(
-                GOODMORNING_MESSAGES[GOODMORNING_MESSAGES.length - 1]
+                GOODMORNING_MESSAGES[GOODMORNING_MESSAGES.length - 1],
             );
         });
     });
