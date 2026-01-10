@@ -1153,10 +1153,7 @@ async function handleSync(interaction: any, { tables, log }: any) {
             try {
                 const [record, wasCreated] = await tables.DotaHeroes.findOrCreate({
                     where: { hero_id: hero.id },
-                    defaults: {
-                        ...heroData,
-                        positions: [],
-                    },
+                    defaults: heroData,
                 });
 
                 if (wasCreated) {
@@ -1168,31 +1165,39 @@ async function handleSync(interaction: any, { tables, log }: any) {
                 }
             } catch (err: any) {
                 // If we get an unknown column error, fall back to core data only
-                if (err.message?.includes('Unknown column') && useExtendedStats) {
-                    log.warn(
-                        { category: 'dota' },
-                        'Extended stats columns not found, falling back to core data',
-                    );
-                    useExtendedStats = false;
+                if (err.message?.includes('Unknown column')) {
+                    if (useExtendedStats) {
+                        log.warn(
+                            { category: 'dota' },
+                            'Extended stats columns not found, falling back to core data',
+                        );
+                        useExtendedStats = false;
 
-                    // Retry this hero with core data only
-                    try {
-                        const [record, wasCreated] = await tables.DotaHeroes.findOrCreate({
-                            where: { hero_id: hero.id },
-                            defaults: coreHeroData,
-                        });
+                        // Retry this hero with core data only
+                        try {
+                            const [record, wasCreated] = await tables.DotaHeroes.findOrCreate({
+                                where: { hero_id: hero.id },
+                                defaults: coreHeroData,
+                            });
 
-                        if (wasCreated) {
-                            created++;
-                        } else {
-                            await record.update(coreHeroData);
-                            updated++;
+                            if (wasCreated) {
+                                created++;
+                            } else {
+                                await record.update(coreHeroData);
+                                updated++;
+                            }
+                        } catch (retryErr: any) {
+                            // If even core data fails, log and skip this hero
+                            log.error(
+                                { err: retryErr, heroId: hero.id, category: 'dota' },
+                                'Failed to sync hero even with core data',
+                            );
                         }
-                    } catch (retryErr: any) {
-                        // If even core data fails, log and skip this hero
+                    } else {
+                        // Already using core data but still failing - skip this hero
                         log.error(
-                            { err: retryErr, heroId: hero.id, category: 'dota' },
-                            'Failed to sync hero even with core data',
+                            { err, heroId: hero.id, category: 'dota' },
+                            'Failed to sync hero - database schema issue',
                         );
                     }
                 } else {
