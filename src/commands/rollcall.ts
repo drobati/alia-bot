@@ -106,9 +106,8 @@ async function handleForCommand(interaction: any, context: any) {
 
 async function handleGraphCommand(interaction: any, context: any) {
     const username = interaction.options.getString('username');
-    // get the most recent 10 scores
-    const allScores = await fetchScores(username, null, context);
-    const scores = allScores.slice(-10);
+    // get the most recent 10 scores directly from database
+    const scores = await fetchScores(username, null, context, 10);
     if (scores.length === 0) {
         await interaction.reply({ content: `No scores found for ${username}`, ephemeral: true });
         return;
@@ -190,7 +189,7 @@ async function generateSparkline(scores: any) {
     return chartJSNodeCanvas.renderToBuffer({ type: 'line', data, options });
 }
 
-async function fetchScores(username: any, interval: any, context: any) {
+async function fetchScores(username: any, interval: any, context: any, limit?: number) {
     const whereClause = { username, timestamp: { [Op.gte]: new Date(0) } };
     if (interval) {
         const now = new Date();
@@ -198,9 +197,21 @@ async function fetchScores(username: any, interval: any, context: any) {
         whereClause.timestamp = { [Op.gte]: pastDate };
     }
 
+    // When limit is specified without interval, fetch most recent N scores
+    // Order DESC to get most recent, then reverse for chronological order
+    if (limit && !interval) {
+        const scores = await context.tables.RollCall.findAll({
+            where: whereClause,
+            order: [['timestamp', 'DESC']],
+            limit,
+        });
+        return scores.reverse();
+    }
+
     return await context.tables.RollCall.findAll({
         where: whereClause,
         order: [['timestamp', 'ASC']],
+        ...(limit && { limit }),
     });
 }
 
