@@ -314,20 +314,30 @@ describe('Rollcall Command', () => {
         it('should limit to last 10 scores', async () => {
             (mockInteraction.options!.getString as jest.Mock).mockReturnValue('testuser');
 
-            const mockScores = Array.from({ length: 15 }, (_, i) => ({
-                value: 50 + i,
-                timestamp: new Date(`2023-01-${i + 1}T10:00:00Z`),
+            // Mock returns 10 scores in DESC order (as the DB would with limit + DESC)
+            // Values 64-55 representing the 10 most recent scores
+            const mockScores = Array.from({ length: 10 }, (_, i) => ({
+                value: 64 - i,
+                timestamp: new Date(`2023-01-${15 - i}T10:00:00Z`),
             }));
             mockRollCall.findAll.mockResolvedValue(mockScores);
 
             await rollcallCommand.execute(mockInteraction, mockContext);
 
-            // Verify that renderToBuffer was called with only last 10 scores
+            // Verify findAll was called with limit parameter
+            expect(mockRollCall.findAll).toHaveBeenCalledWith(
+                expect.objectContaining({
+                    limit: 10,
+                    order: [['timestamp', 'DESC']],
+                }),
+            );
+
+            // Verify that renderToBuffer was called with 10 scores in chronological order
             const chartConfig = mockChartInstance.renderToBuffer.mock.calls[0][0];
             expect(chartConfig.data.datasets[0].data).toHaveLength(10);
             expect(chartConfig.data.datasets[1].data).toHaveLength(10);
 
-            // Should be the last 10 values (55-64)
+            // Should be in ascending order after reverse (55-64)
             const expectedValues = [55, 56, 57, 58, 59, 60, 61, 62, 63, 64];
             expect(chartConfig.data.datasets[0].data).toEqual(expectedValues);
         });
@@ -514,9 +524,10 @@ describe('Rollcall Command', () => {
         });
 
         it('should create chart with correct data structure', async () => {
+            // Mock returns in DESC order (newest first) as the DB would with limit
             const mockScores = [
-                { value: 75, timestamp: new Date('2023-01-01T10:00:00Z') },
                 { value: 85, timestamp: new Date('2023-01-02T10:00:00Z') },
+                { value: 75, timestamp: new Date('2023-01-01T10:00:00Z') },
             ];
             mockRollCall.findAll.mockResolvedValue(mockScores);
 
