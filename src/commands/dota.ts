@@ -855,11 +855,19 @@ async function handleRandom(interaction: any, { tables, log }: any) {
             appliedFilters.push(`Attack: ${attackFilter}`);
         }
 
-        // Query heroes from database
-        let heroes = await tables.DotaHeroes.findAll({ where: whereClause });
+        // Query heroes from database (with fallback if model/db mismatch)
+        let heroes: any[] = [];
+        let dbQueryFailed = false;
+        try {
+            heroes = await tables.DotaHeroes.findAll({ where: whereClause });
+        } catch (dbErr: any) {
+            // Database query failed (possibly due to model/schema mismatch)
+            log.warn({ err: dbErr, category: 'dota' }, 'Database query failed, falling back to API');
+            dbQueryFailed = true;
+        }
 
-        // If no heroes in database, fall back to API
-        if (heroes.length === 0 && Object.keys(whereClause).length === 0) {
+        // If no heroes in database or query failed, fall back to API
+        if ((heroes.length === 0 || dbQueryFailed) && Object.keys(whereClause).length === 0) {
             log.warn({ category: 'dota' }, 'No heroes in database, falling back to API');
             const apiHeroes = await opendota.getHeroConstants();
             const heroList = Object.values(apiHeroes).filter(h => h.localized_name);
@@ -1089,9 +1097,12 @@ async function handleSync(interaction: any, { tables, log }: any) {
         let updated = 0;
 
         // Upsert each hero (preserve existing position data)
+        // Track if we need to fall back to basic data (migration not run)
+        let useExtendedStats = true;
+
         for (const hero of heroList) {
-            // Build the hero data object with all stats
-            const heroData = {
+            // Core hero data (always works)
+            const coreHeroData = {
                 hero_id: hero.id,
                 name: hero.name,
                 localized_name: hero.localized_name,
@@ -1100,6 +1111,10 @@ async function handleSync(interaction: any, { tables, log }: any) {
                 roles: hero.roles || [],
                 img: hero.img,
                 icon: hero.icon,
+            };
+
+            // Extended stats (requires migration)
+            const extendedStats = {
                 // Base stats
                 base_health: hero.base_health,
                 base_health_regen: hero.base_health_regen,
@@ -1130,30 +1145,73 @@ async function handleSync(interaction: any, { tables, log }: any) {
                 legs: hero.legs,
             };
 
-            const [record, wasCreated] = await tables.DotaHeroes.findOrCreate({
-                where: { hero_id: hero.id },
-                defaults: {
-                    ...heroData,
-                    positions: [],
-                },
-            });
+            // Build hero data based on whether extended stats are supported
+            const heroData = useExtendedStats
+                ? { ...coreHeroData, ...extendedStats }
+                : coreHeroData;
 
-            if (wasCreated) {
-                created++;
-            } else {
-                // Update existing record but preserve positions
-                await record.update(heroData);
-                updated++;
+            try {
+                const [record, wasCreated] = await tables.DotaHeroes.findOrCreate({
+                    where: { hero_id: hero.id },
+                    defaults: {
+                        ...heroData,
+                        positions: [],
+                    },
+                });
+
+                if (wasCreated) {
+                    created++;
+                } else {
+                    // Update existing record but preserve positions
+                    await record.update(heroData);
+                    updated++;
+                }
+            } catch (err: any) {
+                // If we get an unknown column error, fall back to core data only
+                if (err.message?.includes('Unknown column') && useExtendedStats) {
+                    log.warn(
+                        { category: 'dota' },
+                        'Extended stats columns not found, falling back to core data',
+                    );
+                    useExtendedStats = false;
+                    // Retry this hero with core data only
+                    const [record, wasCreated] = await tables.DotaHeroes.findOrCreate({
+                        where: { hero_id: hero.id },
+                        defaults: {
+                            ...coreHeroData,
+                            positions: [],
+                        },
+                    });
+
+                    if (wasCreated) {
+                        created++;
+                    } else {
+                        await record.update(coreHeroData);
+                        updated++;
+                    }
+                } else {
+                    throw err;
+                }
             }
         }
 
-        log.info({ created, updated, total: heroList.length, category: 'dota' }, 'Hero database synced');
+        log.info({
+            created,
+            updated,
+            total: heroList.length,
+            extendedStats: useExtendedStats,
+            category: 'dota',
+        }, 'Hero database synced');
+
+        const statsNote = useExtendedStats
+            ? ''
+            : '\n\n⚠️ Extended hero stats not synced (migration required)';
 
         await interaction.editReply({
             content: `✅ Hero database synced successfully!\n` +
                 `**Created:** ${created} heroes\n` +
                 `**Updated:** ${updated} heroes\n` +
-                `**Total:** ${heroList.length} heroes`,
+                `**Total:** ${heroList.length} heroes${statsNote}`,
         });
     } catch (error: any) {
         if (error.message === 'Unauthorized: User is not bot owner') {
