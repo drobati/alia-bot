@@ -32,7 +32,19 @@ describe('Dota Command', () => {
         it('should have subcommands', () => {
             const json = dota.data.toJSON();
             expect(json.options).toBeDefined();
-            expect(json.options!.length).toBe(16);
+            expect(json.options!.length).toBe(17);
+        });
+
+        it('should have search subcommand with options', () => {
+            const json = dota.data.toJSON();
+            const search = json.options!.find((opt: any) => opt.name === 'search') as any;
+            expect(search).toBeDefined();
+            const heroOption = search!.options?.find((opt: any) => opt.name === 'hero');
+            expect(heroOption).toBeDefined();
+            expect(heroOption.autocomplete).toBe(true);
+            const filterOption = search!.options?.find((opt: any) => opt.name === 'filter');
+            expect(filterOption).toBeDefined();
+            expect(filterOption.choices).toHaveLength(2);
         });
 
         it('should have help subcommand', () => {
@@ -1187,6 +1199,29 @@ describe('Dota Command', () => {
                         roles: ['Carry', 'Escape'],
                         img: '/apps/dota2/images/heroes/antimage_full.png',
                         icon: '/apps/dota2/images/heroes/antimage_icon.png',
+                        base_health: 120,
+                        base_health_regen: 0.25,
+                        base_mana: 75,
+                        base_mana_regen: 0,
+                        base_armor: -1,
+                        base_mr: 25,
+                        base_str: 21,
+                        base_agi: 24,
+                        base_int: 12,
+                        str_gain: 1.6,
+                        agi_gain: 2.8,
+                        int_gain: 1.8,
+                        base_attack_min: 29,
+                        base_attack_max: 33,
+                        attack_range: 150,
+                        projectile_speed: 0,
+                        attack_rate: 1.4,
+                        attack_point: 0.3,
+                        move_speed: 310,
+                        turn_rate: 0.6,
+                        day_vision: 1800,
+                        night_vision: 800,
+                        legs: 2,
                     },
                 });
 
@@ -1276,7 +1311,7 @@ describe('Dota Command', () => {
                 });
             });
 
-            it('should handle database errors', async () => {
+            it('should fall back to API when database fails', async () => {
                 const mockInteraction = {
                     options: {
                         getSubcommand: () => 'random',
@@ -1285,12 +1320,69 @@ describe('Dota Command', () => {
                     reply: jest.fn(),
                 };
 
+                // Database fails, but API works
                 mockContext.tables.DotaHeroes.findAll.mockRejectedValue(new Error('DB error'));
+                mockedOpendota.getHeroConstants.mockResolvedValue({
+                    1: {
+                        id: 1,
+                        name: 'npc_dota_hero_axe',
+                        localized_name: 'Axe',
+                        primary_attr: 'str',
+                        attack_type: 'Melee',
+                        roles: ['Initiator'],
+                        img: '/apps/dota2/images/heroes/axe_full.png',
+                        icon: '/apps/dota2/images/heroes/axe_icon.png',
+                        base_health: 120,
+                        base_health_regen: 0.25,
+                        base_mana: 75,
+                        base_mana_regen: 0,
+                        base_armor: 2,
+                        base_mr: 25,
+                        base_str: 25,
+                        base_agi: 20,
+                        base_int: 18,
+                        str_gain: 2.8,
+                        agi_gain: 2.2,
+                        int_gain: 1.6,
+                        base_attack_min: 52,
+                        base_attack_max: 56,
+                        attack_range: 150,
+                        projectile_speed: 0,
+                        attack_rate: 1.7,
+                        attack_point: 0.5,
+                        move_speed: 310,
+                        turn_rate: 0.6,
+                        day_vision: 1800,
+                        night_vision: 800,
+                        legs: 2,
+                    },
+                });
+
+                await dota.execute(mockInteraction, mockContext);
+
+                // Should fall back to API and return a hero
+                expect(mockInteraction.reply).toHaveBeenCalledWith({
+                    embeds: expect.any(Array),
+                });
+            });
+
+            it('should show error when both database and API fail', async () => {
+                const mockInteraction = {
+                    options: {
+                        getSubcommand: () => 'random',
+                        getString: () => null,
+                    },
+                    reply: jest.fn(),
+                };
+
+                // Both database and API fail
+                mockContext.tables.DotaHeroes.findAll.mockRejectedValue(new Error('DB error'));
+                mockedOpendota.getHeroConstants.mockResolvedValue({});
 
                 await dota.execute(mockInteraction, mockContext);
 
                 expect(mockInteraction.reply).toHaveBeenCalledWith({
-                    content: 'An error occurred while picking a random hero.',
+                    content: expect.stringContaining('/dota sync'),
                     ephemeral: true,
                 });
             });
@@ -1642,6 +1734,95 @@ describe('Dota Command', () => {
 
                 expect(mockInteraction.reply).toHaveBeenCalledWith({
                     content: expect.stringContaining('restricted to the bot owner'),
+                    ephemeral: true,
+                });
+            });
+        });
+
+        describe('search subcommand', () => {
+            it('should show heroes without positions when filter is no_positions', async () => {
+                const mockInteraction = {
+                    options: {
+                        getSubcommand: () => 'search',
+                        getString: (name: string) => {
+                            if (name === 'hero') {return null;}
+                            if (name === 'filter') {return 'no_positions';}
+                            return null;
+                        },
+                    },
+                    reply: jest.fn(),
+                };
+
+                mockContext.tables.DotaHeroes.findAll.mockResolvedValue([
+                    { localized_name: 'Axe', positions: ['pos3'], roles: ['Durable'] },
+                    { localized_name: 'NewHero', positions: [], roles: ['Support'] },
+                ]);
+
+                await dota.execute(mockInteraction, mockContext);
+
+                expect(mockInteraction.reply).toHaveBeenCalledWith({
+                    embeds: expect.arrayContaining([
+                        expect.objectContaining({
+                            data: expect.objectContaining({
+                                title: '🔍 Hero Search Results',
+                            }),
+                        }),
+                    ]),
+                });
+            });
+
+            it('should show single hero details when exact match', async () => {
+                const mockInteraction = {
+                    options: {
+                        getSubcommand: () => 'search',
+                        getString: (name: string) => {
+                            if (name === 'hero') {return 'Axe';}
+                            if (name === 'filter') {return null;}
+                            return null;
+                        },
+                    },
+                    reply: jest.fn(),
+                };
+
+                mockContext.tables.DotaHeroes.findAll.mockResolvedValue([
+                    {
+                        localized_name: 'Axe',
+                        primary_attr: 'str',
+                        attack_type: 'Melee',
+                        positions: ['pos3'],
+                        roles: ['Durable', 'Initiator'],
+                        img: '/apps/dota2/images/heroes/axe.png',
+                    },
+                ]);
+
+                await dota.execute(mockInteraction, mockContext);
+
+                expect(mockInteraction.reply).toHaveBeenCalledWith({
+                    embeds: expect.arrayContaining([
+                        expect.objectContaining({
+                            data: expect.objectContaining({
+                                title: '🦸 Axe',
+                            }),
+                        }),
+                    ]),
+                });
+            });
+
+            it('should handle no heroes in database', async () => {
+                const mockInteraction = {
+                    options: {
+                        getSubcommand: () => 'search',
+                        getString: () => null,
+                    },
+                    reply: jest.fn(),
+                };
+
+                mockContext.tables.DotaHeroes.findAll.mockResolvedValue([]);
+
+                await dota.execute(mockInteraction, mockContext);
+
+                expect(mockInteraction.reply).toHaveBeenCalledWith({
+                    content: expect.stringContaining('No heroes in database'),
                     ephemeral: true,
                 });
             });

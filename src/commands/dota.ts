@@ -855,11 +855,19 @@ async function handleRandom(interaction: any, { tables, log }: any) {
             appliedFilters.push(`Attack: ${attackFilter}`);
         }
 
-        // Query heroes from database
-        let heroes = await tables.DotaHeroes.findAll({ where: whereClause });
+        // Query heroes from database (with fallback if model/db mismatch)
+        let heroes: any[] = [];
+        let dbQueryFailed = false;
+        try {
+            heroes = await tables.DotaHeroes.findAll({ where: whereClause });
+        } catch (dbErr: any) {
+            // Database query failed (possibly due to model/schema mismatch)
+            log.warn({ err: dbErr, category: 'dota' }, 'Database query failed, falling back to API');
+            dbQueryFailed = true;
+        }
 
-        // If no heroes in database, fall back to API
-        if (heroes.length === 0 && Object.keys(whereClause).length === 0) {
+        // If no heroes in database or query failed, fall back to API
+        if ((heroes.length === 0 || dbQueryFailed) && Object.keys(whereClause).length === 0) {
             log.warn({ category: 'dota' }, 'No heroes in database, falling back to API');
             const apiHeroes = await opendota.getHeroConstants();
             const heroList = Object.values(apiHeroes).filter(h => h.localized_name);
@@ -1089,46 +1097,132 @@ async function handleSync(interaction: any, { tables, log }: any) {
         let updated = 0;
 
         // Upsert each hero (preserve existing position data)
-        for (const hero of heroList) {
-            const [record, wasCreated] = await tables.DotaHeroes.findOrCreate({
-                where: { hero_id: hero.id },
-                defaults: {
-                    hero_id: hero.id,
-                    name: hero.name,
-                    localized_name: hero.localized_name,
-                    primary_attr: hero.primary_attr,
-                    attack_type: hero.attack_type,
-                    roles: hero.roles || [],
-                    positions: [],
-                    img: hero.img,
-                    icon: hero.icon,
-                },
-            });
+        // Track if we need to fall back to basic data (migration not run)
+        let useExtendedStats = true;
 
-            if (wasCreated) {
-                created++;
-            } else {
-                // Update existing record but preserve positions
-                await record.update({
-                    name: hero.name,
-                    localized_name: hero.localized_name,
-                    primary_attr: hero.primary_attr,
-                    attack_type: hero.attack_type,
-                    roles: hero.roles || [],
-                    img: hero.img,
-                    icon: hero.icon,
+        for (const hero of heroList) {
+            // Core hero data (always works)
+            const coreHeroData = {
+                hero_id: hero.id,
+                name: hero.name,
+                localized_name: hero.localized_name,
+                primary_attr: hero.primary_attr,
+                attack_type: hero.attack_type,
+                roles: hero.roles || [],
+                img: hero.img,
+                icon: hero.icon,
+            };
+
+            // Extended stats (requires migration)
+            const extendedStats = {
+                // Base stats
+                base_health: hero.base_health,
+                base_health_regen: hero.base_health_regen,
+                base_mana: hero.base_mana,
+                base_mana_regen: hero.base_mana_regen,
+                base_armor: hero.base_armor,
+                base_mr: hero.base_mr,
+                // Attributes
+                base_str: hero.base_str,
+                base_agi: hero.base_agi,
+                base_int: hero.base_int,
+                str_gain: hero.str_gain,
+                agi_gain: hero.agi_gain,
+                int_gain: hero.int_gain,
+                // Attack
+                base_attack_min: hero.base_attack_min,
+                base_attack_max: hero.base_attack_max,
+                attack_range: hero.attack_range,
+                projectile_speed: hero.projectile_speed,
+                attack_rate: hero.attack_rate,
+                attack_point: hero.attack_point,
+                // Movement/Vision
+                move_speed: hero.move_speed,
+                turn_rate: hero.turn_rate,
+                day_vision: hero.day_vision,
+                night_vision: hero.night_vision,
+                // Other
+                legs: hero.legs,
+            };
+
+            // Build hero data based on whether extended stats are supported
+            const heroData = useExtendedStats
+                ? { ...coreHeroData, ...extendedStats }
+                : coreHeroData;
+
+            try {
+                const [record, wasCreated] = await tables.DotaHeroes.findOrCreate({
+                    where: { hero_id: hero.id },
+                    defaults: heroData,
                 });
-                updated++;
+
+                if (wasCreated) {
+                    created++;
+                } else {
+                    // Update existing record but preserve positions
+                    await record.update(heroData);
+                    updated++;
+                }
+            } catch (err: any) {
+                // If we get an unknown column error, fall back to core data only
+                if (err.message?.includes('Unknown column')) {
+                    if (useExtendedStats) {
+                        log.warn(
+                            { category: 'dota' },
+                            'Extended stats columns not found, falling back to core data',
+                        );
+                        useExtendedStats = false;
+
+                        // Retry this hero with core data only
+                        try {
+                            const [record, wasCreated] = await tables.DotaHeroes.findOrCreate({
+                                where: { hero_id: hero.id },
+                                defaults: coreHeroData,
+                            });
+
+                            if (wasCreated) {
+                                created++;
+                            } else {
+                                await record.update(coreHeroData);
+                                updated++;
+                            }
+                        } catch (retryErr: any) {
+                            // If even core data fails, log and skip this hero
+                            log.error(
+                                { err: retryErr, heroId: hero.id, category: 'dota' },
+                                'Failed to sync hero even with core data',
+                            );
+                        }
+                    } else {
+                        // Already using core data but still failing - skip this hero
+                        log.error(
+                            { err, heroId: hero.id, category: 'dota' },
+                            'Failed to sync hero - database schema issue',
+                        );
+                    }
+                } else {
+                    throw err;
+                }
             }
         }
 
-        log.info({ created, updated, total: heroList.length, category: 'dota' }, 'Hero database synced');
+        log.info({
+            created,
+            updated,
+            total: heroList.length,
+            extendedStats: useExtendedStats,
+            category: 'dota',
+        }, 'Hero database synced');
+
+        const statsNote = useExtendedStats
+            ? ''
+            : '\n\n⚠️ Extended hero stats not synced (migration required)';
 
         await interaction.editReply({
             content: `✅ Hero database synced successfully!\n` +
                 `**Created:** ${created} heroes\n` +
                 `**Updated:** ${updated} heroes\n` +
-                `**Total:** ${heroList.length} heroes`,
+                `**Total:** ${heroList.length} heroes${statsNote}`,
         });
     } catch (error: any) {
         if (error.message === 'Unauthorized: User is not bot owner') {
@@ -1278,6 +1372,195 @@ async function handleSyncPositions(interaction: any, { tables, log }: any) {
         } else {
             await interaction.reply(reply);
         }
+    }
+}
+
+async function handleSearch(interaction: any, { tables, log }: any) {
+    try {
+        const heroName = interaction.options.getString('hero');
+        const filter = interaction.options.getString('filter');
+
+        // Build query
+        const whereClause: any = {};
+
+        if (heroName) {
+            whereClause.localized_name = { [Op.like]: `%${heroName}%` };
+        }
+
+        const heroes = await tables.DotaHeroes.findAll({
+            where: whereClause,
+            order: [['localized_name', 'ASC']],
+            limit: 25,
+        });
+
+        if (heroes.length === 0) {
+            await interaction.reply({
+                content: heroName
+                    ? `No heroes found matching "${heroName}". Run \`/dota sync\` if heroes aren't loaded.`
+                    : 'No heroes in database. Run `/dota sync` first.',
+                ephemeral: true,
+            });
+            return;
+        }
+
+        // Apply post-query filter for positions
+        let filteredHeroes = heroes;
+        if (filter === 'no_positions') {
+            filteredHeroes = heroes.filter((h: any) => {
+                const positions = h.positions || [];
+                return positions.length === 0;
+            });
+        } else if (filter === 'has_positions') {
+            filteredHeroes = heroes.filter((h: any) => {
+                const positions = h.positions || [];
+                return positions.length > 0;
+            });
+        }
+
+        if (filteredHeroes.length === 0) {
+            const filterMsg = filter === 'no_positions'
+                ? 'All matched heroes have positions set.'
+                : 'No matched heroes have positions set.';
+            await interaction.reply({ content: filterMsg, ephemeral: true });
+            return;
+        }
+
+        // If searching for a specific hero, show detailed view
+        if (heroName && filteredHeroes.length === 1) {
+            const hero = filteredHeroes[0];
+            const heroRoles = hero.roles || [];
+            const heroPositions = (hero.positions || []) as Position[];
+
+            const embed = new EmbedBuilder()
+                .setTitle(`🦸 ${hero.localized_name}`)
+                .setColor(0x7c4dff)
+                .addFields([
+                    {
+                        name: '⚔️ Attribute',
+                        value: ATTR_LABELS[hero.primary_attr] || hero.primary_attr.toUpperCase(),
+                        inline: true,
+                    },
+                    { name: '🗡️ Attack', value: hero.attack_type, inline: true },
+                    {
+                        name: '🦵 Legs',
+                        value: hero.legs?.toString() || 'N/A',
+                        inline: true,
+                    },
+                ]);
+
+            // Add base stats if available
+            if (hero.base_str !== null) {
+                const attrStr = `STR: ${hero.base_str} (+${hero.str_gain})`;
+                const attrAgi = `AGI: ${hero.base_agi} (+${hero.agi_gain})`;
+                const attrInt = `INT: ${hero.base_int} (+${hero.int_gain})`;
+                embed.addFields([{
+                    name: '📊 Attributes',
+                    value: `${attrStr}\n${attrAgi}\n${attrInt}`,
+                    inline: true,
+                }]);
+            }
+
+            // Add combat stats
+            if (hero.base_attack_min !== null) {
+                const dmg = `${hero.base_attack_min}-${hero.base_attack_max}`;
+                const atkInfo = [
+                    `Damage: ${dmg}`,
+                    `Range: ${hero.attack_range}`,
+                    `BAT: ${hero.attack_rate}`,
+                ];
+                embed.addFields([{
+                    name: '⚔️ Attack',
+                    value: atkInfo.join('\n'),
+                    inline: true,
+                }]);
+            }
+
+            // Add defense stats
+            if (hero.base_armor !== null) {
+                const defInfo = [
+                    `Armor: ${hero.base_armor}`,
+                    `Magic Res: ${hero.base_mr}%`,
+                ];
+                embed.addFields([{
+                    name: '🛡️ Defense',
+                    value: defInfo.join('\n'),
+                    inline: true,
+                }]);
+            }
+
+            // Add movement/vision
+            if (hero.move_speed !== null) {
+                const moveInfo = [
+                    `Speed: ${hero.move_speed}`,
+                    `Vision: ${hero.day_vision}/${hero.night_vision}`,
+                ];
+                embed.addFields([{
+                    name: '👁️ Movement',
+                    value: moveInfo.join('\n'),
+                    inline: true,
+                }]);
+            }
+
+            // Add roles and positions
+            embed.addFields([
+                { name: '🎭 Roles', value: heroRoles.join(', ') || 'None', inline: false },
+                {
+                    name: '📍 Positions',
+                    value: heroPositions.length > 0
+                        ? heroPositions.map((p: Position) => POSITION_LABELS[p] || p).join(', ')
+                        : '❌ Not set',
+                    inline: false,
+                },
+            ]);
+
+            if (hero.img) {
+                embed.setThumbnail(`https://cdn.cloudflare.steamstatic.com${hero.img}`);
+            }
+
+            await interaction.reply({ embeds: [embed] });
+            return;
+        }
+
+        // List view for multiple heroes
+        const embed = new EmbedBuilder()
+            .setTitle('🔍 Hero Search Results')
+            .setColor(0x7c4dff);
+
+        if (filter) {
+            const filterLabel = filter === 'no_positions' ? 'Without Positions' : 'With Positions';
+            embed.setDescription(`**Filter:** ${filterLabel}`);
+        }
+
+        // Group heroes into chunks for display
+        let heroList = '';
+        for (const hero of filteredHeroes) {
+            const positions = hero.positions || [];
+            const posStr = positions.length > 0
+                ? positions.join(', ')
+                : '❌';
+            heroList += `**${hero.localized_name}** - ${posStr}\n`;
+        }
+
+        const countSuffix = heroes.length > filteredHeroes.length
+            ? ` of ${heroes.length}`
+            : '';
+        embed.addFields([{
+            name: `Heroes (${filteredHeroes.length}${countSuffix})`,
+            value: heroList || 'No heroes found',
+            inline: false,
+        }]);
+
+        if (heroes.length >= 25) {
+            embed.setFooter({ text: 'Results limited to 25. Use a more specific search.' });
+        }
+
+        await interaction.reply({ embeds: [embed] });
+    } catch (error) {
+        log.error({ err: error, category: 'dota' }, 'Error searching heroes');
+        await interaction.reply({
+            content: 'An error occurred while searching heroes.',
+            ephemeral: true,
+        });
     }
 }
 
@@ -1544,7 +1827,23 @@ export default {
                 .setRequired(true)))
         .addSubcommand((subcommand: any) => subcommand
             .setName('syncpositions')
-            .setDescription('Sync hero positions from built-in mapping (owner only)')),
+            .setDescription('Sync hero positions from built-in mapping (owner only)'))
+        .addSubcommand((subcommand: any) => subcommand
+            .setName('search')
+            .setDescription('Search heroes and view their positions')
+            .addStringOption((option: any) => option
+                .setName('hero')
+                .setDescription('Hero name to search for')
+                .setRequired(false)
+                .setAutocomplete(true))
+            .addStringOption((option: any) => option
+                .setName('filter')
+                .setDescription('Filter results')
+                .setRequired(false)
+                .addChoices(
+                    { name: 'Without Positions', value: 'no_positions' },
+                    { name: 'With Positions', value: 'has_positions' },
+                ))),
 
     async execute(interaction: any, context: any) {
         const action = interaction.options.getSubcommand();
@@ -1596,6 +1895,9 @@ export default {
                 break;
             case 'syncpositions':
                 await handleSyncPositions(interaction, context);
+                break;
+            case 'search':
+                await handleSearch(interaction, context);
                 break;
             default:
                 await interaction.reply({
