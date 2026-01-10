@@ -1169,7 +1169,10 @@ async function handleSync(interaction: any, { tables, log }: any) {
             } catch (err: any) {
                 // If we get an unknown column error, fall back to core data only
                 if (err.message?.includes('Unknown column') && useExtendedStats) {
-                    log.warn({ category: 'dota' }, 'Extended stats columns not found, falling back to core data. Run migration to enable full stats.');
+                    log.warn(
+                        { category: 'dota' },
+                        'Extended stats columns not found, falling back to core data',
+                    );
                     useExtendedStats = false;
                     // Retry this hero with core data only
                     const [record, wasCreated] = await tables.DotaHeroes.findOrCreate({
@@ -1192,7 +1195,13 @@ async function handleSync(interaction: any, { tables, log }: any) {
             }
         }
 
-        log.info({ created, updated, total: heroList.length, extendedStats: useExtendedStats, category: 'dota' }, 'Hero database synced');
+        log.info({
+            created,
+            updated,
+            total: heroList.length,
+            extendedStats: useExtendedStats,
+            category: 'dota',
+        }, 'Hero database synced');
 
         const statsNote = useExtendedStats
             ? ''
