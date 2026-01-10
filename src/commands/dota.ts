@@ -1174,20 +1174,26 @@ async function handleSync(interaction: any, { tables, log }: any) {
                         'Extended stats columns not found, falling back to core data',
                     );
                     useExtendedStats = false;
-                    // Retry this hero with core data only
-                    const [record, wasCreated] = await tables.DotaHeroes.findOrCreate({
-                        where: { hero_id: hero.id },
-                        defaults: {
-                            ...coreHeroData,
-                            positions: [],
-                        },
-                    });
 
-                    if (wasCreated) {
-                        created++;
-                    } else {
-                        await record.update(coreHeroData);
-                        updated++;
+                    // Retry this hero with core data only
+                    try {
+                        const [record, wasCreated] = await tables.DotaHeroes.findOrCreate({
+                            where: { hero_id: hero.id },
+                            defaults: coreHeroData,
+                        });
+
+                        if (wasCreated) {
+                            created++;
+                        } else {
+                            await record.update(coreHeroData);
+                            updated++;
+                        }
+                    } catch (retryErr: any) {
+                        // If even core data fails, log and skip this hero
+                        log.error(
+                            { err: retryErr, heroId: hero.id, category: 'dota' },
+                            'Failed to sync hero even with core data',
+                        );
                     }
                 } else {
                     throw err;
