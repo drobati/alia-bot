@@ -1311,7 +1311,7 @@ describe('Dota Command', () => {
                 });
             });
 
-            it('should handle database errors', async () => {
+            it('should fall back to API when database fails', async () => {
                 const mockInteraction = {
                     options: {
                         getSubcommand: () => 'random',
@@ -1320,12 +1320,69 @@ describe('Dota Command', () => {
                     reply: jest.fn(),
                 };
 
+                // Database fails, but API works
                 mockContext.tables.DotaHeroes.findAll.mockRejectedValue(new Error('DB error'));
+                mockedOpendota.getHeroConstants.mockResolvedValue({
+                    1: {
+                        id: 1,
+                        name: 'npc_dota_hero_axe',
+                        localized_name: 'Axe',
+                        primary_attr: 'str',
+                        attack_type: 'Melee',
+                        roles: ['Initiator'],
+                        img: '/apps/dota2/images/heroes/axe_full.png',
+                        icon: '/apps/dota2/images/heroes/axe_icon.png',
+                        base_health: 120,
+                        base_health_regen: 0.25,
+                        base_mana: 75,
+                        base_mana_regen: 0,
+                        base_armor: 2,
+                        base_mr: 25,
+                        base_str: 25,
+                        base_agi: 20,
+                        base_int: 18,
+                        str_gain: 2.8,
+                        agi_gain: 2.2,
+                        int_gain: 1.6,
+                        base_attack_min: 52,
+                        base_attack_max: 56,
+                        attack_range: 150,
+                        projectile_speed: 0,
+                        attack_rate: 1.7,
+                        attack_point: 0.5,
+                        move_speed: 310,
+                        turn_rate: 0.6,
+                        day_vision: 1800,
+                        night_vision: 800,
+                        legs: 2,
+                    },
+                });
+
+                await dota.execute(mockInteraction, mockContext);
+
+                // Should fall back to API and return a hero
+                expect(mockInteraction.reply).toHaveBeenCalledWith({
+                    embeds: expect.any(Array),
+                });
+            });
+
+            it('should show error when both database and API fail', async () => {
+                const mockInteraction = {
+                    options: {
+                        getSubcommand: () => 'random',
+                        getString: () => null,
+                    },
+                    reply: jest.fn(),
+                };
+
+                // Both database and API fail
+                mockContext.tables.DotaHeroes.findAll.mockRejectedValue(new Error('DB error'));
+                mockedOpendota.getHeroConstants.mockResolvedValue({});
 
                 await dota.execute(mockInteraction, mockContext);
 
                 expect(mockInteraction.reply).toHaveBeenCalledWith({
-                    content: 'An error occurred while picking a random hero.',
+                    content: expect.stringContaining('/dota sync'),
                     ephemeral: true,
                 });
             });
