@@ -78,6 +78,22 @@ const messageCreateEvent: BotEvent = {
                 }
             }
 
+            // 2.5. Medium Priority: Greetings (goodmorning/goodnight responses)
+            if (!responseHandled) {
+                try {
+                    const greetingsResult = await response.Greetings(message, context);
+                    if (greetingsResult === true) { // Greetings responded
+                        responseHandled = true;
+                        context.log.debug('Message handled by Greetings', {
+                            messageId: message.id,
+                            userId: message.author.id,
+                        });
+                    }
+                } catch (error) {
+                    context.log.error('Greetings response failed', { error });
+                }
+            }
+
             // 3. Medium Priority: Adlibs (if nothing else responded)
             if (!responseHandled) {
                 try {
