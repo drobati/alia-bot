@@ -5,6 +5,7 @@ import Assistant from "./assistant";
 import Dnd from "./dnd";
 import Tips from "./tips";
 import Verification from "./verification";
+import Greetings from "./greetings";
 
 export default {
     Adlibs,
@@ -14,4 +15,5 @@ export default {
     Dnd,
     Tips,
     Verification,
+    Greetings,
 };
