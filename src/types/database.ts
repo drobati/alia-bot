@@ -160,6 +160,20 @@ export interface VerificationCodeAttributes {
     updatedAt?: Date;
 }
 
+export interface ArcWishlistAttributes {
+    id?: number;
+    guild_id: string;
+    user_id: string;
+    username?: string;
+    item_name: string;
+    item_id?: string;
+    status: 'needed' | 'found';
+    notes?: string;
+    found_at?: Date;
+    created_at?: Date;
+    updated_at?: Date;
+}
+
 // Simplified model interfaces for now - avoiding complex Sequelize inheritance issues
 export interface AdlibsModel extends AdlibsAttributes {
     update(_values: Partial<AdlibsAttributes>): Promise<AdlibsModel>;
@@ -218,6 +232,11 @@ export interface DndGameModel extends DndGameAttributes {
 
 export interface VerificationCodeModel extends VerificationCodeAttributes {
     update(_values: Partial<VerificationCodeAttributes>): Promise<VerificationCodeModel>;
+    destroy(): Promise<void>;
+}
+
+export interface ArcWishlistModel extends ArcWishlistAttributes {
+    update(_values: Partial<ArcWishlistAttributes>): Promise<ArcWishlistModel>;
     destroy(): Promise<void>;
 }
 
@@ -349,6 +368,18 @@ export interface VerificationCodeModelStatic {
     count(options?: FindOptions<VerificationCodeAttributes>): Promise<number>;
 }
 
+export interface ArcWishlistModelStatic {
+    findAll(options?: FindOptions<ArcWishlistAttributes>): Promise<ArcWishlistModel[]>;
+    findOne(options?: FindOptions<ArcWishlistAttributes>): Promise<ArcWishlistModel | null>;
+    create(values: ArcWishlistAttributes): Promise<ArcWishlistModel>;
+    findOrCreate(options: FindOrCreateOptions<ArcWishlistAttributes>): Promise<[ArcWishlistModel, boolean]>;
+    upsert(values: ArcWishlistAttributes, options?: UpsertOptions): Promise<[ArcWishlistModel, boolean]>;
+    destroy(options: DestroyOptions<ArcWishlistAttributes>): Promise<number>;
+    count(options?: FindOptions<ArcWishlistAttributes>): Promise<number>;
+    findAndCountAll(options?: FindOptions<ArcWishlistAttributes> & { limit?: number; offset?: number })
+        : Promise<{ count: number; rows: ArcWishlistModel[] }>;
+}
+
 // Combined database tables interface
 export interface DatabaseTables {
     Adlibs: AdlibsModelStatic;
@@ -363,5 +394,6 @@ export interface DatabaseTables {
     HoroscopeCache: HoroscopeCacheModelStatic;
     DndGame: DndGameModelStatic;
     VerificationCode: VerificationCodeModelStatic;
+    ArcWishlist: ArcWishlistModelStatic;
     [key: string]: any; // Allow dynamic table access
 }
