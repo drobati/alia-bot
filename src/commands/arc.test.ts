@@ -149,6 +149,7 @@ describe('Arc Command', () => {
                     loadout_slots: [],
                     stat_block: {},
                     workbench: null,
+                    flavor_text: null,
                     icon: '',
                     loot_area: 'Test Area',
                     created_at: '',
@@ -159,6 +160,52 @@ describe('Arc Command', () => {
 
                 expect(mockInteraction.editReply).toHaveBeenCalledWith({
                     embeds: expect.any(Array),
+                });
+            });
+
+            it('should include Used In field when flavor_text is present', async () => {
+                const mockInteraction = {
+                    options: {
+                        getSubcommand: jest.fn().mockReturnValue('item'),
+                        getString: jest.fn().mockReturnValue('Chemicals'),
+                    },
+                    deferReply: jest.fn().mockResolvedValue(undefined),
+                    editReply: jest.fn().mockResolvedValue(undefined),
+                };
+
+                mockedMetaforge.getItemByName.mockResolvedValue({
+                    id: 'chemicals',
+                    name: 'Chemicals',
+                    description: 'Used to craft medical supplies, explosives, and utility items.',
+                    item_type: 'Basic Material',
+                    rarity: 'Common',
+                    value: 50,
+                    weight: 1,
+                    loadout_slots: [],
+                    stat_block: {},
+                    workbench: null,
+                    flavor_text: 'Used to craft: Bandage, Medkit, Grenade',
+                    icon: '',
+                    loot_area: 'Mechanical',
+                    created_at: '',
+                    updated_at: '',
+                });
+
+                await arc.execute(mockInteraction, mockContext as any);
+
+                expect(mockInteraction.editReply).toHaveBeenCalledWith({
+                    embeds: expect.arrayContaining([
+                        expect.objectContaining({
+                            data: expect.objectContaining({
+                                fields: expect.arrayContaining([
+                                    expect.objectContaining({
+                                        name: 'Used In',
+                                        value: 'Used to craft: Bandage, Medkit, Grenade',
+                                    }),
+                                ]),
+                            }),
+                        }),
+                    ]),
                 });
             });
         });
@@ -208,6 +255,7 @@ describe('Arc Command', () => {
                     loadout_slots: [],
                     stat_block: {},
                     workbench: null,
+                    flavor_text: null,
                     icon: '',
                     loot_area: '',
                     created_at: '',
@@ -258,6 +306,7 @@ describe('Arc Command', () => {
                     loadout_slots: [],
                     stat_block: {},
                     workbench: null,
+                    flavor_text: null,
                     icon: '',
                     loot_area: '',
                     created_at: '',
@@ -543,6 +592,7 @@ describe('Arc Command', () => {
                     loadout_slots: [],
                     stat_block: {},
                     workbench: null,
+                    flavor_text: null,
                     icon: '',
                     loot_area: '',
                     created_at: '',
