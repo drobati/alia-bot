@@ -69,11 +69,7 @@ async function handleItem(interaction: any, context: Context) {
 }
 
 async function handleNeed(interaction: any, context: Context) {
-    const itemName = interaction.options.getString('item', true);
-    const notes = interaction.options.getString('notes');
     const guildId = interaction.guild?.id;
-    const userId = interaction.user.id;
-    const username = interaction.user.username;
 
     if (!guildId) {
         await interaction.reply({
@@ -82,6 +78,11 @@ async function handleNeed(interaction: any, context: Context) {
         });
         return;
     }
+
+    const itemName = interaction.options.getString('item', true);
+    const notes = interaction.options.getString('notes');
+    const userId = interaction.user.id;
+    const username = interaction.user.username;
 
     await interaction.deferReply({ ephemeral: true });
 
@@ -218,9 +219,7 @@ async function handleWanted(interaction: any, context: Context) {
 }
 
 async function handleFound(interaction: any, context: Context) {
-    const itemName = interaction.options.getString('item', true);
     const guildId = interaction.guild?.id;
-    const userId = interaction.user.id;
 
     if (!guildId) {
         await interaction.reply({
@@ -229,6 +228,9 @@ async function handleFound(interaction: any, context: Context) {
         });
         return;
     }
+
+    const itemName = interaction.options.getString('item', true);
+    const userId = interaction.user.id;
 
     try {
         const existing = await context.tables.ArcWishlist.findOne({
@@ -281,8 +283,6 @@ async function handleFound(interaction: any, context: Context) {
 
 async function handleMyWishlist(interaction: any, context: Context) {
     const guildId = interaction.guild?.id;
-    const userId = interaction.user.id;
-    const showFound = interaction.options.getBoolean('show_found') ?? false;
 
     if (!guildId) {
         await interaction.reply({
@@ -291,6 +291,9 @@ async function handleMyWishlist(interaction: any, context: Context) {
         });
         return;
     }
+
+    const userId = interaction.user.id;
+    const showFound = interaction.options.getBoolean('show_found') ?? false;
 
     try {
         const whereClause: any = {
@@ -308,12 +311,11 @@ async function handleMyWishlist(interaction: any, context: Context) {
         });
 
         if (items.length === 0) {
-            await interaction.reply({
-                content: showFound
-                    ? 'Your wishlist is empty. Use `/arc need` to add items!'
-                    : 'You have no items needed. Use `/arc need` to add items or `/arc mywishlist show_found:true` to see found items.',
-                ephemeral: true,
-            });
+            const emptyMsg = showFound
+                ? 'Your wishlist is empty. Use `/arc need` to add items!'
+                : 'You have no items needed. Use `/arc need` to add items ' +
+                  'or `/arc mywishlist show_found:true` to see found items.';
+            await interaction.reply({ content: emptyMsg, ephemeral: true });
             return;
         }
 

@@ -140,16 +140,12 @@ const getAllItems = async (page: number = 1, limit: number = 50): Promise<ArcIte
     const cached = getCached(cacheKey);
     if (cached) {return cached;}
 
-    try {
-        const response = await axios.get<ArcItemsResponse>(`${METAFORGE_BASE_URL}/items`, {
-            params: { page, limit },
-            timeout: 10000,
-        });
-        setCache(cacheKey, response.data);
-        return response.data;
-    } catch (error: any) {
-        throw error;
-    }
+    const response = await axios.get<ArcItemsResponse>(`${METAFORGE_BASE_URL}/items`, {
+        params: { page, limit },
+        timeout: 10000,
+    });
+    setCache(cacheKey, response.data);
+    return response.data;
 };
 
 /**
