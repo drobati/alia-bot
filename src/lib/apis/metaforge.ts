@@ -31,6 +31,7 @@ export interface ArcItem {
     loadout_slots: string[];
     stat_block: Record<string, any>;
     workbench: string | null;
+    flavor_text: string | null;
     icon: string;
     loot_area: string;
     created_at: string;

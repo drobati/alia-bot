@@ -33,6 +33,10 @@ function createItemEmbed(item: ArcItem): EmbedBuilder {
         embed.addFields([{ name: 'Stats', value: stats.join('\n'), inline: false }]);
     }
 
+    if (item.flavor_text) {
+        embed.addFields([{ name: 'Used In', value: item.flavor_text, inline: false }]);
+    }
+
     if (item.icon) {
         embed.setThumbnail(item.icon);
     }
