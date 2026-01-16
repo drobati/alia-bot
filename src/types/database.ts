@@ -132,6 +132,23 @@ export interface HoroscopeCacheAttributes {
     updatedAt?: Date;
 }
 
+export interface SkillCheckOption {
+    label: string;
+    description: string;
+}
+
+export interface SkillCheckData {
+    skill: string;
+    difficulty: string;
+    description: string;
+    options: SkillCheckOption[];
+}
+
+export interface SkillCheckVote {
+    optionIndex: number;
+    username: string;
+}
+
 export interface DndGameAttributes {
     id?: number;
     guildId: string;
@@ -144,6 +161,10 @@ export interface DndGameAttributes {
     currentRound: number;
     pendingMessages: Array<{ userId: string; username: string; content: string; timestamp: Date }>;
     lastResponseTime?: Date;
+    pendingSkillCheck?: SkillCheckData | null;
+    skillCheckVotes?: Record<string, SkillCheckVote>;
+    skillCheckMessageId?: string | null;
+    skillCheckExpiresAt?: Date | null;
     createdAt?: Date;
     updatedAt?: Date;
 }
