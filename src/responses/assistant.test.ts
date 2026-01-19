@@ -19,16 +19,16 @@ import assistantResponse from './assistant';
 import generateResponse from '../utils/assistant';
 import { safelySendToChannel } from '../utils/discordHelpers';
 
-// Mock OpenAI at the module level to prevent instantiation errors
-jest.mock('openai', () => ({
-    __esModule: true,
-    default: jest.fn().mockImplementation(() => ({
+// Mock OpenRouter at the module level to prevent instantiation errors
+jest.mock('../utils/openrouter', () => ({
+    openrouter: {
         chat: {
             completions: {
                 create: jest.fn(),
             },
         },
-    })),
+    },
+    getModel: jest.fn().mockReturnValue('google/gemini-2.0-flash-exp'),
 }));
 
 const mockGenerateResponse = generateResponse as jest.MockedFunction<typeof generateResponse>;

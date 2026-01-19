@@ -4,12 +4,8 @@ import {
     EmbedBuilder,
     AutocompleteInteraction,
 } from "discord.js";
-import OpenAI from 'openai';
+import { openrouter, getModel } from "../utils/openrouter";
 import { Context } from "../utils/types";
-
-const openai = new OpenAI({
-    apiKey: process.env.OPENAI_API_KEY || 'test-key-for-ci',
-});
 
 // Common language shortcuts and their full names
 const LANGUAGE_MAP: Record<string, string> = {
@@ -127,15 +123,14 @@ async function translateText(
         ? `${translatorRole} Translate from ${sourceLanguage} to ${targetLanguage}. ${baseInstructions}`
         : `${translatorRole} Detect language and translate to ${targetLanguage}. ${baseInstructions}`;
 
-    const response = await openai.chat.completions.create({
-        model: 'gpt-4-turbo-preview',
+    const response = await openrouter.chat.completions.create({
+        model: getModel(),
         messages: [
             { role: 'system', content: systemPrompt },
             { role: 'user', content: text },
         ],
         max_tokens: 1000,
         temperature: 0.3,
-        response_format: { type: 'json_object' },
     });
 
     const content = response.choices[0].message.content;
@@ -212,7 +207,7 @@ export default {
                             value: 'If you don\'t specify a source language, it will be automatically detected.',
                         },
                     )
-                    .setFooter({ text: 'Powered by OpenAI' });
+                    .setFooter({ text: 'Powered by OpenRouter' });
 
                 await interaction.reply({ embeds: [embed], ephemeral: true });
                 return;

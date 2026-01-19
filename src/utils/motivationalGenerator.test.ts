@@ -1,24 +1,20 @@
 import { generateMotivationalMessage, MotivationalRateLimiter } from './motivationalGenerator';
 import { Context } from './types';
+import { openrouter } from './openrouter';
 
-// Mock OpenAI module completely
-jest.mock('openai', () => {
-    const mockCreate = jest.fn();
-    return {
-        __esModule: true,
-        default: jest.fn().mockImplementation(() => ({
-            chat: {
-                completions: {
-                    create: mockCreate,
-                },
+// Mock OpenRouter module
+jest.mock('./openrouter', () => ({
+    openrouter: {
+        chat: {
+            completions: {
+                create: jest.fn(),
             },
-        })),
-        mockCreate,
-    };
-});
+        },
+    },
+    getModel: jest.fn().mockReturnValue('google/gemini-2.0-flash-exp'),
+}));
 
-// eslint-disable-next-line @typescript-eslint/no-var-requires
-const { mockCreate } = require('openai');
+const mockCreate = openrouter.chat.completions.create as jest.Mock;
 
 // Mock completion object
 const mockCompletion = {
@@ -36,7 +32,7 @@ const mockCompletion = {
         completion_tokens: 20,
     },
     id: 'test-completion-id',
-    model: 'gpt-4-turbo-preview',
+    model: 'google/gemini-2.0-flash-exp',
     created: Date.now(),
 };
 
@@ -71,7 +67,7 @@ describe('motivationalGenerator', () => {
 
             expect(result).toBe('Stay strong and keep pushing forward! 💪');
             expect(mockCreate).toHaveBeenCalledWith({
-                model: 'gpt-4-turbo-preview',
+                model: 'google/gemini-2.0-flash-exp',
                 messages: [
                     {
                         role: 'system',
@@ -127,7 +123,7 @@ describe('motivationalGenerator', () => {
 
             expect(result).toBeNull();
             expect(mockContext.log!.warn).toHaveBeenCalledWith(
-                'OpenAI API rate limit exceeded during motivational message generation',
+                'OpenRouter API rate limit exceeded during motivational message generation',
                 expect.objectContaining({
                     errorCode: 'rate_limit_exceeded',
                     success: false,

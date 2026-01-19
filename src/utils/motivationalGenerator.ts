@@ -1,9 +1,5 @@
-import OpenAI from 'openai';
+import { openrouter, getModel } from './openrouter';
 import { Context } from "./types";
-
-const openai = new OpenAI({
-    apiKey: process.env.OPENAI_API_KEY,
-});
 
 interface MotivationalMessageOptions {
     category: 'motivation' | 'productivity' | 'general';
@@ -47,7 +43,7 @@ function getSystemPrompt(category: string, frequency: string): string {
 }
 
 /**
- * Generates a motivational message using OpenAI API
+ * Generates a motivational message using OpenRouter API
  */
 export async function generateMotivationalMessage(
     options: MotivationalMessageOptions,
@@ -59,8 +55,9 @@ export async function generateMotivationalMessage(
     try {
         const systemPrompt = getSystemPrompt(options.category, options.frequency);
 
+        const model = getModel();
         const requestData = {
-            model: 'gpt-4-turbo-preview' as const,
+            model,
             messages: [
                 {
                     role: 'system' as const,
@@ -93,7 +90,7 @@ export async function generateMotivationalMessage(
             });
         }
 
-        const completion = await openai.chat.completions.create(requestData);
+        const completion = await openrouter.chat.completions.create(requestData);
 
         const processingTime = Date.now() - startTime;
         const responseContent = completion.choices[0].message.content;
@@ -136,13 +133,13 @@ export async function generateMotivationalMessage(
         };
 
         if (error.code === 'rate_limit_exceeded') {
-            context.log.warn('OpenAI API rate limit exceeded during motivational message generation', errorData);
+            context.log.warn('OpenRouter API rate limit exceeded during motivational message generation', errorData);
         } else if (error.code === 'insufficient_quota') {
-            context.log.error('OpenAI API insufficient quota for motivational message generation', errorData);
+            context.log.error('OpenRouter API insufficient quota for motivational message generation', errorData);
         } else if (error.status === 401) {
-            context.log.error('OpenAI API authentication failed for motivational message generation', errorData);
+            context.log.error('OpenRouter API authentication failed for motivational message generation', errorData);
         } else if (error.status >= 500) {
-            context.log.error('OpenAI API server error during motivational message generation', errorData);
+            context.log.error('OpenRouter API server error during motivational message generation', errorData);
         } else {
             context.log.error('Unknown error during motivational message generation', {
                 ...errorData,

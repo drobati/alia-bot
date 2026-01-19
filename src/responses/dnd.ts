@@ -2,6 +2,7 @@ import { Message } from 'discord.js';
 import { Context } from '../utils/types';
 import { DndGameAttributes } from '../types/database';
 import { sendLongMessage } from '../utils/discordHelpers';
+import { openrouter, getModel } from '../utils/openrouter';
 import type { ChatCompletionMessageParam } from 'openai/resources/chat/completions';
 
 // Track message collection timers per game
@@ -118,27 +119,22 @@ async function processCollectedMessages(gameId: number, context: Context) {
             .map(msg => `${msg.username}: ${msg.content}`)
             .join('\n');
 
-        // Generate response using OpenAI
-        const OpenAI = (await import('openai')).default;
-        const openai = new OpenAI({
-            apiKey: process.env.OPENAI_API_KEY || '',
-        });
-
+        // Generate response using OpenRouter
         const messages: ChatCompletionMessageParam[] = [
             { role: 'system', content: game.systemPrompt },
             ...(game.conversationHistory as ChatCompletionMessageParam[] || []),
             { role: 'user', content: userPrompt },
         ];
 
-        context.log.info('Sending D&D prompt to OpenAI', {
+        context.log.info('Sending D&D prompt to OpenRouter', {
             gameId,
             gameName: game.name,
             messageCount: messages.length,
             userPromptLength: userPrompt.length,
         });
 
-        const completion = await openai.chat.completions.create({
-            model: 'gpt-4-turbo-preview',
+        const completion = await openrouter.chat.completions.create({
+            model: getModel(),
             messages,
             max_tokens: 500,
             temperature: 0.8,
@@ -147,11 +143,11 @@ async function processCollectedMessages(gameId: number, context: Context) {
         const response = completion.choices[0].message.content;
 
         if (!response) {
-            context.log.error('No response from OpenAI', { gameId, gameName: game.name });
+            context.log.error('No response from OpenRouter', { gameId, gameName: game.name });
             return;
         }
 
-        context.log.info('Received D&D response from OpenAI', {
+        context.log.info('Received D&D response from OpenRouter', {
             gameId,
             gameName: game.name,
             responseLength: response.length,

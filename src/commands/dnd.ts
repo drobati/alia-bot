@@ -2,6 +2,7 @@ import { SlashCommandBuilder, ChatInputCommandInteraction } from 'discord.js';
 import { Context } from '../types';
 import { DndGameAttributes } from '../types/database';
 import { sendLongMessage } from '../utils/discordHelpers';
+import { openrouter, getModel } from '../utils/openrouter';
 
 const DEFAULT_SYSTEM_PROMPT = "You are running a MUD-like D&D campaign for my friends and I. " +
     "We'll type in responses and you will use your context to respond with engaging, immersive " +
@@ -191,19 +192,14 @@ async function handleCreateGame(interaction: ChatInputCommandInteraction, contex
         // Build system prompt with world-building
         const systemPrompt = `${DEFAULT_SYSTEM_PROMPT}\n\nWorld Setting: ${worldPrompt}`;
 
-        // Generate opening scene using OpenAI
-        const OpenAI = (await import('openai')).default;
-        const openai = new OpenAI({
-            apiKey: process.env.OPENAI_API_KEY || '',
-        });
-
+        // Generate opening scene using OpenRouter
         const introMessage = {
             role: 'user' as const,
             content: 'Begin the adventure with an engaging introduction to this world. Set the scene for the players.',
         };
 
-        const completion = await openai.chat.completions.create({
-            model: 'gpt-4-turbo-preview',
+        const completion = await openrouter.chat.completions.create({
+            model: getModel(),
             messages: [
                 { role: 'system' as const, content: systemPrompt },
                 introMessage,
@@ -351,20 +347,15 @@ async function handleResumeGame(interaction: ChatInputCommandInteraction, contex
             return;
         }
 
-        // Generate recap using OpenAI
-        const OpenAI = (await import('openai')).default;
-        const openai = new OpenAI({
-            apiKey: process.env.OPENAI_API_KEY || '',
-        });
-
+        // Generate recap using OpenRouter
         const recapMessage = {
             role: 'user' as const,
             content: 'Provide a brief recap of the story so far to remind the players '
                 + 'where they left off. Keep it concise and engaging.',
         };
 
-        const completion = await openai.chat.completions.create({
-            model: 'gpt-4-turbo-preview',
+        const completion = await openrouter.chat.completions.create({
+            model: getModel(),
             messages: [
                 ...(game.conversationHistory as any[]),
                 recapMessage,
