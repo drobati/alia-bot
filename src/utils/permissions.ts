@@ -50,11 +50,7 @@ export async function checkOwnerPermission(interaction: any, context?: any): Pro
 
     if (!isUserOwner) {
         await interaction.reply({
-            content: `❌ This command is restricted to the bot owner only.\n` +
-                    `**Debug Info:**\n` +
-                    `Your ID: \`${userId}\`\n` +
-                    `Owner ID: \`${ownerId}\`\n` +
-                    `Match: ${isUserOwner ? '✅' : '❌'}`,
+            content: '❌ This command is restricted to the bot owner only.',
             ephemeral: true,
         });
         throw new Error('Unauthorized: User is not bot owner');
