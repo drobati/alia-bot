@@ -1,6 +1,8 @@
 import { CommandInteraction, Events, Interaction, ActionRowBuilder, ButtonBuilder, ButtonStyle } from "discord.js";
 import { Command, Context, BotEvent, ExtendedClient } from "../src/utils/types";
 import { Sentry } from "../src/lib/sentry";
+import { DndGameAttributes, SkillCheckVote } from "../src/types/database";
+import { createSkillCheckEmbed, OPTION_LABELS } from "../src/responses/dnd";
 
 const interactionCreateEventHandler: BotEvent = {
     name: Events.InteractionCreate,
@@ -10,6 +12,12 @@ const interactionCreateEventHandler: BotEvent = {
         // Handle button interactions for polls
         if (interaction.isButton() && interaction.customId.startsWith('poll_vote_')) {
             await handlePollVote(interaction, context);
+            return;
+        }
+
+        // Handle button interactions for D&D skill checks
+        if (interaction.isButton() && interaction.customId.startsWith('dnd_skill_')) {
+            await handleDndSkillVote(interaction, context);
             return;
         }
 
@@ -168,6 +176,108 @@ async function handlePollVote(interaction: any, context: Context) {
 function getEmojiForIndex(index: number): string {
     const emojis = ['1️⃣', '2️⃣', '3️⃣', '4️⃣', '5️⃣', '6️⃣', '7️⃣', '8️⃣', '9️⃣', '🔟'];
     return emojis[index] || '❓';
+}
+
+async function handleDndSkillVote(interaction: any, context: Context) {
+    try {
+        // Parse button custom ID: dnd_skill_{gameId}_{optionIndex}
+        const parts = interaction.customId.split('_');
+        if (parts.length !== 4) {
+            return;
+        }
+
+        const gameId = parseInt(parts[2]);
+        const optionIndex = parseInt(parts[3]);
+
+        if (isNaN(gameId) || isNaN(optionIndex) || optionIndex < 0 || optionIndex > 3) {
+            await interaction.reply({ content: 'Invalid vote.', ephemeral: true });
+            return;
+        }
+
+        // Find the game with active skill check
+        const game = await context.tables.DndGame.findOne({
+            where: { id: gameId },
+        }) as unknown as DndGameAttributes | null;
+
+        if (!game || !game.pendingSkillCheck) {
+            await interaction.reply({ content: 'This skill check has already ended.', ephemeral: true });
+            return;
+        }
+
+        // Check if skill check has expired
+        if (game.skillCheckExpiresAt && new Date() > new Date(game.skillCheckExpiresAt)) {
+            await interaction.reply({ content: 'This skill check has expired.', ephemeral: true });
+            return;
+        }
+
+        const userId = interaction.user.id;
+        const username = interaction.user.displayName || interaction.user.username;
+
+        // Get current votes
+        const currentVotes: Record<string, SkillCheckVote> = game.skillCheckVotes || {};
+
+        // Check if user already voted
+        const existingVote = currentVotes[userId];
+        if (existingVote) {
+            // Update their vote
+            currentVotes[userId] = { optionIndex, username };
+            await interaction.reply({
+                content: `Vote changed to **${OPTION_LABELS[optionIndex]}**!`,
+                ephemeral: true,
+            });
+        } else {
+            // New vote
+            currentVotes[userId] = { optionIndex, username };
+            await interaction.reply({
+                content: `Vote recorded for **${OPTION_LABELS[optionIndex]}**!`,
+                ephemeral: true,
+            });
+        }
+
+        // Update the votes in the database
+        await context.tables.DndGame.update(
+            { skillCheckVotes: currentVotes as any },
+            { where: { id: gameId } },
+        );
+
+        // Update the embed to show new vote counts
+        const { embed, row } = createSkillCheckEmbed(
+            game.pendingSkillCheck,
+            gameId,
+            game.name,
+            currentVotes,
+        );
+
+        // Update time remaining in footer
+        if (game.skillCheckExpiresAt) {
+            const remainingMs = new Date(game.skillCheckExpiresAt).getTime() - Date.now();
+            const remainingSec = Math.max(0, Math.ceil(remainingMs / 1000));
+            embed.setFooter({ text: `${game.name} | Vote ends in ${remainingSec} seconds` });
+        }
+
+        try {
+            await interaction.message.edit({
+                embeds: [embed],
+                components: [row],
+            });
+        } catch (editError) {
+            context.log.error('Failed to update skill check message', { error: editError, gameId });
+        }
+
+        context.log.info('D&D skill check vote recorded', {
+            gameId,
+            gameName: game.name,
+            userId,
+            optionIndex,
+            totalVotes: Object.keys(currentVotes).length,
+        });
+
+    } catch (error) {
+        context.log.error('Error handling D&D skill vote', { error, userId: interaction.user.id });
+        if (!interaction.replied) {
+            await interaction.reply({ content: 'An error occurred while recording your vote.', ephemeral: true });
+        }
+    }
 }
 
 export default interactionCreateEventHandler;

@@ -1,5 +1,22 @@
 import { DataTypes, Model, Sequelize, InferAttributes, InferCreationAttributes } from "sequelize";
 
+export interface SkillCheckOption {
+    label: string;
+    description: string;
+}
+
+export interface SkillCheckData {
+    skill: string;
+    difficulty: string;
+    description: string;
+    options: SkillCheckOption[];
+}
+
+export interface SkillCheckVote {
+    optionIndex: number;
+    username: string;
+}
+
 export interface DndGameAttributes {
     id?: number;
     guildId: string;
@@ -12,6 +29,10 @@ export interface DndGameAttributes {
     currentRound: number;
     pendingMessages: Array<{ userId: string; username: string; content: string; timestamp: Date }>;
     lastResponseTime?: Date;
+    pendingSkillCheck?: SkillCheckData | null;
+    skillCheckVotes?: Record<string, SkillCheckVote>;
+    skillCheckMessageId?: string | null;
+    skillCheckExpiresAt?: Date | null;
     createdAt?: Date;
     updatedAt?: Date;
 }
@@ -31,6 +52,10 @@ interface DndGameModel extends Model<
     currentRound: number;
     pendingMessages: Array<{ userId: string; username: string; content: string; timestamp: Date }>;
     lastResponseTime?: Date;
+    pendingSkillCheck?: SkillCheckData | null;
+    skillCheckVotes?: Record<string, SkillCheckVote>;
+    skillCheckMessageId?: string | null;
+    skillCheckExpiresAt?: Date | null;
 }
 
 export default (sequelize: Sequelize) => ({
@@ -85,6 +110,26 @@ export default (sequelize: Sequelize) => ({
         lastResponseTime: {
             type: DataTypes.DATE,
             allowNull: true,
+        },
+        pendingSkillCheck: {
+            type: DataTypes.JSON,
+            allowNull: true,
+            defaultValue: null,
+        },
+        skillCheckVotes: {
+            type: DataTypes.JSON,
+            allowNull: true,
+            defaultValue: null,
+        },
+        skillCheckMessageId: {
+            type: DataTypes.STRING,
+            allowNull: true,
+            defaultValue: null,
+        },
+        skillCheckExpiresAt: {
+            type: DataTypes.DATE,
+            allowNull: true,
+            defaultValue: null,
         },
     }, {
         timestamps: true,
