@@ -207,7 +207,8 @@ export async function resolveSkillCheck(gameId: number, context: Context): Promi
                                 skillCheck.options.map((opt, i) => {
                                     const count = voteCounts[i];
                                     const marker = i === winningIndex ? '✅' : '⬜';
-                                    return `${marker} **${OPTION_LABELS[i]}.** ${opt.label} - ${count} vote${count !== 1 ? 's' : ''}`;
+                                    const voteWord = count !== 1 ? 's' : '';
+                                    return `${marker} **${OPTION_LABELS[i]}.** ${opt.label} - ${count} vote${voteWord}`;
                                 }).join('\n'),
                             )
                             .setFooter({ text: `${game.name} | Voting complete` })
@@ -244,7 +245,9 @@ export async function resolveSkillCheck(gameId: number, context: Context): Promi
         });
 
         // Add the skill check result to conversation
-        const choicePrompt = `The party chose: "${winningOption.label}" - ${winningOption.description}. Continue the story based on this choice and the ${skillCheck.skill} check (${skillCheck.difficulty}).`;
+        const choicePrompt = `The party chose: "${winningOption.label}" - ` +
+            `${winningOption.description}. Continue the story based on this choice ` +
+            `and the ${skillCheck.skill} check (${skillCheck.difficulty}).`;
 
         const messages: ChatCompletionMessageParam[] = [
             { role: 'system', content: game.systemPrompt },
