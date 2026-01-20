@@ -1,6 +1,12 @@
 import {
     EmbedBuilder,
     SlashCommandBuilder,
+    SlashCommandSubcommandBuilder,
+    SlashCommandSubcommandGroupBuilder,
+    SlashCommandStringOption,
+    SlashCommandIntegerOption,
+    SlashCommandBooleanOption,
+    SlashCommandChannelOption,
     PermissionFlagsBits,
     ChannelType,
 } from 'discord.js';
@@ -430,8 +436,8 @@ async function handleEventsSubscribe(interaction: any, context: Context) {
             },
         });
 
-        const eventTypes = eventType ? JSON.stringify([eventType]) : null;
-        const maps = map ? JSON.stringify([map]) : null;
+        const eventTypes = eventType ? JSON.stringify([eventType]) : undefined;
+        const maps = map ? JSON.stringify([map]) : undefined;
         const warnMinutesJson = JSON.stringify(warnMinutes);
 
         if (existing) {
@@ -866,116 +872,116 @@ export default {
     data: new SlashCommandBuilder()
         .setName('arc')
         .setDescription('ARC Raiders item lookup, wishlist, and event tracking')
-        .addSubcommand(subcommand => subcommand
+        .addSubcommand((subcommand: SlashCommandSubcommandBuilder) => subcommand
             .setName('item')
             .setDescription('Look up item details from MetaForge')
-            .addStringOption(option => option
+            .addStringOption((option: SlashCommandStringOption) => option
                 .setName('name')
                 .setDescription('Item name to look up')
                 .setRequired(true)
                 .setAutocomplete(true)))
-        .addSubcommand(subcommand => subcommand
+        .addSubcommand((subcommand: SlashCommandSubcommandBuilder) => subcommand
             .setName('need')
             .setDescription('Add an item to your wishlist')
-            .addStringOption(option => option
+            .addStringOption((option: SlashCommandStringOption) => option
                 .setName('item')
                 .setDescription('Item name to add')
                 .setRequired(true)
                 .setAutocomplete(true))
-            .addStringOption(option => option
+            .addStringOption((option: SlashCommandStringOption) => option
                 .setName('notes')
                 .setDescription('Optional notes about the item')
                 .setRequired(false)))
-        .addSubcommand(subcommand => subcommand
+        .addSubcommand((subcommand: SlashCommandSubcommandBuilder) => subcommand
             .setName('wanted')
             .setDescription('Show all wanted items across all users in the server')
-            .addIntegerOption(option => option
+            .addIntegerOption((option: SlashCommandIntegerOption) => option
                 .setName('page')
                 .setDescription('Page number')
                 .setRequired(false)
                 .setMinValue(1)))
-        .addSubcommand(subcommand => subcommand
+        .addSubcommand((subcommand: SlashCommandSubcommandBuilder) => subcommand
             .setName('found')
             .setDescription('Mark an item as found/complete')
-            .addStringOption(option => option
+            .addStringOption((option: SlashCommandStringOption) => option
                 .setName('item')
                 .setDescription('Item to mark as found')
                 .setRequired(true)
                 .setAutocomplete(true)))
-        .addSubcommand(subcommand => subcommand
+        .addSubcommand((subcommand: SlashCommandSubcommandBuilder) => subcommand
             .setName('mywishlist')
             .setDescription('Show your personal wishlist')
-            .addBooleanOption(option => option
+            .addBooleanOption((option: SlashCommandBooleanOption) => option
                 .setName('show_found')
                 .setDescription('Include found items in the list')
                 .setRequired(false)))
         // Event timer subcommands
-        .addSubcommandGroup(group => group
+        .addSubcommandGroup((group: SlashCommandSubcommandGroupBuilder) => group
             .setName('events')
             .setDescription('ARC Raiders event timer and notifications')
-            .addSubcommand(subcommand => subcommand
+            .addSubcommand((subcommand: SlashCommandSubcommandBuilder) => subcommand
                 .setName('subscribe')
                 .setDescription('Subscribe to event notifications')
-                .addStringOption(option => option
+                .addStringOption((option: SlashCommandStringOption) => option
                     .setName('event')
                     .setDescription('Filter to specific event type (leave empty for all)')
                     .setRequired(false)
                     .setAutocomplete(true))
-                .addStringOption(option => option
+                .addStringOption((option: SlashCommandStringOption) => option
                     .setName('map')
                     .setDescription('Filter to specific map (leave empty for all)')
                     .setRequired(false)
                     .setAutocomplete(true))
-                .addStringOption(option => option
+                .addStringOption((option: SlashCommandStringOption) => option
                     .setName('warn_at')
                     .setDescription('Minutes before event to warn (comma-separated, e.g., "15,30,60")')
                     .setRequired(false))
-                .addBooleanOption(option => option
+                .addBooleanOption((option: SlashCommandBooleanOption) => option
                     .setName('dm')
                     .setDescription('Send DM notifications')
                     .setRequired(false))
-                .addBooleanOption(option => option
+                .addBooleanOption((option: SlashCommandBooleanOption) => option
                     .setName('channel')
                     .setDescription('Send channel notifications (default: true)')
                     .setRequired(false)))
-            .addSubcommand(subcommand => subcommand
+            .addSubcommand((subcommand: SlashCommandSubcommandBuilder) => subcommand
                 .setName('unsubscribe')
                 .setDescription('Remove your event subscription'))
-            .addSubcommand(subcommand => subcommand
+            .addSubcommand((subcommand: SlashCommandSubcommandBuilder) => subcommand
                 .setName('list')
                 .setDescription('Show your event subscription settings'))
-            .addSubcommand(subcommand => subcommand
+            .addSubcommand((subcommand: SlashCommandSubcommandBuilder) => subcommand
                 .setName('upcoming')
                 .setDescription('Show upcoming events')
-                .addIntegerOption(option => option
+                .addIntegerOption((option: SlashCommandIntegerOption) => option
                     .setName('hours')
                     .setDescription('Hours ahead to show (default: 2, max: 24)')
                     .setRequired(false)
                     .setMinValue(1)
                     .setMaxValue(24))
-                .addStringOption(option => option
+                .addStringOption((option: SlashCommandStringOption) => option
                     .setName('map')
                     .setDescription('Filter to specific map')
                     .setRequired(false)
                     .setAutocomplete(true))
-                .addStringOption(option => option
+                .addStringOption((option: SlashCommandStringOption) => option
                     .setName('event')
                     .setDescription('Filter to specific event type')
                     .setRequired(false)
                     .setAutocomplete(true)))
-            .addSubcommand(subcommand => subcommand
+            .addSubcommand((subcommand: SlashCommandSubcommandBuilder) => subcommand
                 .setName('config')
                 .setDescription('Configure event notification settings (Admin only)')
-                .addChannelOption(option => option
+                .addChannelOption((option: SlashCommandChannelOption) => option
                     .setName('channel')
                     .setDescription('Set the announcement channel')
                     .addChannelTypes(ChannelType.GuildText)
                     .setRequired(false))
-                .addBooleanOption(option => option
+                .addBooleanOption((option: SlashCommandBooleanOption) => option
                     .setName('allow_channel')
                     .setDescription('Allow channel announcements')
                     .setRequired(false))
-                .addBooleanOption(option => option
+                .addBooleanOption((option: SlashCommandBooleanOption) => option
                     .setName('allow_dm')
                     .setDescription('Allow DM notifications')
                     .setRequired(false)))),

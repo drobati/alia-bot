@@ -149,7 +149,7 @@ const getItemByName = async (name: string): Promise<ArcItem | null> => {
 
         // Find exact match (case-insensitive)
         const exactMatch = response.data.data.find(
-            item => item.name.toLowerCase() === name.toLowerCase(),
+            (item: ArcItem) => item.name.toLowerCase() === name.toLowerCase(),
         );
 
         if (exactMatch) {

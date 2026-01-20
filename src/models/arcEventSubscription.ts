@@ -15,7 +15,7 @@ export interface ArcEventSubscriptionAttributes {
     updated_at: Date;
 }
 
-export const parseEventTypes = (json: string | null): string[] | null => {
+export const parseEventTypes = (json: string | null | undefined): string[] | null => {
     if (!json) {return null;}
     try {
         return JSON.parse(json);
@@ -24,7 +24,7 @@ export const parseEventTypes = (json: string | null): string[] | null => {
     }
 };
 
-export const parseMaps = (json: string | null): string[] | null => {
+export const parseMaps = (json: string | null | undefined): string[] | null => {
     if (!json) {return null;}
     try {
         return JSON.parse(json);

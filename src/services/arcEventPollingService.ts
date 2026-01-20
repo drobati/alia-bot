@@ -20,7 +20,7 @@ interface SubscriptionMatch {
 export class ArcEventPollingService {
     private client: Client;
     private context: Context;
-    private pollingInterval: NodeJS.Timeout | null = null;
+    private pollingInterval: ReturnType<typeof setInterval> | null = null;
     private isShuttingDown = false;
 
     constructor(client: Client, context: Context) {
