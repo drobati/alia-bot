@@ -5,6 +5,7 @@ import { stripIndent } from 'common-tags';
 import { safelyFindChannel, safelySendToChannel, isTextChannel } from '../src/utils/discordHelpers';
 import { SchedulerService } from '../src/services/schedulerService';
 import { registerDefaultHandlers } from '../src/services/eventHandlers';
+import { ArcEventPollingService } from '../src/services/arcEventPollingService';
 import { Sentry } from '../src/lib/sentry';
 
 const clientReadyEvent: BotEvent = {
@@ -102,6 +103,39 @@ const clientReadyEvent: BotEvent = {
                     }, 'Scheduler service failed to initialize - bot will continue without scheduled events');
                     Sentry.captureException(schedulerError, {
                         tags: { service: 'scheduler', phase: 'initialization' },
+                    });
+                }
+            }
+
+            // Initialize ARC Event Polling Service
+            // Check if arc_event_subscriptions table exists
+            let arcEventTablesExist = false;
+            try {
+                const [results] = await context.sequelize.query(
+                    "SHOW TABLES LIKE 'arc_event_subscriptions'",
+                );
+                arcEventTablesExist = Array.isArray(results) && results.length > 0;
+            } catch {
+                log.warn({ category: 'database' }, 'Could not check for arc_event tables');
+            }
+
+            if (!arcEventTablesExist) {
+                log.warn({
+                    category: 'service_initialization',
+                }, 'Skipping ARC event polling - arc_event tables do not exist (run migration first)');
+            } else {
+                try {
+                    const arcEventService = new ArcEventPollingService(client, context);
+                    context.arcEventPollingService = arcEventService;
+                    await arcEventService.initialize();
+                    log.info({ category: 'service_initialization' }, 'ARC event polling service initialized');
+                } catch (arcEventError) {
+                    log.warn({
+                        error: arcEventError,
+                        category: 'service_initialization',
+                    }, 'ARC event polling service failed to initialize - bot will continue without event notifications');
+                    Sentry.captureException(arcEventError, {
+                        tags: { service: 'arc_event_polling', phase: 'initialization' },
                     });
                 }
             }

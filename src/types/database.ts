@@ -195,6 +195,43 @@ export interface ArcWishlistAttributes {
     updated_at?: Date;
 }
 
+export interface ArcEventSubscriptionAttributes {
+    id?: number;
+    guild_id: string;
+    user_id: string;
+    username?: string;
+    event_types?: string; // JSON array
+    maps?: string; // JSON array
+    warn_minutes: string; // JSON array
+    notify_dm: boolean;
+    notify_channel: boolean;
+    active: boolean;
+    created_at?: Date;
+    updated_at?: Date;
+}
+
+export interface ArcEventConfigAttributes {
+    id?: number;
+    guild_id: string;
+    announcement_channel_id?: string;
+    allow_channel_announcements: boolean;
+    allow_dm_notifications: boolean;
+    created_at?: Date;
+    updated_at?: Date;
+}
+
+export interface ArcEventNotificationAttributes {
+    id?: number;
+    guild_id: string;
+    user_id: string;
+    event_name: string;
+    event_map: string;
+    event_start_time: number;
+    warn_minutes: number;
+    notification_type: 'dm' | 'channel';
+    sent_at: Date;
+}
+
 // Simplified model interfaces for now - avoiding complex Sequelize inheritance issues
 export interface AdlibsModel extends AdlibsAttributes {
     update(_values: Partial<AdlibsAttributes>): Promise<AdlibsModel>;
@@ -258,6 +295,21 @@ export interface VerificationCodeModel extends VerificationCodeAttributes {
 
 export interface ArcWishlistModel extends ArcWishlistAttributes {
     update(_values: Partial<ArcWishlistAttributes>): Promise<ArcWishlistModel>;
+    destroy(): Promise<void>;
+}
+
+export interface ArcEventSubscriptionModel extends ArcEventSubscriptionAttributes {
+    update(_values: Partial<ArcEventSubscriptionAttributes>): Promise<ArcEventSubscriptionModel>;
+    destroy(): Promise<void>;
+}
+
+export interface ArcEventConfigModel extends ArcEventConfigAttributes {
+    update(_values: Partial<ArcEventConfigAttributes>): Promise<ArcEventConfigModel>;
+    destroy(): Promise<void>;
+}
+
+export interface ArcEventNotificationModel extends ArcEventNotificationAttributes {
+    update(_values: Partial<ArcEventNotificationAttributes>): Promise<ArcEventNotificationModel>;
     destroy(): Promise<void>;
 }
 
@@ -401,6 +453,42 @@ export interface ArcWishlistModelStatic {
         : Promise<{ count: number; rows: ArcWishlistModel[] }>;
 }
 
+export interface ArcEventSubscriptionModelStatic {
+    findAll(options?: FindOptions<ArcEventSubscriptionAttributes>): Promise<ArcEventSubscriptionModel[]>;
+    findOne(options?: FindOptions<ArcEventSubscriptionAttributes>): Promise<ArcEventSubscriptionModel | null>;
+    create(values: Partial<ArcEventSubscriptionAttributes>): Promise<ArcEventSubscriptionModel>;
+    findOrCreate(options: FindOrCreateOptions<ArcEventSubscriptionAttributes>)
+        : Promise<[ArcEventSubscriptionModel, boolean]>;
+    upsert(values: ArcEventSubscriptionAttributes, options?: UpsertOptions)
+        : Promise<[ArcEventSubscriptionModel, boolean]>;
+    destroy(options: DestroyOptions<ArcEventSubscriptionAttributes>): Promise<number>;
+    count(options?: FindOptions<ArcEventSubscriptionAttributes>): Promise<number>;
+}
+
+export interface ArcEventConfigModelStatic {
+    findAll(options?: FindOptions<ArcEventConfigAttributes>): Promise<ArcEventConfigModel[]>;
+    findOne(options?: FindOptions<ArcEventConfigAttributes>): Promise<ArcEventConfigModel | null>;
+    create(values: Partial<ArcEventConfigAttributes>): Promise<ArcEventConfigModel>;
+    findOrCreate(options: FindOrCreateOptions<ArcEventConfigAttributes>)
+        : Promise<[ArcEventConfigModel, boolean]>;
+    upsert(values: ArcEventConfigAttributes, options?: UpsertOptions)
+        : Promise<[ArcEventConfigModel, boolean]>;
+    destroy(options: DestroyOptions<ArcEventConfigAttributes>): Promise<number>;
+    count(options?: FindOptions<ArcEventConfigAttributes>): Promise<number>;
+}
+
+export interface ArcEventNotificationModelStatic {
+    findAll(options?: FindOptions<ArcEventNotificationAttributes>): Promise<ArcEventNotificationModel[]>;
+    findOne(options?: FindOptions<ArcEventNotificationAttributes>): Promise<ArcEventNotificationModel | null>;
+    create(values: Partial<ArcEventNotificationAttributes>): Promise<ArcEventNotificationModel>;
+    findOrCreate(options: FindOrCreateOptions<ArcEventNotificationAttributes>)
+        : Promise<[ArcEventNotificationModel, boolean]>;
+    upsert(values: ArcEventNotificationAttributes, options?: UpsertOptions)
+        : Promise<[ArcEventNotificationModel, boolean]>;
+    destroy(options: DestroyOptions<ArcEventNotificationAttributes>): Promise<number>;
+    count(options?: FindOptions<ArcEventNotificationAttributes>): Promise<number>;
+}
+
 // Combined database tables interface
 export interface DatabaseTables {
     Adlibs: AdlibsModelStatic;
@@ -416,5 +504,8 @@ export interface DatabaseTables {
     DndGame: DndGameModelStatic;
     VerificationCode: VerificationCodeModelStatic;
     ArcWishlist: ArcWishlistModelStatic;
+    ArcEventSubscription: ArcEventSubscriptionModelStatic;
+    ArcEventConfig: ArcEventConfigModelStatic;
+    ArcEventNotification: ArcEventNotificationModelStatic;
     [key: string]: any; // Allow dynamic table access
 }
