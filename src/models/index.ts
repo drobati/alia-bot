@@ -22,6 +22,9 @@ import SparksBalance from "./sparksBalance";
 import SparksLedger from "./sparksLedger";
 import SparksEngagement from "./sparksEngagement";
 import ArcWishlist from "./arcWishlist";
+import ArcEventSubscription from "./arcEventSubscription";
+import ArcEventConfig from "./arcEventConfig";
+import ArcEventNotification from "./arcEventNotification";
 
 export default {
     Adlibs,
@@ -48,4 +51,7 @@ export default {
     SparksLedger,
     SparksEngagement,
     ArcWishlist,
+    ArcEventSubscription,
+    ArcEventConfig,
+    ArcEventNotification,
 };
