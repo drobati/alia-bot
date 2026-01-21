@@ -38,6 +38,47 @@ export interface ArcItem {
     updated_at: string;
 }
 
+export interface ArcEvent {
+    name: string;
+    map: string;
+    icon: string;
+    startTime: number; // Unix timestamp in milliseconds
+    endTime: number;   // Unix timestamp in milliseconds
+}
+
+export interface ArcEventsResponse {
+    data: ArcEvent[];
+    cachedAt: number;
+}
+
+// Available event types for autocomplete and validation
+export const ARC_EVENT_TYPES = [
+    'Harvester',
+    'Husk Graveyard',
+    'Night Raid',
+    'Electromagnetic Storm',
+    'Prospecting Probes',
+    'Matriarch',
+    'Locked Gate',
+    'Launch Tower Loot',
+    'Hidden Bunker',
+    'Lush Blooms',
+    'Uncovered Caches',
+] as const;
+
+export type ArcEventType = typeof ARC_EVENT_TYPES[number];
+
+// Available maps for autocomplete and validation
+export const ARC_MAPS = [
+    'Spaceport',
+    'Blue Gate',
+    'Buried City',
+    'Dam',
+    'Stella Montis',
+] as const;
+
+export type ArcMapName = typeof ARC_MAPS[number];
+
 export interface ArcItemsResponse {
     data: ArcItem[];
     maxValue: number;
@@ -108,7 +149,7 @@ const getItemByName = async (name: string): Promise<ArcItem | null> => {
 
         // Find exact match (case-insensitive)
         const exactMatch = response.data.data.find(
-            item => item.name.toLowerCase() === name.toLowerCase(),
+            (item: ArcItem) => item.name.toLowerCase() === name.toLowerCase(),
         );
 
         if (exactMatch) {
@@ -168,10 +209,131 @@ const formatItemStats = (item: ArcItem): string[] => {
     return stats;
 };
 
+/**
+ * Get all upcoming events from MetaForge API
+ */
+const getEvents = async (): Promise<ArcEvent[]> => {
+    const cacheKey = 'events:all';
+    const cached = getCached(cacheKey);
+    if (cached) {return cached;}
+
+    try {
+        const response = await axios.get<ArcEventsResponse>(`${METAFORGE_BASE_URL}/events`, {
+            timeout: 10000,
+        });
+        setCache(cacheKey, response.data.data);
+        return response.data.data;
+    } catch (error: any) {
+        if (error.response?.status === 404) {
+            return [];
+        }
+        throw error;
+    }
+};
+
+/**
+ * Get events starting within the specified number of minutes
+ * @param minutes Number of minutes to look ahead
+ * @param filterMap Optional map filter
+ * @param filterEvent Optional event type filter
+ */
+const getUpcomingEvents = async (
+    minutes: number,
+    filterMap?: string,
+    filterEvent?: string,
+): Promise<ArcEvent[]> => {
+    const events = await getEvents();
+    const now = Date.now();
+    const cutoff = now + minutes * 60 * 1000;
+
+    return events.filter(event => {
+        // Event starts within the time window
+        const startsInWindow = event.startTime > now && event.startTime <= cutoff;
+        if (!startsInWindow) {return false;}
+
+        // Apply map filter
+        if (filterMap && event.map.toLowerCase() !== filterMap.toLowerCase()) {
+            return false;
+        }
+
+        // Apply event type filter
+        if (filterEvent && event.name.toLowerCase() !== filterEvent.toLowerCase()) {
+            return false;
+        }
+
+        return true;
+    });
+};
+
+/**
+ * Get events that are currently active
+ * @param filterMap Optional map filter
+ * @param filterEvent Optional event type filter
+ */
+const getActiveEvents = async (
+    filterMap?: string,
+    filterEvent?: string,
+): Promise<ArcEvent[]> => {
+    const events = await getEvents();
+    const now = Date.now();
+
+    return events.filter(event => {
+        // Event is currently active
+        const isActive = event.startTime <= now && event.endTime > now;
+        if (!isActive) {return false;}
+
+        // Apply map filter
+        if (filterMap && event.map.toLowerCase() !== filterMap.toLowerCase()) {
+            return false;
+        }
+
+        // Apply event type filter
+        if (filterEvent && event.name.toLowerCase() !== filterEvent.toLowerCase()) {
+            return false;
+        }
+
+        return true;
+    });
+};
+
+/**
+ * Get events grouped by map for the next N hours
+ * @param hours Number of hours to look ahead
+ */
+const getEventsGroupedByMap = async (hours: number = 2): Promise<Map<string, ArcEvent[]>> => {
+    const events = await getEvents();
+    const now = Date.now();
+    const cutoff = now + hours * 60 * 60 * 1000;
+
+    const grouped = new Map<string, ArcEvent[]>();
+
+    for (const event of events) {
+        // Include events that start or are active within the window
+        if (event.startTime <= cutoff && event.endTime > now) {
+            const mapEvents = grouped.get(event.map) || [];
+            mapEvents.push(event);
+            grouped.set(event.map, mapEvents);
+        }
+    }
+
+    // Sort events by start time within each map
+    for (const [map, mapEvents] of grouped) {
+        grouped.set(map, mapEvents.sort((a, b) => a.startTime - b.startTime));
+    }
+
+    return grouped;
+};
+
 export default {
     searchItems,
     getItemByName,
     getAllItems,
     formatItemStats,
+    getEvents,
+    getUpcomingEvents,
+    getActiveEvents,
+    getEventsGroupedByMap,
     RARITY_COLORS,
+    ARC_EVENT_TYPES,
+    ARC_MAPS,
 };

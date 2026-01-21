@@ -1,6 +1,27 @@
-import { EmbedBuilder, SlashCommandBuilder } from 'discord.js';
-import metaforge, { ArcItem, RARITY_COLORS } from '../lib/apis/metaforge';
+import {
+    EmbedBuilder,
+    SlashCommandBuilder,
+    SlashCommandSubcommandBuilder,
+    SlashCommandSubcommandGroupBuilder,
+    SlashCommandStringOption,
+    SlashCommandIntegerOption,
+    SlashCommandBooleanOption,
+    SlashCommandChannelOption,
+    PermissionFlagsBits,
+    ChannelType,
+} from 'discord.js';
+import metaforge, {
+    ArcItem,
+    RARITY_COLORS,
+    ARC_EVENT_TYPES,
+    ARC_MAPS,
+} from '../lib/apis/metaforge';
 import { Context } from '../types';
+import {
+    parseEventTypes,
+    parseMaps,
+    parseWarnMinutes,
+} from '../models/arcEventSubscription';
 
 // Helper to create item embed
 function createItemEmbed(item: ArcItem): EmbedBuilder {
@@ -367,58 +388,636 @@ async function handleMyWishlist(interaction: any, context: Context) {
     }
 }
 
+// ============================================================
+// Event Timer Handlers
+// ============================================================
+
+async function handleEventsSubscribe(interaction: any, context: Context) {
+    const guildId = interaction.guild?.id;
+
+    if (!guildId) {
+        await interaction.reply({
+            content: 'This command can only be used in a server.',
+            ephemeral: true,
+        });
+        return;
+    }
+
+    const userId = interaction.user.id;
+    const username = interaction.user.username;
+    const eventType = interaction.options.getString('event');
+    const map = interaction.options.getString('map');
+    const warnAtInput = interaction.options.getString('warn_at') || '15';
+    const notifyDm = interaction.options.getBoolean('dm') ?? false;
+    const notifyChannel = interaction.options.getBoolean('channel') ?? true;
+
+    // Parse warning minutes
+    const warnMinutes = warnAtInput
+        .split(',')
+        .map((s: string) => parseInt(s.trim(), 10))
+        .filter((n: number) => !isNaN(n) && n > 0 && n <= 1440); // Max 24 hours
+
+    if (warnMinutes.length === 0) {
+        await interaction.reply({
+            content: 'Invalid warning time format. Use comma-separated minutes (e.g., "15,30,60").',
+            ephemeral: true,
+        });
+        return;
+    }
+
+    await interaction.deferReply({ ephemeral: true });
+
+    try {
+        // Check if user already has a subscription
+        const existing = await context.tables.ArcEventSubscription.findOne({
+            where: {
+                guild_id: guildId,
+                user_id: userId,
+            },
+        });
+
+        const eventTypes = eventType ? JSON.stringify([eventType]) : undefined;
+        const maps = map ? JSON.stringify([map]) : undefined;
+        const warnMinutesJson = JSON.stringify(warnMinutes);
+
+        if (existing) {
+            // Update existing subscription
+            await existing.update({
+                event_types: eventTypes,
+                maps: maps,
+                warn_minutes: warnMinutesJson,
+                notify_dm: notifyDm,
+                notify_channel: notifyChannel,
+                active: true,
+            });
+
+            context.log.info({
+                userId,
+                guildId,
+                eventType,
+                map,
+                warnMinutes,
+                category: 'arc',
+            }, 'Updated ARC event subscription');
+        } else {
+            // Create new subscription
+            await context.tables.ArcEventSubscription.create({
+                guild_id: guildId,
+                user_id: userId,
+                username: username,
+                event_types: eventTypes,
+                maps: maps,
+                warn_minutes: warnMinutesJson,
+                notify_dm: notifyDm,
+                notify_channel: notifyChannel,
+                active: true,
+            });
+
+            context.log.info({
+                userId,
+                guildId,
+                eventType,
+                map,
+                warnMinutes,
+                category: 'arc',
+            }, 'Created ARC event subscription');
+        }
+
+        // Build confirmation embed
+        const embed = new EmbedBuilder()
+            .setColor(0x57F287)
+            .setTitle('Event Subscription ' + (existing ? 'Updated' : 'Created'))
+            .setDescription('You will receive notifications for ARC Raiders events.')
+            .addFields([
+                {
+                    name: 'Events',
+                    value: eventType || 'All events',
+                    inline: true,
+                },
+                {
+                    name: 'Maps',
+                    value: map || 'All maps',
+                    inline: true,
+                },
+                {
+                    name: 'Warn Before',
+                    value: warnMinutes.map((m: number) => `${m} min`).join(', '),
+                    inline: true,
+                },
+                {
+                    name: 'Channel',
+                    value: notifyChannel ? 'Yes' : 'No',
+                    inline: true,
+                },
+                {
+                    name: 'DM',
+                    value: notifyDm ? 'Yes' : 'No',
+                    inline: true,
+                },
+            ])
+            .setFooter({ text: 'Use /arc events unsubscribe to remove this subscription' });
+
+        await interaction.editReply({ embeds: [embed] });
+    } catch (error) {
+        context.log.error({ err: error, userId, guildId, category: 'arc' },
+            'Error creating event subscription');
+        await interaction.editReply({
+            content: 'An error occurred while creating your subscription. Please try again.',
+        });
+    }
+}
+
+async function handleEventsUnsubscribe(interaction: any, context: Context) {
+    const guildId = interaction.guild?.id;
+
+    if (!guildId) {
+        await interaction.reply({
+            content: 'This command can only be used in a server.',
+            ephemeral: true,
+        });
+        return;
+    }
+
+    const userId = interaction.user.id;
+
+    try {
+        const deleted = await context.tables.ArcEventSubscription.destroy({
+            where: {
+                guild_id: guildId,
+                user_id: userId,
+            },
+        });
+
+        if (deleted > 0) {
+            await interaction.reply({
+                content: 'Your event subscription has been removed.',
+                ephemeral: true,
+            });
+
+            context.log.info({
+                userId,
+                guildId,
+                category: 'arc',
+            }, 'Removed ARC event subscription');
+        } else {
+            await interaction.reply({
+                content: 'You do not have an active event subscription.',
+                ephemeral: true,
+            });
+        }
+    } catch (error) {
+        context.log.error({ err: error, userId, guildId, category: 'arc' },
+            'Error removing event subscription');
+        await interaction.reply({
+            content: 'An error occurred. Please try again.',
+            ephemeral: true,
+        });
+    }
+}
+
+async function handleEventsList(interaction: any, context: Context) {
+    const guildId = interaction.guild?.id;
+
+    if (!guildId) {
+        await interaction.reply({
+            content: 'This command can only be used in a server.',
+            ephemeral: true,
+        });
+        return;
+    }
+
+    const userId = interaction.user.id;
+
+    try {
+        const subscription = await context.tables.ArcEventSubscription.findOne({
+            where: {
+                guild_id: guildId,
+                user_id: userId,
+            },
+        });
+
+        if (!subscription) {
+            await interaction.reply({
+                content: 'You do not have an event subscription. ' +
+                    'Use `/arc events subscribe` to create one.',
+                ephemeral: true,
+            });
+            return;
+        }
+
+        const eventTypes = parseEventTypes(subscription.event_types);
+        const maps = parseMaps(subscription.maps);
+        const warnMinutes = parseWarnMinutes(subscription.warn_minutes);
+
+        const embed = new EmbedBuilder()
+            .setColor(0x5865F2)
+            .setTitle('Your ARC Event Subscription')
+            .addFields([
+                {
+                    name: 'Status',
+                    value: subscription.active ? 'Active' : 'Paused',
+                    inline: true,
+                },
+                {
+                    name: 'Events',
+                    value: eventTypes ? eventTypes.join(', ') : 'All events',
+                    inline: true,
+                },
+                {
+                    name: 'Maps',
+                    value: maps ? maps.join(', ') : 'All maps',
+                    inline: true,
+                },
+                {
+                    name: 'Warn Before',
+                    value: warnMinutes.map(m => `${m} min`).join(', '),
+                    inline: true,
+                },
+                {
+                    name: 'Channel Notifications',
+                    value: subscription.notify_channel ? 'Enabled' : 'Disabled',
+                    inline: true,
+                },
+                {
+                    name: 'DM Notifications',
+                    value: subscription.notify_dm ? 'Enabled' : 'Disabled',
+                    inline: true,
+                },
+            ])
+            .setFooter({ text: 'Use /arc events subscribe to update settings' });
+
+        await interaction.reply({ embeds: [embed], ephemeral: true });
+    } catch (error) {
+        context.log.error({ err: error, userId, guildId, category: 'arc' },
+            'Error fetching event subscription');
+        await interaction.reply({
+            content: 'An error occurred. Please try again.',
+            ephemeral: true,
+        });
+    }
+}
+
+async function handleEventsUpcoming(interaction: any, context: Context) {
+    const hours = interaction.options.getInteger('hours') || 2;
+    const filterMap = interaction.options.getString('map');
+    const filterEvent = interaction.options.getString('event');
+
+    await interaction.deferReply();
+
+    try {
+        const eventsGrouped = await metaforge.getEventsGroupedByMap(hours);
+
+        if (eventsGrouped.size === 0) {
+            await interaction.editReply({
+                content: `No events found in the next ${hours} hour(s).`,
+            });
+            return;
+        }
+
+        const embed = new EmbedBuilder()
+            .setColor(0xff6b35)
+            .setTitle(`Upcoming Events (Next ${hours} Hour${hours > 1 ? 's' : ''})`)
+            .setFooter({ text: 'Use /arc events subscribe to get notifications' });
+
+        for (const [map, events] of eventsGrouped) {
+            // Apply map filter
+            if (filterMap && map.toLowerCase() !== filterMap.toLowerCase()) {
+                continue;
+            }
+
+            // Filter events and format
+            const filteredEvents = events.filter(e => {
+                if (filterEvent && e.name.toLowerCase() !== filterEvent.toLowerCase()) {
+                    return false;
+                }
+                return true;
+            });
+
+            if (filteredEvents.length === 0) { continue; }
+
+            const eventList = filteredEvents
+                .slice(0, 5) // Limit per map
+                .map(e => {
+                    const timestamp = Math.floor(e.startTime / 1000);
+                    const now = Date.now();
+                    const status = e.startTime <= now ? '(Active)' : '';
+                    return `- **${e.name}** ${status} <t:${timestamp}:R>`;
+                })
+                .join('\n');
+
+            embed.addFields([{
+                name: map,
+                value: eventList || 'No events',
+                inline: false,
+            }]);
+        }
+
+        // Check if any fields were added
+        if (embed.data.fields?.length === 0) {
+            await interaction.editReply({
+                content: 'No events match your filters.',
+            });
+            return;
+        }
+
+        await interaction.editReply({ embeds: [embed] });
+    } catch (error) {
+        context.log.error({ err: error, category: 'arc' }, 'Error fetching upcoming events');
+        await interaction.editReply({
+            content: 'An error occurred while fetching events. The API may be temporarily unavailable.',
+        });
+    }
+}
+
+async function handleEventsConfig(interaction: any, context: Context) {
+    const guildId = interaction.guild?.id;
+
+    if (!guildId) {
+        await interaction.reply({
+            content: 'This command can only be used in a server.',
+            ephemeral: true,
+        });
+        return;
+    }
+
+    // Check admin permissions
+    if (!interaction.memberPermissions?.has(PermissionFlagsBits.ManageGuild)) {
+        await interaction.reply({
+            content: 'You need the "Manage Server" permission to configure event settings.',
+            ephemeral: true,
+        });
+        return;
+    }
+
+    const channel = interaction.options.getChannel('channel');
+    const allowChannel = interaction.options.getBoolean('allow_channel');
+    const allowDm = interaction.options.getBoolean('allow_dm');
+
+    // If no options provided, show current config
+    if (channel === null && allowChannel === null && allowDm === null) {
+        try {
+            const config = await context.tables.ArcEventConfig.findOne({
+                where: { guild_id: guildId },
+            });
+
+            const embed = new EmbedBuilder()
+                .setColor(0x5865F2)
+                .setTitle('ARC Event Configuration')
+                .addFields([
+                    {
+                        name: 'Announcement Channel',
+                        value: config?.announcement_channel_id
+                            ? `<#${config.announcement_channel_id}>`
+                            : 'Not set',
+                        inline: true,
+                    },
+                    {
+                        name: 'Channel Announcements',
+                        value: config?.allow_channel_announcements !== false ? 'Allowed' : 'Disabled',
+                        inline: true,
+                    },
+                    {
+                        name: 'DM Notifications',
+                        value: config?.allow_dm_notifications !== false ? 'Allowed' : 'Disabled',
+                        inline: true,
+                    },
+                ])
+                .setFooter({ text: 'Use options to update configuration' });
+
+            await interaction.reply({ embeds: [embed], ephemeral: true });
+            return;
+        } catch (error) {
+            context.log.error({ err: error, guildId, category: 'arc' },
+                'Error fetching event config');
+            await interaction.reply({
+                content: 'An error occurred. Please try again.',
+                ephemeral: true,
+            });
+            return;
+        }
+    }
+
+    await interaction.deferReply({ ephemeral: true });
+
+    try {
+        // Get or create config
+        let config = await context.tables.ArcEventConfig.findOne({
+            where: { guild_id: guildId },
+        });
+
+        const updates: any = {};
+
+        if (channel !== null) {
+            updates.announcement_channel_id = channel.id;
+        }
+        if (allowChannel !== null) {
+            updates.allow_channel_announcements = allowChannel;
+        }
+        if (allowDm !== null) {
+            updates.allow_dm_notifications = allowDm;
+        }
+
+        if (config) {
+            await config.update(updates);
+        } else {
+            config = await context.tables.ArcEventConfig.create({
+                guild_id: guildId,
+                announcement_channel_id: channel?.id || null,
+                allow_channel_announcements: allowChannel ?? true,
+                allow_dm_notifications: allowDm ?? true,
+            });
+        }
+
+        context.log.info({
+            guildId,
+            updates,
+            category: 'arc',
+        }, 'Updated ARC event config');
+
+        const embed = new EmbedBuilder()
+            .setColor(0x57F287)
+            .setTitle('Configuration Updated')
+            .addFields([
+                {
+                    name: 'Announcement Channel',
+                    value: config.announcement_channel_id
+                        ? `<#${config.announcement_channel_id}>`
+                        : 'Not set',
+                    inline: true,
+                },
+                {
+                    name: 'Channel Announcements',
+                    value: config.allow_channel_announcements ? 'Allowed' : 'Disabled',
+                    inline: true,
+                },
+                {
+                    name: 'DM Notifications',
+                    value: config.allow_dm_notifications ? 'Allowed' : 'Disabled',
+                    inline: true,
+                },
+            ]);
+
+        await interaction.editReply({ embeds: [embed] });
+    } catch (error) {
+        context.log.error({ err: error, guildId, category: 'arc' },
+            'Error updating event config');
+        await interaction.editReply({
+            content: 'An error occurred. Please try again.',
+        });
+    }
+}
+
 // Main command export
 export default {
     data: new SlashCommandBuilder()
         .setName('arc')
-        .setDescription('ARC Raiders item lookup and wishlist management')
-        .addSubcommand(subcommand => subcommand
+        .setDescription('ARC Raiders item lookup, wishlist, and event tracking')
+        .addSubcommand((subcommand: SlashCommandSubcommandBuilder) => subcommand
             .setName('item')
             .setDescription('Look up item details from MetaForge')
-            .addStringOption(option => option
+            .addStringOption((option: SlashCommandStringOption) => option
                 .setName('name')
                 .setDescription('Item name to look up')
                 .setRequired(true)
                 .setAutocomplete(true)))
-        .addSubcommand(subcommand => subcommand
+        .addSubcommand((subcommand: SlashCommandSubcommandBuilder) => subcommand
             .setName('need')
             .setDescription('Add an item to your wishlist')
-            .addStringOption(option => option
+            .addStringOption((option: SlashCommandStringOption) => option
                 .setName('item')
                 .setDescription('Item name to add')
                 .setRequired(true)
                 .setAutocomplete(true))
-            .addStringOption(option => option
+            .addStringOption((option: SlashCommandStringOption) => option
                 .setName('notes')
                 .setDescription('Optional notes about the item')
                 .setRequired(false)))
-        .addSubcommand(subcommand => subcommand
+        .addSubcommand((subcommand: SlashCommandSubcommandBuilder) => subcommand
             .setName('wanted')
             .setDescription('Show all wanted items across all users in the server')
-            .addIntegerOption(option => option
+            .addIntegerOption((option: SlashCommandIntegerOption) => option
                 .setName('page')
                 .setDescription('Page number')
                 .setRequired(false)
                 .setMinValue(1)))
-        .addSubcommand(subcommand => subcommand
+        .addSubcommand((subcommand: SlashCommandSubcommandBuilder) => subcommand
             .setName('found')
             .setDescription('Mark an item as found/complete')
-            .addStringOption(option => option
+            .addStringOption((option: SlashCommandStringOption) => option
                 .setName('item')
                 .setDescription('Item to mark as found')
                 .setRequired(true)
                 .setAutocomplete(true)))
-        .addSubcommand(subcommand => subcommand
+        .addSubcommand((subcommand: SlashCommandSubcommandBuilder) => subcommand
             .setName('mywishlist')
             .setDescription('Show your personal wishlist')
-            .addBooleanOption(option => option
+            .addBooleanOption((option: SlashCommandBooleanOption) => option
                 .setName('show_found')
                 .setDescription('Include found items in the list')
-                .setRequired(false))),
+                .setRequired(false)))
+        // Event timer subcommands
+        .addSubcommandGroup((group: SlashCommandSubcommandGroupBuilder) => group
+            .setName('events')
+            .setDescription('ARC Raiders event timer and notifications')
+            .addSubcommand((subcommand: SlashCommandSubcommandBuilder) => subcommand
+                .setName('subscribe')
+                .setDescription('Subscribe to event notifications')
+                .addStringOption((option: SlashCommandStringOption) => option
+                    .setName('event')
+                    .setDescription('Filter to specific event type (leave empty for all)')
+                    .setRequired(false)
+                    .setAutocomplete(true))
+                .addStringOption((option: SlashCommandStringOption) => option
+                    .setName('map')
+                    .setDescription('Filter to specific map (leave empty for all)')
+                    .setRequired(false)
+                    .setAutocomplete(true))
+                .addStringOption((option: SlashCommandStringOption) => option
+                    .setName('warn_at')
+                    .setDescription('Minutes before event to warn (comma-separated, e.g., "15,30,60")')
+                    .setRequired(false))
+                .addBooleanOption((option: SlashCommandBooleanOption) => option
+                    .setName('dm')
+                    .setDescription('Send DM notifications')
+                    .setRequired(false))
+                .addBooleanOption((option: SlashCommandBooleanOption) => option
+                    .setName('channel')
+                    .setDescription('Send channel notifications (default: true)')
+                    .setRequired(false)))
+            .addSubcommand((subcommand: SlashCommandSubcommandBuilder) => subcommand
+                .setName('unsubscribe')
+                .setDescription('Remove your event subscription'))
+            .addSubcommand((subcommand: SlashCommandSubcommandBuilder) => subcommand
+                .setName('list')
+                .setDescription('Show your event subscription settings'))
+            .addSubcommand((subcommand: SlashCommandSubcommandBuilder) => subcommand
+                .setName('upcoming')
+                .setDescription('Show upcoming events')
+                .addIntegerOption((option: SlashCommandIntegerOption) => option
+                    .setName('hours')
+                    .setDescription('Hours ahead to show (default: 2, max: 24)')
+                    .setRequired(false)
+                    .setMinValue(1)
+                    .setMaxValue(24))
+                .addStringOption((option: SlashCommandStringOption) => option
+                    .setName('map')
+                    .setDescription('Filter to specific map')
+                    .setRequired(false)
+                    .setAutocomplete(true))
+                .addStringOption((option: SlashCommandStringOption) => option
+                    .setName('event')
+                    .setDescription('Filter to specific event type')
+                    .setRequired(false)
+                    .setAutocomplete(true)))
+            .addSubcommand((subcommand: SlashCommandSubcommandBuilder) => subcommand
+                .setName('config')
+                .setDescription('Configure event notification settings (Admin only)')
+                .addChannelOption((option: SlashCommandChannelOption) => option
+                    .setName('channel')
+                    .setDescription('Set the announcement channel')
+                    .addChannelTypes(ChannelType.GuildText)
+                    .setRequired(false))
+                .addBooleanOption((option: SlashCommandBooleanOption) => option
+                    .setName('allow_channel')
+                    .setDescription('Allow channel announcements')
+                    .setRequired(false))
+                .addBooleanOption((option: SlashCommandBooleanOption) => option
+                    .setName('allow_dm')
+                    .setDescription('Allow DM notifications')
+                    .setRequired(false)))),
 
     async execute(interaction: any, context: Context) {
+        const subcommandGroup = interaction.options.getSubcommandGroup(false);
         const subcommand = interaction.options.getSubcommand();
 
+        // Handle events subcommand group
+        if (subcommandGroup === 'events') {
+            switch (subcommand) {
+                case 'subscribe':
+                    await handleEventsSubscribe(interaction, context);
+                    break;
+                case 'unsubscribe':
+                    await handleEventsUnsubscribe(interaction, context);
+                    break;
+                case 'list':
+                    await handleEventsList(interaction, context);
+                    break;
+                case 'upcoming':
+                    await handleEventsUpcoming(interaction, context);
+                    break;
+                case 'config':
+                    await handleEventsConfig(interaction, context);
+                    break;
+                default:
+                    await interaction.reply({
+                        content: 'Unknown events subcommand.',
+                        ephemeral: true,
+                    });
+            }
+            return;
+        }
+
+        // Handle regular subcommands
         switch (subcommand) {
             case 'item':
                 await handleItem(interaction, context);
@@ -446,10 +1045,34 @@ export default {
     async autocomplete(interaction: any, context: Context) {
         const focusedOption = interaction.options.getFocused(true);
         const subcommand = interaction.options.getSubcommand();
+        const searchValue = focusedOption.value.toLowerCase();
 
+        // Handle event type autocomplete
+        if (focusedOption.name === 'event') {
+            const filtered = ARC_EVENT_TYPES
+                .filter(event => event.toLowerCase().includes(searchValue))
+                .slice(0, 25);
+
+            await interaction.respond(
+                filtered.map(event => ({ name: event, value: event })),
+            );
+            return;
+        }
+
+        // Handle map autocomplete
+        if (focusedOption.name === 'map') {
+            const filtered = ARC_MAPS
+                .filter(map => map.toLowerCase().includes(searchValue))
+                .slice(0, 25);
+
+            await interaction.respond(
+                filtered.map(map => ({ name: map, value: map })),
+            );
+            return;
+        }
+
+        // Handle item name autocomplete
         if (focusedOption.name === 'name' || focusedOption.name === 'item') {
-            const searchValue = focusedOption.value;
-
             // For 'found' subcommand, search user's wishlist
             if (subcommand === 'found') {
                 const guildId = interaction.guild?.id;
@@ -469,7 +1092,7 @@ export default {
                         const filtered = items
                             .map((i: any) => i.item_name)
                             .filter((name: string) =>
-                                name.toLowerCase().includes(searchValue.toLowerCase()),
+                                name.toLowerCase().includes(searchValue),
                             )
                             .slice(0, 25);
 
@@ -489,12 +1112,12 @@ export default {
 
             // For other subcommands, search MetaForge API
             try {
-                if (searchValue.length < 2) {
+                if (focusedOption.value.length < 2) {
                     await interaction.respond([]);
                     return;
                 }
 
-                const items = await metaforge.searchItems(searchValue, 25);
+                const items = await metaforge.searchItems(focusedOption.value, 25);
 
                 await interaction.respond(
                     items.map(item => ({

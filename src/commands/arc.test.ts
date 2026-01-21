@@ -8,6 +8,10 @@ jest.mock('../lib/apis/metaforge', () => ({
         getItemByName: jest.fn().mockResolvedValue(null),
         getAllItems: jest.fn().mockResolvedValue({ data: [], pagination: {} }),
         formatItemStats: jest.fn().mockReturnValue([]),
+        getEvents: jest.fn().mockResolvedValue([]),
+        getUpcomingEvents: jest.fn().mockResolvedValue([]),
+        getActiveEvents: jest.fn().mockResolvedValue([]),
+        getEventsGroupedByMap: jest.fn().mockResolvedValue(new Map()),
     },
     RARITY_COLORS: {
         Common: 0x9d9d9d,
@@ -16,6 +20,26 @@ jest.mock('../lib/apis/metaforge', () => ({
         Epic: 0xa335ee,
         Legendary: 0xff8000,
     },
+    ARC_EVENT_TYPES: [
+        'Harvester',
+        'Husk Graveyard',
+        'Night Raid',
+        'Electromagnetic Storm',
+        'Prospecting Probes',
+        'Matriarch',
+        'Locked Gate',
+        'Launch Tower Loot',
+        'Hidden Bunker',
+        'Lush Blooms',
+        'Uncovered Caches',
+    ],
+    ARC_MAPS: [
+        'Spaceport',
+        'Blue Gate',
+        'Buried City',
+        'Dam',
+        'Stella Montis',
+    ],
 }));
 
 const mockedMetaforge = metaforge as jest.Mocked<typeof metaforge>;
@@ -26,10 +50,10 @@ describe('Arc Command', () => {
             expect(arc.data.name).toBe('arc');
         });
 
-        it('should have 5 subcommands', () => {
+        it('should have 6 subcommands/groups', () => {
             const json = arc.data.toJSON();
             expect(json.options).toBeDefined();
-            expect(json.options!.length).toBe(5);
+            expect(json.options!.length).toBe(6);
         });
 
         it('should have item subcommand with autocomplete', () => {
