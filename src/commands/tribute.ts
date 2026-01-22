@@ -4,20 +4,20 @@ import {
 } from 'discord.js';
 import { Context } from '../utils/types';
 
-const giveCommand = {
+const tributeCommand = {
     data: new SlashCommandBuilder()
-        .setName('give')
-        .setDescription('Give spice to another user')
+        .setName('tribute')
+        .setDescription('Pay tribute in spice to another member of the sietch')
         .addUserOption(option =>
             option
                 .setName('user')
-                .setDescription('The user to give spice to')
+                .setDescription('The user to pay tribute to')
                 .setRequired(true),
         )
         .addIntegerOption(option =>
             option
                 .setName('amount')
-                .setDescription('Amount of spice to give')
+                .setDescription('Amount of spice to offer as tribute')
                 .setRequired(true)
                 .setMinValue(1),
         ),
@@ -42,7 +42,7 @@ const giveCommand = {
         // Validate not giving to self
         if (targetUser.id === senderId) {
             await interaction.reply({
-                content: 'You cannot give spice to yourself.',
+                content: 'One cannot pay tribute to oneself. The desert sees all.',
                 ephemeral: true,
             });
             return;
@@ -51,7 +51,7 @@ const giveCommand = {
         // Validate not giving to a bot
         if (targetUser.bot) {
             await interaction.reply({
-                content: 'You cannot give spice to a bot.',
+                content: 'Machines have no use for spice.',
                 ephemeral: true,
             });
             return;
@@ -71,9 +71,8 @@ const giveCommand = {
                 await transaction.rollback();
                 const currentBalance = senderBalance?.current_balance ?? 0;
                 await interaction.reply({
-                    content: `You don't have enough spice. ` +
-                        `Your balance: **${currentBalance} spice**. ` +
-                        `Requested: **${amount} spice**.`,
+                    content: `Your spice reserves are insufficient. ` +
+                        `You hold **${currentBalance} spice**, but wish to offer **${amount}**.`,
                     ephemeral: true,
                 });
                 return;
@@ -116,20 +115,20 @@ const giveCommand = {
             await tables.SpiceLedger.create({
                 guild_id: guildId,
                 discord_id: senderId,
-                type: 'give_sent',
+                type: 'tribute_paid',
                 amount: -amount,
                 target_discord_id: targetUser.id,
-                description: `Gave to ${targetUser.username}`,
+                description: `Tribute to ${targetUser.username}`,
                 created_at: now,
             }, { transaction });
 
             await tables.SpiceLedger.create({
                 guild_id: guildId,
                 discord_id: targetUser.id,
-                type: 'give_received',
+                type: 'tribute_received',
                 amount: amount,
                 target_discord_id: senderId,
-                description: `Received from ${senderUsername}`,
+                description: `Tribute from ${senderUsername}`,
                 created_at: now,
             }, { transaction });
 
@@ -137,23 +136,24 @@ const giveCommand = {
 
             log.info({
                 category: 'spice',
-                action: 'give',
+                action: 'tribute',
                 guildId,
                 senderId,
                 recipientId: targetUser.id,
                 amount,
                 senderNewBalance,
                 recipientNewBalance,
-            }, 'Spice transferred');
+            }, 'Spice tribute paid');
 
-            // Public message for the give action
+            // Public message for the tribute action
             await interaction.reply({
-                content: `${interaction.user} gave **${amount} spice** to ${targetUser}.`,
+                content: `${interaction.user} has paid tribute of **${amount} spice** to ${targetUser}. ` +
+                    `*The spice must flow.*`,
             });
 
         } catch (error) {
             await transaction.rollback();
-            log.error({ error }, 'Error giving spice');
+            log.error({ error }, 'Error paying tribute');
             await interaction.reply({
                 content: 'An error occurred while transferring spice.',
                 ephemeral: true,
@@ -162,4 +162,4 @@ const giveCommand = {
     },
 };
 
-export default giveCommand;
+export default tributeCommand;

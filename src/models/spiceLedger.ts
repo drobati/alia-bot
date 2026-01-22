@@ -18,7 +18,13 @@ export default (sequelize: any) => ({
             comment: 'Discord user ID',
         },
         type: {
-            type: DataTypes.ENUM('harvest', 'give_sent', 'give_received'),
+            type: DataTypes.ENUM(
+                'harvest',
+                'give_sent',
+                'give_received',
+                'tribute_paid',
+                'tribute_received',
+            ),
             allowNull: false,
         },
         amount: {

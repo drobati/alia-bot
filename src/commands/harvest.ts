@@ -4,7 +4,7 @@ import {
 } from 'discord.js';
 import { Context } from '../utils/types';
 
-const HARVEST_AMOUNT = 10;
+const SPICE_PER_HOUR = 10;
 const HARVEST_COOLDOWN_MS = 60 * 60 * 1000; // 1 hour in milliseconds
 
 const harvestCommand = {
@@ -50,8 +50,10 @@ const harvestCommand = {
                 },
             });
 
-            // Check cooldown
+            // Check cooldown and calculate accumulated spice
             const now = new Date();
+            let harvestAmount = SPICE_PER_HOUR; // Default for first harvest or exactly 1 hour
+
             if (balance.last_harvest_at) {
                 const lastHarvest = new Date(balance.last_harvest_at);
                 const timeSinceHarvest = now.getTime() - lastHarvest.getTime();
@@ -67,11 +69,15 @@ const harvestCommand = {
                     });
                     return;
                 }
+
+                // Calculate accumulated spice: 10 per full hour since last harvest
+                const hoursSinceHarvest = Math.floor(timeSinceHarvest / HARVEST_COOLDOWN_MS);
+                harvestAmount = hoursSinceHarvest * SPICE_PER_HOUR;
             }
 
             // Harvest the spice
-            const newBalance = balance.current_balance + HARVEST_AMOUNT;
-            const newLifetimeHarvested = balance.lifetime_harvested + HARVEST_AMOUNT;
+            const newBalance = balance.current_balance + harvestAmount;
+            const newLifetimeHarvested = balance.lifetime_harvested + harvestAmount;
 
             await balance.update({
                 current_balance: newBalance,
@@ -81,12 +87,13 @@ const harvestCommand = {
             });
 
             // Record in ledger
+            const hoursAccumulated = harvestAmount / SPICE_PER_HOUR;
             await tables.SpiceLedger.create({
                 guild_id: guildId,
                 discord_id: discordId,
                 type: 'harvest',
-                amount: HARVEST_AMOUNT,
-                description: 'Hourly harvest',
+                amount: harvestAmount,
+                description: `Desert harvest (${hoursAccumulated} hr${hoursAccumulated !== 1 ? 's' : ''})`,
                 created_at: now,
             });
 
@@ -95,12 +102,24 @@ const harvestCommand = {
                 action: 'harvest',
                 guildId,
                 userId: discordId,
-                amount: HARVEST_AMOUNT,
+                amount: harvestAmount,
+                hoursAccumulated,
                 newBalance,
             }, 'Spice harvested');
 
+            // Flavor text varies based on harvest size
+            let flavorText: string;
+            if (hoursAccumulated >= 24) {
+                flavorText = 'The desert has been generous. Shai-Hulud smiles upon you.';
+            } else if (hoursAccumulated >= 6) {
+                flavorText = 'A bountiful harvest from the deep desert.';
+            } else {
+                flavorText = 'The spice must flow.';
+            }
+
             await interaction.reply({
-                content: `You harvested **${HARVEST_AMOUNT} spice** from the desert. ` +
+                content: `${flavorText}\n\n` +
+                    `You harvested **${harvestAmount} spice** (${hoursAccumulated} hour${hoursAccumulated !== 1 ? 's' : ''} accumulated). ` +
                     `Your balance is now **${newBalance} spice**.`,
                 ephemeral: !isPublic,
             });

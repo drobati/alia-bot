@@ -50,8 +50,8 @@ const spiceCommand = {
                 },
             });
 
-            // Calculate time until next harvest
-            let harvestStatus = 'Ready to harvest!';
+            // Calculate time until next harvest and accumulated spice
+            let harvestStatus = 'The desert awaits!';
             if (balance.last_harvest_at) {
                 const lastHarvest = new Date(balance.last_harvest_at);
                 const now = new Date();
@@ -60,7 +60,12 @@ const spiceCommand = {
                 if (timeSinceHarvest < HARVEST_COOLDOWN_MS) {
                     const remainingMs = HARVEST_COOLDOWN_MS - timeSinceHarvest;
                     const remainingMins = Math.ceil(remainingMs / 60000);
-                    harvestStatus = `Next harvest in ${remainingMins} min${remainingMins !== 1 ? 's' : ''}`;
+                    harvestStatus = `${remainingMins} min${remainingMins !== 1 ? 's' : ''} until harvest`;
+                } else {
+                    // Show accumulated spice available
+                    const hoursAccumulated = Math.floor(timeSinceHarvest / HARVEST_COOLDOWN_MS);
+                    const accumulatedSpice = hoursAccumulated * 10;
+                    harvestStatus = `**${accumulatedSpice} spice** accumulated`;
                 }
             }
 
@@ -74,16 +79,16 @@ const spiceCommand = {
             // Build embed
             const embed = new EmbedBuilder()
                 .setColor(0xD4A855) // Sandy/spice color
-                .setTitle('Your Spice Balance')
+                .setTitle('Your Spice Reserves')
                 .setThumbnail(interaction.user.displayAvatarURL())
                 .addFields(
                     {
-                        name: 'Current Balance',
+                        name: 'Current Holdings',
                         value: `**${balance.current_balance.toLocaleString()}** spice`,
                         inline: true,
                     },
                     {
-                        name: 'Harvest Status',
+                        name: 'Desert Status',
                         value: harvestStatus,
                         inline: true,
                     },
@@ -95,12 +100,12 @@ const spiceCommand = {
                         inline: true,
                     },
                     {
-                        name: 'Lifetime Given',
+                        name: 'Tribute Paid',
                         value: `${balance.lifetime_given.toLocaleString()}`,
                         inline: true,
                     },
                     {
-                        name: 'Lifetime Received',
+                        name: 'Tribute Received',
                         value: `${balance.lifetime_received.toLocaleString()}`,
                         inline: true,
                     },
@@ -111,7 +116,7 @@ const spiceCommand = {
                 const transactionLines = recentTransactions.map(t => {
                     const sign = t.amount >= 0 ? '+' : '';
                     const typeEmoji = getTypeEmoji(t.type);
-                    const timeAgo = getRelativeTime(t.created_at);
+                    const timeAgo = t.created_at ? getRelativeTime(t.created_at) : 'unknown';
                     return `${typeEmoji} ${sign}${t.amount} - ${t.description || t.type} (${timeAgo})`;
                 });
 
@@ -149,7 +154,10 @@ const spiceCommand = {
 
 function getTypeEmoji(type: string): string {
     const emojiMap: Record<string, string> = {
-        'harvest': '🌾',
+        'harvest': '🏜️',
+        'tribute_paid': '📤',
+        'tribute_received': '📥',
+        // Legacy support for old ledger entries
         'give_sent': '📤',
         'give_received': '📥',
     };

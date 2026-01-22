@@ -213,7 +213,7 @@ export interface SpiceLedgerAttributes {
     id?: number;
     guild_id: string;
     discord_id: string;
-    type: 'harvest' | 'give_sent' | 'give_received';
+    type: 'harvest' | 'give_sent' | 'give_received' | 'tribute_paid' | 'tribute_received';
     amount: number;
     target_discord_id?: string | null;
     description?: string;

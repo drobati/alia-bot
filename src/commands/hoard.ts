@@ -5,10 +5,10 @@ import {
 } from 'discord.js';
 import { Context } from '../utils/types';
 
-const wealthCommand = {
+const hoardCommand = {
     data: new SlashCommandBuilder()
-        .setName('wealth')
-        .setDescription('View the wealthiest spice holders (rankings only, no balances shown)'),
+        .setName('hoard')
+        .setDescription('View the greatest spice hoarders of Arrakis'),
 
     async execute(interaction: ChatInputCommandInteraction, context: Context) {
         const { tables, log } = context;
@@ -33,7 +33,8 @@ const wealthCommand = {
 
             if (topUsers.length === 0) {
                 await interaction.reply({
-                    content: 'No one has harvested any spice yet! Use `/harvest` to be the first.',
+                    content: 'The desert remains untouched. ' +
+                        'No one has harvested spice yet. Use `/harvest` to be the first.',
                     ephemeral: false,
                 });
                 return;
@@ -53,51 +54,64 @@ const wealthCommand = {
                 }
             }
 
-            // Build the leaderboard
-            const rankEmojis = ['', '', '', '4.', '5.', '6.', '7.', '8.', '9.', '10.'];
+            // Build the leaderboard with Dune-themed ranks
+            const rankTitles = [
+                'Emperor',      // 1st
+                'Kwisatz Haderach',  // 2nd
+                'Naib',         // 3rd
+                'Fedaykin',     // 4th
+                'Fremen',       // 5th
+                'Fremen',       // 6th
+                'Fremen',       // 7th
+                'Fremen',       // 8th
+                'Fremen',       // 9th
+                'Fremen',       // 10th
+            ];
+
             const leaderboardLines = topUsers.map((user, index) => {
-                const rank = rankEmojis[index] || `${index + 1}.`;
+                const rank = index + 1;
+                const title = rankTitles[index] || 'Fremen';
                 const displayName = user.username || 'Unknown User';
                 const isCurrentUser = user.discord_id === interaction.user.id;
                 const highlight = isCurrentUser ? ' **(You)**' : '';
-                return `${rank} ${displayName}${highlight}`;
+                return `**${rank}.** ${displayName} — *${title}*${highlight}`;
             });
 
             // Build embed
             const embed = new EmbedBuilder()
                 .setColor(0xD4A855) // Sandy/spice color
-                .setTitle('Spice Wealth Rankings')
+                .setTitle('The Spice Hoard of Arrakis')
                 .setDescription(
-                    '*The wealthiest spice traders in the desert*\n\n' +
+                    '*He who controls the spice, controls the universe.*\n\n' +
                     leaderboardLines.join('\n'),
                 )
                 .setFooter({
                     text: userRank
-                        ? `Your rank: #${userRank} of ${allUsers.length}`
-                        : 'Use /harvest to join the rankings',
+                        ? `Your standing: #${userRank} of ${allUsers.length} in the sietch`
+                        : 'Use /harvest to join the sietch',
                 })
                 .setTimestamp();
 
             log.info({
                 category: 'spice',
-                action: 'wealth_viewed',
+                action: 'hoard_viewed',
                 guildId,
                 userId: interaction.user.id,
                 totalUsers: allUsers.length,
-            }, 'Wealth leaderboard viewed');
+            }, 'Spice hoard leaderboard viewed');
 
             await interaction.reply({
                 embeds: [embed],
             });
 
         } catch (error) {
-            log.error({ error }, 'Error fetching wealth rankings');
+            log.error({ error }, 'Error fetching spice hoard');
             await interaction.reply({
-                content: 'An error occurred while fetching the wealth rankings.',
+                content: 'An error occurred while consulting the spice records.',
                 ephemeral: true,
             });
         }
     },
 };
 
-export default wealthCommand;
+export default hoardCommand;
