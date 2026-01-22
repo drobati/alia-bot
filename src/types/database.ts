@@ -195,6 +195,31 @@ export interface ArcWishlistAttributes {
     updated_at?: Date;
 }
 
+export interface SpiceBalanceAttributes {
+    id?: number;
+    guild_id: string;
+    discord_id: string;
+    username?: string;
+    current_balance: number;
+    last_harvest_at?: Date | null;
+    lifetime_harvested: number;
+    lifetime_given: number;
+    lifetime_received: number;
+    created_at?: Date;
+    updated_at?: Date;
+}
+
+export interface SpiceLedgerAttributes {
+    id?: number;
+    guild_id: string;
+    discord_id: string;
+    type: 'harvest' | 'give_sent' | 'give_received';
+    amount: number;
+    target_discord_id?: string | null;
+    description?: string;
+    created_at?: Date;
+}
+
 // Simplified model interfaces for now - avoiding complex Sequelize inheritance issues
 export interface AdlibsModel extends AdlibsAttributes {
     update(_values: Partial<AdlibsAttributes>): Promise<AdlibsModel>;
@@ -258,6 +283,16 @@ export interface VerificationCodeModel extends VerificationCodeAttributes {
 
 export interface ArcWishlistModel extends ArcWishlistAttributes {
     update(_values: Partial<ArcWishlistAttributes>): Promise<ArcWishlistModel>;
+    destroy(): Promise<void>;
+}
+
+export interface SpiceBalanceModel extends SpiceBalanceAttributes {
+    update(_values: Partial<SpiceBalanceAttributes>, _options?: { transaction?: unknown }): Promise<SpiceBalanceModel>;
+    destroy(): Promise<void>;
+}
+
+export interface SpiceLedgerModel extends SpiceLedgerAttributes {
+    update(_values: Partial<SpiceLedgerAttributes>): Promise<SpiceLedgerModel>;
     destroy(): Promise<void>;
 }
 
@@ -401,6 +436,28 @@ export interface ArcWishlistModelStatic {
         : Promise<{ count: number; rows: ArcWishlistModel[] }>;
 }
 
+export interface SpiceBalanceModelStatic {
+    findAll(options?: FindOptions<SpiceBalanceAttributes> & { transaction?: unknown }): Promise<SpiceBalanceModel[]>;
+    findOne(options?: FindOptions<SpiceBalanceAttributes> & { transaction?: unknown }): Promise<SpiceBalanceModel | null>;
+    create(values: SpiceBalanceAttributes, options?: { transaction?: unknown }): Promise<SpiceBalanceModel>;
+    findOrCreate(options: FindOrCreateOptions<SpiceBalanceAttributes> & { transaction?: unknown })
+        : Promise<[SpiceBalanceModel, boolean]>;
+    upsert(values: SpiceBalanceAttributes, options?: UpsertOptions): Promise<[SpiceBalanceModel, boolean]>;
+    destroy(options: DestroyOptions<SpiceBalanceAttributes>): Promise<number>;
+    count(options?: FindOptions<SpiceBalanceAttributes>): Promise<number>;
+}
+
+export interface SpiceLedgerModelStatic {
+    findAll(options?: FindOptions<SpiceLedgerAttributes> & { transaction?: unknown }): Promise<SpiceLedgerModel[]>;
+    findOne(options?: FindOptions<SpiceLedgerAttributes> & { transaction?: unknown }): Promise<SpiceLedgerModel | null>;
+    create(values: SpiceLedgerAttributes, options?: { transaction?: unknown }): Promise<SpiceLedgerModel>;
+    findOrCreate(options: FindOrCreateOptions<SpiceLedgerAttributes> & { transaction?: unknown })
+        : Promise<[SpiceLedgerModel, boolean]>;
+    upsert(values: SpiceLedgerAttributes, options?: UpsertOptions): Promise<[SpiceLedgerModel, boolean]>;
+    destroy(options: DestroyOptions<SpiceLedgerAttributes>): Promise<number>;
+    count(options?: FindOptions<SpiceLedgerAttributes>): Promise<number>;
+}
+
 // Combined database tables interface
 export interface DatabaseTables {
     Adlibs: AdlibsModelStatic;
@@ -416,5 +473,7 @@ export interface DatabaseTables {
     DndGame: DndGameModelStatic;
     VerificationCode: VerificationCodeModelStatic;
     ArcWishlist: ArcWishlistModelStatic;
+    SpiceBalance: SpiceBalanceModelStatic;
+    SpiceLedger: SpiceLedgerModelStatic;
     [key: string]: any; // Allow dynamic table access
 }
