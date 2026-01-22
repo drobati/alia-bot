@@ -437,8 +437,10 @@ export interface ArcWishlistModelStatic {
 }
 
 export interface SpiceBalanceModelStatic {
-    findAll(options?: FindOptions<SpiceBalanceAttributes> & { transaction?: unknown }): Promise<SpiceBalanceModel[]>;
-    findOne(options?: FindOptions<SpiceBalanceAttributes> & { transaction?: unknown }): Promise<SpiceBalanceModel | null>;
+    findAll(options?: FindOptions<SpiceBalanceAttributes> & { transaction?: unknown })
+        : Promise<SpiceBalanceModel[]>;
+    findOne(options?: FindOptions<SpiceBalanceAttributes> & { transaction?: unknown })
+        : Promise<SpiceBalanceModel | null>;
     create(values: SpiceBalanceAttributes, options?: { transaction?: unknown }): Promise<SpiceBalanceModel>;
     findOrCreate(options: FindOrCreateOptions<SpiceBalanceAttributes> & { transaction?: unknown })
         : Promise<[SpiceBalanceModel, boolean]>;

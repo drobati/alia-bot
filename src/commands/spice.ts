@@ -62,8 +62,11 @@ const spiceCommand = {
                     const remainingMins = Math.ceil(remainingMs / 60000);
                     harvestStatus = `${remainingMins} min${remainingMins !== 1 ? 's' : ''} until harvest`;
                 } else {
-                    // Show accumulated spice available
-                    const hoursAccumulated = Math.floor(timeSinceHarvest / HARVEST_COOLDOWN_MS);
+                    // Show accumulated spice available (max 24 hours)
+                    const hoursAccumulated = Math.min(
+                        Math.floor(timeSinceHarvest / HARVEST_COOLDOWN_MS),
+                        24,
+                    );
                     const accumulatedSpice = hoursAccumulated * 10;
                     harvestStatus = `**${accumulatedSpice} spice** accumulated`;
                 }

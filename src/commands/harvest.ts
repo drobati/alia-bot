@@ -6,6 +6,7 @@ import { Context } from '../utils/types';
 
 const SPICE_PER_HOUR = 10;
 const HARVEST_COOLDOWN_MS = 60 * 60 * 1000; // 1 hour in milliseconds
+const MAX_ACCUMULATION_HOURS = 24; // Cap accumulation at 24 hours (240 spice)
 
 const harvestCommand = {
     data: new SlashCommandBuilder()
@@ -36,7 +37,7 @@ const harvestCommand = {
 
         try {
             // Get or create user balance
-            const [balance, created] = await tables.SpiceBalance.findOrCreate({
+            const [balance] = await tables.SpiceBalance.findOrCreate({
                 where: { guild_id: guildId, discord_id: discordId },
                 defaults: {
                     guild_id: guildId,
@@ -70,8 +71,11 @@ const harvestCommand = {
                     return;
                 }
 
-                // Calculate accumulated spice: 10 per full hour since last harvest
-                const hoursSinceHarvest = Math.floor(timeSinceHarvest / HARVEST_COOLDOWN_MS);
+                // Calculate accumulated spice: 10 per full hour since last harvest (max 24 hours)
+                const hoursSinceHarvest = Math.min(
+                    Math.floor(timeSinceHarvest / HARVEST_COOLDOWN_MS),
+                    MAX_ACCUMULATION_HOURS,
+                );
                 harvestAmount = hoursSinceHarvest * SPICE_PER_HOUR;
             }
 
@@ -117,9 +121,10 @@ const harvestCommand = {
                 flavorText = 'The spice must flow.';
             }
 
+            const hourLabel = hoursAccumulated !== 1 ? 'hours' : 'hour';
             await interaction.reply({
                 content: `${flavorText}\n\n` +
-                    `You harvested **${harvestAmount} spice** (${hoursAccumulated} hour${hoursAccumulated !== 1 ? 's' : ''} accumulated). ` +
+                    `You harvested **${harvestAmount} spice** (${hoursAccumulated} ${hourLabel} accumulated). ` +
                     `Your balance is now **${newBalance} spice**.`,
                 ephemeral: !isPublic,
             });
