@@ -158,9 +158,77 @@ export function isTextChannel(channel: any): channel is TextChannel {
 }
 
 /**
+ * Splits an oversized paragraph into smaller chunks, trying to break at sentence
+ * boundaries first, then falling back to word boundaries.
+ */
+export function splitOversizedParagraph(
+    paragraph: string,
+    maxLength: number = DISCORD_MESSAGE_LIMIT,
+): string[] {
+    if (paragraph.length <= maxLength) {
+        return [paragraph];
+    }
+
+    const chunks: string[] = [];
+
+    // Try to split by sentences first (. ! ? followed by space or end)
+    const sentences = paragraph.split(/(?<=[.!?])\s+/);
+    let currentChunk = '';
+
+    for (const sentence of sentences) {
+        const trimmedSentence = sentence.trim();
+        if (!trimmedSentence) {
+            continue;
+        }
+
+        // If this single sentence is too long, split by words
+        if (trimmedSentence.length > maxLength) {
+            // Save current chunk first
+            if (currentChunk.trim()) {
+                chunks.push(currentChunk.trim());
+                currentChunk = '';
+            }
+
+            // Split by words
+            const words = trimmedSentence.split(/\s+/);
+            let wordChunk = '';
+            for (const word of words) {
+                if (wordChunk.length + word.length + 1 > maxLength) {
+                    if (wordChunk.trim()) {
+                        chunks.push(wordChunk.trim());
+                    }
+                    wordChunk = word;
+                } else {
+                    wordChunk = wordChunk ? wordChunk + ' ' + word : word;
+                }
+            }
+            if (wordChunk.trim()) {
+                currentChunk = wordChunk.trim();
+            }
+        } else if (currentChunk.length + trimmedSentence.length + 1 > maxLength) {
+            // Save current chunk and start new one with this sentence
+            if (currentChunk.trim()) {
+                chunks.push(currentChunk.trim());
+            }
+            currentChunk = trimmedSentence;
+        } else {
+            // Add sentence to current chunk
+            currentChunk = currentChunk ? currentChunk + ' ' + trimmedSentence : trimmedSentence;
+        }
+    }
+
+    // Don't forget the last chunk
+    if (currentChunk.trim()) {
+        chunks.push(currentChunk.trim());
+    }
+
+    return chunks;
+}
+
+/**
  * Splits a long message into multiple chunks, respecting paragraph boundaries.
  * Will not split a paragraph in half - each chunk ends at a paragraph boundary.
- * If a single paragraph exceeds the limit, it will be sent as its own chunk.
+ * If a single paragraph exceeds the limit, it will be split at sentence or word boundaries.
  */
 export function splitMessageByParagraphs(
     content: string,
@@ -187,10 +255,15 @@ export function splitMessageByParagraphs(
                 chunks.push(currentChunk.trim());
             }
 
-            // If the paragraph itself is too long, it becomes its own chunk
+            // If the paragraph itself is too long, split it further
             if (trimmedParagraph.length > maxLength) {
-                chunks.push(trimmedParagraph);
-                currentChunk = '';
+                const subChunks = splitOversizedParagraph(trimmedParagraph, maxLength);
+                // Add all but last subchunk directly to chunks
+                for (let i = 0; i < subChunks.length - 1; i++) {
+                    chunks.push(subChunks[i]);
+                }
+                // Last subchunk becomes the current chunk (may combine with next paragraph)
+                currentChunk = subChunks[subChunks.length - 1] || '';
             } else {
                 currentChunk = trimmedParagraph;
             }

@@ -1,4 +1,10 @@
-import { safelySendToChannel, safelyFindChannel, sendWithRetry } from './discordHelpers';
+import {
+    safelySendToChannel,
+    safelyFindChannel,
+    sendWithRetry,
+    splitOversizedParagraph,
+    splitMessageByParagraphs,
+} from './discordHelpers';
 import { Context } from './types';
 
 // Mock channel
@@ -184,6 +190,65 @@ describe('Discord Helpers', () => {
 
             expect(result).toBe(false);
             expect(mockChannel.send).toHaveBeenCalledTimes(1);
+        });
+    });
+
+    describe('splitOversizedParagraph', () => {
+        it('should return unchanged if under limit', () => {
+            const text = 'Short paragraph.';
+            const result = splitOversizedParagraph(text, 100);
+            expect(result).toEqual([text]);
+        });
+
+        it('should split by sentences when paragraph exceeds limit', () => {
+            const text = 'First sentence. Second sentence. Third sentence.';
+            const result = splitOversizedParagraph(text, 30);
+            expect(result.length).toBeGreaterThan(1);
+            expect(result.every(chunk => chunk.length <= 30)).toBe(true);
+        });
+
+        it('should split by words when a single sentence exceeds limit', () => {
+            const text = 'This is a very long sentence that needs word splitting.';
+            const result = splitOversizedParagraph(text, 20);
+            expect(result.length).toBeGreaterThan(1);
+            expect(result.every(chunk => chunk.length <= 20)).toBe(true);
+        });
+
+        it('should handle multiple sentence types (! and ?)', () => {
+            const text = 'What happened? Something amazing! It was incredible.';
+            const result = splitOversizedParagraph(text, 25);
+            expect(result.length).toBeGreaterThan(1);
+        });
+    });
+
+    describe('splitMessageByParagraphs', () => {
+        it('should return unchanged if under limit', () => {
+            const text = 'Short message.';
+            const result = splitMessageByParagraphs(text, 100);
+            expect(result).toEqual([text]);
+        });
+
+        it('should split at paragraph boundaries', () => {
+            const text = 'First paragraph.\n\nSecond paragraph.\n\nThird paragraph.';
+            const result = splitMessageByParagraphs(text, 25);
+            expect(result.length).toBeGreaterThan(1);
+            // Each chunk should be under the limit
+            expect(result.every(chunk => chunk.length <= 25)).toBe(true);
+        });
+
+        it('should handle oversized paragraphs by splitting them further', () => {
+            const longParagraph = 'This is a long sentence. Another long sentence. Yet another one.';
+            const text = `Short intro.\n\n${longParagraph}\n\nShort outro.`;
+            const result = splitMessageByParagraphs(text, 50);
+            expect(result.every(chunk => chunk.length <= 50)).toBe(true);
+        });
+
+        it('should not exceed Discord 2000 char limit by default', () => {
+            // Create a message with multiple long paragraphs
+            const longParagraph = 'A'.repeat(1500) + '. ' + 'B'.repeat(1500) + '.';
+            const text = `Introduction.\n\n${longParagraph}\n\nConclusion.`;
+            const result = splitMessageByParagraphs(text);
+            expect(result.every(chunk => chunk.length <= 2000)).toBe(true);
         });
     });
 });
