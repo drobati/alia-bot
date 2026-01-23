@@ -149,6 +149,9 @@ const guildMemberAddEvent: BotEvent = {
             // Format and send the welcome message
             const welcomeMessage = formatWelcomeMessage(welcomeTemplate, member);
 
+            // Delay to ensure the Discord system join message appears first
+            await new Promise(resolve => setTimeout(resolve, 1000));
+
             await channel.send(welcomeMessage);
             welcomeStatus = { sent: true };
 
