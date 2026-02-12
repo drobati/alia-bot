@@ -1,33 +1,17 @@
 import { Message, GuildEmoji } from 'discord.js';
 import { Context } from '../types';
 
-// Contextual keyword → emoji mappings
-// Each entry: [pattern, unicode emoji to use if no custom emoji matches]
-const KEYWORD_REACTIONS: [RegExp, string][] = [
-    [/\blol\b|lmao|lmfao|😂|🤣/i, '😂'],
-    [/\bfire\b|🔥/i, '🔥'],
-    [/\blove\b|❤️|💕/i, '❤️'],
-    [/\bnice\b|👍/i, '👍'],
-    [/\bwow\b|😮/i, '😮'],
-    [/\bsad\b|😢|😭/i, '😢'],
-    [/\bgg\b/i, '🫡'],
-    [/\bthank(?:s| you)\b/i, '💜'],
-    [/\bcongrat(?:s|ulations)?\b/i, '🎉'],
-    [/\brip\b/i, '🪦'],
-    [/\bpog\b|pogchamp/i, '😲'],
-    [/\bcool\b|awesome|amazing|incredible/i, '✨'],
-    [/\bscar(?:y|ed)\b|spooky|creepy/i, '😱'],
-    [/\bhungry\b|food|pizza|taco|burger/i, '🍕'],
-    [/\bcoffee\b|☕/i, '☕'],
-    [/\brage\b|angry|furious/i, '😤'],
-    [/\bsleep(?:y|ing)?\b|tired|exhausted/i, '😴'],
+// Prefixes that indicate reaction-appropriate emoji (not game icons)
+const REACTION_PREFIXES = [
+    'yes_', 'no_', 'hype_', 'roast_', 'stfu_',
+    'vibe_', 'meh_', 'misc_',
 ];
+
+// Game-specific prefixes to exclude
+const GAME_PREFIXES = ['dota2_', 'poe_', 'wow_', 'arc_'];
 
 // Secret tag that always triggers a random reaction
 const SECRET_TAG = /\bkwisatz haderach\b/i;
-
-// All unicode emoji used in keyword reactions, for picking a random one
-const ALL_EMOJI = KEYWORD_REACTIONS.map(([, emoji]) => emoji);
 
 // Chance to react to any given message (5%)
 const REACTION_CHANCE = 0.05;
@@ -42,44 +26,40 @@ const LOUDS_REGEX = /^\s*([A-Z"][A-Z0-9 .,'"()?!&%$#@+-]+)$/;
 const channelCooldowns = new Map<string, number>();
 
 /**
- * Try to find a custom server emoji whose name matches a keyword contextually.
- * Returns the emoji if found, null otherwise.
+ * Filter emoji to only reaction-appropriate ones.
+ * Includes: emoji with reaction prefixes (yes_, no_, hype_, etc.)
+ * and unprefixed emoji (no underscore = custom one-offs like SatisfiedBob).
+ * Excludes: game-specific emoji (dota2_, poe_, wow_, arc_).
  */
-function findContextualCustomEmoji(
-    content: string,
-    emojis: GuildEmoji[],
-): GuildEmoji | null {
-    const lowerContent = content.toLowerCase();
-    // Look for custom emojis whose name appears as a word in the message
-    const matches = emojis.filter(e => {
+function filterReactionEmoji(emojis: GuildEmoji[]): GuildEmoji[] {
+    return emojis.filter(e => {
         const name = e.name?.toLowerCase();
         if (!name) {
             return false;
         }
-        // Match emoji name as a substring in the message content
-        return lowerContent.includes(name);
-    });
-    if (matches.length > 0) {
-        return matches[Math.floor(Math.random() * matches.length)];
-    }
-    return null;
-}
 
-/**
- * Find a unicode emoji reaction based on keyword matching.
- */
-function findKeywordReaction(content: string): string | null {
-    for (const [pattern, emoji] of KEYWORD_REACTIONS) {
-        if (pattern.test(content)) {
-            return emoji;
+        // Exclude game-specific emoji
+        if (GAME_PREFIXES.some(prefix => name.startsWith(prefix))) {
+            return false;
         }
-    }
-    return null;
+
+        // Include emoji with reaction prefixes
+        if (REACTION_PREFIXES.some(prefix => name.startsWith(prefix))) {
+            return true;
+        }
+
+        // Include unprefixed emoji (no underscore = custom one-offs)
+        if (!name.includes('_')) {
+            return true;
+        }
+
+        return false;
+    });
 }
 
 /**
  * Reactions response handler — occasionally reacts to messages with
- * contextual emoji. Runs independently of the priority response chain.
+ * a random server emoji. Runs independently of the priority response chain.
  */
 export default async function reactions(
     message: Message,
@@ -93,16 +73,23 @@ export default async function reactions(
             return;
         }
 
+        // Get available custom emojis (filter out unavailable/Nitro-locked ones)
+        const customEmojis = message.guild.emojis.cache.filter(
+            e => e.available,
+        );
+        const reactionEmoji = filterReactionEmoji([...customEmojis.values()]);
+
         // Secret tag — always react with a random emoji, bypass all checks
-        const isSecretTag = SECRET_TAG.test(message.content);
-        if (isSecretTag) {
-            const emoji = ALL_EMOJI[Math.floor(Math.random() * ALL_EMOJI.length)];
-            await message.react(emoji);
-            log.debug('Reaction added (secret tag)', {
-                channelId: message.channelId,
-                messageId: message.id,
-                emoji,
-            });
+        if (SECRET_TAG.test(message.content)) {
+            if (reactionEmoji.length > 0) {
+                const emoji = reactionEmoji[Math.floor(Math.random() * reactionEmoji.length)];
+                await message.react(emoji);
+                log.debug('Reaction added (secret tag)', {
+                    channelId: message.channelId,
+                    messageId: message.id,
+                    emoji: emoji.name,
+                });
+            }
             return;
         }
 
@@ -128,42 +115,20 @@ export default async function reactions(
             return;
         }
 
-        // Get available custom emojis (filter out unavailable/Nitro-locked ones)
-        const customEmojis = message.guild.emojis.cache.filter(
-            e => e.available,
-        );
-        const emojiArray = [...customEmojis.values()];
-
-        // Try contextual custom emoji first
-        const customMatch = findContextualCustomEmoji(
-            message.content,
-            emojiArray,
-        );
-        if (customMatch) {
-            await message.react(customMatch);
-            channelCooldowns.set(message.channelId, now);
-            log.debug('Reaction added (custom emoji)', {
-                channelId: message.channelId,
-                messageId: message.id,
-                emoji: customMatch.name,
-            });
+        // No reaction emoji available — nothing to do
+        if (reactionEmoji.length === 0) {
             return;
         }
 
-        // Try keyword-based unicode emoji
-        const keywordMatch = findKeywordReaction(message.content);
-        if (keywordMatch) {
-            await message.react(keywordMatch);
-            channelCooldowns.set(message.channelId, now);
-            log.debug('Reaction added (keyword)', {
-                channelId: message.channelId,
-                messageId: message.id,
-                emoji: keywordMatch,
-            });
-            return;
-        }
-
-        // No contextual match — don't react with something random
+        // Pick a random reaction emoji
+        const emoji = reactionEmoji[Math.floor(Math.random() * reactionEmoji.length)];
+        await message.react(emoji);
+        channelCooldowns.set(message.channelId, now);
+        log.debug('Reaction added', {
+            channelId: message.channelId,
+            messageId: message.id,
+            emoji: emoji.name,
+        });
     } catch (error) {
         // Silently fail — reactions are non-critical
         log.debug('Reaction failed', { error });
@@ -172,14 +137,13 @@ export default async function reactions(
 
 // Exports for testing
 export {
-    KEYWORD_REACTIONS,
+    REACTION_PREFIXES,
+    GAME_PREFIXES,
     REACTION_CHANCE,
     COOLDOWN_MS,
     LOUDS_REGEX,
     SECRET_TAG,
-    ALL_EMOJI,
-    findContextualCustomEmoji,
-    findKeywordReaction,
+    filterReactionEmoji,
 };
 
 // Reset cooldowns (for testing)
