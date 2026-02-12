@@ -1,6 +1,7 @@
 import { Events, Message } from 'discord.js';
 import { Context, BotEvent } from '../src/utils/types';
 import response from '../src/responses'; // Adjust the import path as needed
+import reactions from '../src/responses/reactions';
 
 const messageCreateEvent: BotEvent = {
     name: Events.MessageCreate,
@@ -151,7 +152,14 @@ const messageCreateEvent: BotEvent = {
                 });
             }
 
-            // Process message for Sparks currency (independent of response handling)
+            // Independent processing (runs regardless of which response handled the message)
+
+            // Occasionally react to messages with contextual emoji
+            reactions(message, context).catch(error => {
+                context.log.debug('Reactions processing failed', { error });
+            });
+
+            // Process message for Sparks currency
             if (context.sparksService) {
                 try {
                     await context.sparksService.processMessage(message);
