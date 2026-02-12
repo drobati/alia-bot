@@ -4,7 +4,6 @@ import reactions, {
     REACTION_CHANCE,
     COOLDOWN_MS,
     LOUDS_REGEX,
-    SECRET_TAG,
     ALL_EMOJI,
     findContextualCustomEmoji,
     findKeywordReaction,
