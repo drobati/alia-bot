@@ -4,6 +4,8 @@ import reactions, {
     REACTION_CHANCE,
     COOLDOWN_MS,
     LOUDS_REGEX,
+    SECRET_TAG,
+    ALL_EMOJI,
     findContextualCustomEmoji,
     findKeywordReaction,
     resetCooldowns,
@@ -78,6 +80,50 @@ describe('response/reactions', () => {
 
             await reactions(message, context);
             expect(mockReact).not.toHaveBeenCalled();
+        });
+    });
+
+    describe('secret tag', () => {
+        it('always reacts to "kwisatz haderach"', async () => {
+            message.content = 'the kwisatz haderach has arrived';
+            // Even with a high random value (would normally skip)
+            (Math.random as jest.Mock).mockReturnValue(0.99);
+
+            await reactions(message, context);
+            expect(mockReact).toHaveBeenCalledTimes(1);
+            expect(ALL_EMOJI).toContain(mockReact.mock.calls[0][0]);
+        });
+
+        it('is case insensitive', async () => {
+            message.content = 'KWISATZ HADERACH';
+            (Math.random as jest.Mock).mockReturnValue(0.99);
+
+            await reactions(message, context);
+            expect(mockReact).toHaveBeenCalledTimes(1);
+        });
+
+        it('bypasses channel cooldown', async () => {
+            (Math.random as jest.Mock).mockReturnValue(0);
+
+            // Trigger a normal reaction first to set cooldown
+            message.content = 'lol that was funny';
+            await reactions(message, context);
+            expect(mockReact).toHaveBeenCalledTimes(1);
+
+            // Secret tag should still work despite cooldown
+            message.content = 'kwisatz haderach';
+            (Math.random as jest.Mock).mockReturnValue(0.99);
+            await reactions(message, context);
+            expect(mockReact).toHaveBeenCalledTimes(2);
+        });
+
+        it('reacts with an emoji from ALL_EMOJI', async () => {
+            message.content = 'kwisatz haderach';
+            (Math.random as jest.Mock).mockReturnValue(0);
+
+            await reactions(message, context);
+            const reactedEmoji = mockReact.mock.calls[0][0];
+            expect(ALL_EMOJI).toContain(reactedEmoji);
         });
     });
 

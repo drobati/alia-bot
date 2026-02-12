@@ -23,6 +23,12 @@ const KEYWORD_REACTIONS: [RegExp, string][] = [
     [/\bsleep(?:y|ing)?\b|tired|exhausted/i, '😴'],
 ];
 
+// Secret tag that always triggers a random reaction
+const SECRET_TAG = /\bkwisatz haderach\b/i;
+
+// All unicode emoji used in keyword reactions, for picking a random one
+const ALL_EMOJI = KEYWORD_REACTIONS.map(([, emoji]) => emoji);
+
 // Chance to react to any given message (5%)
 const REACTION_CHANCE = 0.05;
 
@@ -84,6 +90,19 @@ export default async function reactions(
     try {
         // Skip messages without a guild (DMs)
         if (!message.guild) {
+            return;
+        }
+
+        // Secret tag — always react with a random emoji, bypass all checks
+        const isSecretTag = SECRET_TAG.test(message.content);
+        if (isSecretTag) {
+            const emoji = ALL_EMOJI[Math.floor(Math.random() * ALL_EMOJI.length)];
+            await message.react(emoji);
+            log.debug('Reaction added (secret tag)', {
+                channelId: message.channelId,
+                messageId: message.id,
+                emoji,
+            });
             return;
         }
 
@@ -157,6 +176,8 @@ export {
     REACTION_CHANCE,
     COOLDOWN_MS,
     LOUDS_REGEX,
+    SECRET_TAG,
+    ALL_EMOJI,
     findContextualCustomEmoji,
     findKeywordReaction,
 };
