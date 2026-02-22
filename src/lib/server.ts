@@ -11,6 +11,12 @@ export default async (client: any, channel: any, embed: any, model: any) => {
         port: config.get('webhook.port'),
     });
 
+    server.route({
+        method: 'GET',
+        path: '/health',
+        handler: (_request: any, h: any) => h.response({ status: 'ok' }).code(200),
+    });
+
     // TODO: Add support for secret verification.
     server.route({
         method: 'GET',

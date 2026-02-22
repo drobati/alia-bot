@@ -132,38 +132,64 @@ describe('Server Module', () => {
         it('should register all required routes', async () => {
             await serverModule(mockClient, mockChannel, mockEmbed, mockModel);
 
-            expect(mockServer.route).toHaveBeenCalledTimes(7);
+            expect(mockServer.route).toHaveBeenCalledTimes(8);
 
             // Verify route registrations
             const routeCalls = mockServer.route.mock.calls;
             expect(routeCalls[0][0]).toMatchObject({
                 method: 'GET',
-                path: '/api/webhook',
+                path: '/health',
             });
             expect(routeCalls[1][0]).toMatchObject({
-                method: 'POST',
+                method: 'GET',
                 path: '/api/webhook',
             });
             expect(routeCalls[2][0]).toMatchObject({
                 method: 'POST',
-                path: '/api/test-meme',
+                path: '/api/webhook',
             });
             expect(routeCalls[3][0]).toMatchObject({
                 method: 'POST',
-                path: '/api/test-custom-meme',
+                path: '/api/test-meme',
             });
             expect(routeCalls[4][0]).toMatchObject({
-                method: 'GET',
-                path: '/api/test-rc-graph/{username}',
+                method: 'POST',
+                path: '/api/test-custom-meme',
             });
             expect(routeCalls[5][0]).toMatchObject({
                 method: 'GET',
-                path: '/api/test-rc-graph-sample',
+                path: '/api/test-rc-graph/{username}',
             });
             expect(routeCalls[6][0]).toMatchObject({
+                method: 'GET',
+                path: '/api/test-rc-graph-sample',
+            });
+            expect(routeCalls[7][0]).toMatchObject({
                 method: 'POST',
                 path: '/api/add-rc-score',
             });
+        });
+    });
+
+    describe('GET /health handler', () => {
+        let handler: any;
+
+        beforeEach(async () => {
+            await serverModule(mockClient, mockChannel, mockEmbed, mockModel);
+            handler = mockServer.route.mock.calls[0][0].handler;
+        });
+
+        it('should return ok status', () => {
+            const mockRequest = {};
+            const mockH = {
+                response: jest.fn().mockReturnValue({
+                    code: jest.fn().mockReturnThis(),
+                }),
+            };
+
+            handler(mockRequest, mockH);
+
+            expect(mockH.response).toHaveBeenCalledWith({ status: 'ok' });
         });
     });
 
@@ -172,7 +198,7 @@ describe('Server Module', () => {
 
         beforeEach(async () => {
             await serverModule(mockClient, mockChannel, mockEmbed, mockModel);
-            handler = mockServer.route.mock.calls[0][0].handler;
+            handler = mockServer.route.mock.calls[1][0].handler;
         });
 
         it('should return hub challenge for validation', () => {
@@ -212,7 +238,7 @@ describe('Server Module', () => {
 
         beforeEach(async () => {
             await serverModule(mockClient, mockChannel, mockEmbed, mockModel);
-            handler = mockServer.route.mock.calls[1][0].handler;
+            handler = mockServer.route.mock.calls[2][0].handler;
         });
 
         it('should process new Twitch notification for known user', async () => {
@@ -341,7 +367,7 @@ describe('Server Module', () => {
 
         beforeEach(async () => {
             await serverModule(mockClient, mockChannel, mockEmbed, mockModel);
-            handler = mockServer.route.mock.calls[2][0].handler;
+            handler = mockServer.route.mock.calls[3][0].handler;
         });
 
         it('should generate meme successfully', async () => {
@@ -459,7 +485,7 @@ describe('Server Module', () => {
 
         beforeEach(async () => {
             await serverModule(mockClient, mockChannel, mockEmbed, mockModel);
-            handler = mockServer.route.mock.calls[3][0].handler;
+            handler = mockServer.route.mock.calls[4][0].handler;
         });
 
         it('should generate custom meme with array texts', async () => {
@@ -561,7 +587,7 @@ describe('Server Module', () => {
 
         beforeEach(async () => {
             await serverModule(mockClient, mockChannel, mockEmbed, mockModel);
-            handler = mockServer.route.mock.calls[4][0].handler;
+            handler = mockServer.route.mock.calls[5][0].handler;
         });
 
         it('should generate RC graph for user with scores', async () => {
@@ -668,7 +694,7 @@ describe('Server Module', () => {
 
         beforeEach(async () => {
             await serverModule(mockClient, mockChannel, mockEmbed, mockModel);
-            handler = mockServer.route.mock.calls[5][0].handler;
+            handler = mockServer.route.mock.calls[6][0].handler;
         });
 
         it('should generate sample RC graph', async () => {
@@ -729,7 +755,7 @@ describe('Server Module', () => {
 
         beforeEach(async () => {
             await serverModule(mockClient, mockChannel, mockEmbed, mockModel);
-            handler = mockServer.route.mock.calls[6][0].handler;
+            handler = mockServer.route.mock.calls[7][0].handler;
         });
 
         it('should add valid RC score', async () => {
@@ -869,7 +895,7 @@ describe('Server Module', () => {
             // The generateSparkline function is tested indirectly through the API endpoints
             // This test ensures we have coverage of the chart generation logic
             await serverModule(mockClient, mockChannel, mockEmbed, mockModel);
-            const sampleHandler = mockServer.route.mock.calls[5][0].handler;
+            const sampleHandler = mockServer.route.mock.calls[6][0].handler;
 
             const mockRequest = {};
             const mockH = {
