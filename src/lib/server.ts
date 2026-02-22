@@ -14,9 +14,7 @@ export default async (client: any, channel: any, embed: any, model: any) => {
     server.route({
         method: 'GET',
         path: '/health',
-        handler: (_request: any, h: any) => {
-            return h.response({ status: 'ok' }).code(200);
-        },
+        handler: (_request: any, h: any) => h.response({ status: 'ok' }).code(200),
     });
 
     // TODO: Add support for secret verification.
