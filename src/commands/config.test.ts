@@ -113,58 +113,6 @@ describe('commands/config', () => {
         });
     });
 
-    describe('verify subcommand group', () => {
-        it('should set verification expiration', async () => {
-            interaction.options.getSubcommandGroup.mockReturnValue('verify');
-            interaction.options.getSubcommand.mockReturnValue('expiration');
-            interaction.options.getString.mockReturnValue('24h');
-            interaction.guildId = 'guild123';
-            Config.upsert.mockResolvedValue([{}, true]);
-
-            await config.execute(interaction, context);
-
-            expect(Config.upsert).toHaveBeenCalledWith({
-                key: 'verify_expiration_guild123',
-                value: '86400',
-            });
-        });
-
-        it('should handle invalid duration format', async () => {
-            interaction.options.getSubcommandGroup.mockReturnValue('verify');
-            interaction.options.getSubcommand.mockReturnValue('expiration');
-            interaction.options.getString.mockReturnValue('invalid');
-            interaction.guildId = 'guild123';
-
-            await config.execute(interaction, context);
-
-            expect(interaction.reply).toHaveBeenCalledWith({
-                content: "Invalid duration format. Use format like `24h`, `7d`, or `2w` (hours, days, weeks).",
-                ephemeral: true,
-            });
-        });
-
-        it('should set allowed roles', async () => {
-            interaction.options.getSubcommandGroup.mockReturnValue('verify');
-            interaction.options.getSubcommand.mockReturnValue('allowed-roles');
-            interaction.options.getRole = jest.fn()
-                .mockReturnValueOnce({ id: 'role1' })
-                .mockReturnValueOnce({ id: 'role2' })
-                .mockReturnValueOnce(null)
-                .mockReturnValueOnce(null)
-                .mockReturnValueOnce(null);
-            interaction.guildId = 'guild123';
-            Config.upsert.mockResolvedValue([{}, true]);
-
-            await config.execute(interaction, context);
-
-            expect(Config.upsert).toHaveBeenCalledWith({
-                key: 'verify_allowed_roles_guild123',
-                value: JSON.stringify(['role1', 'role2']),
-            });
-        });
-
-    });
-
     describe('logs subcommand group', () => {
         it('should set bot log channel', async () => {
             interaction.options.getSubcommandGroup.mockReturnValue('logs');
@@ -241,6 +189,236 @@ describe('commands/config', () => {
             expect(interaction.reply).toHaveBeenCalledWith({
                 content: expect.stringContaining('no longer exists'),
                 ephemeral: true,
+            });
+        });
+    });
+
+    describe('motivational subcommand group', () => {
+        let MotivationalConfig: any;
+
+        beforeEach(() => {
+            MotivationalConfig = createTable();
+            context.tables.MotivationalConfig = MotivationalConfig;
+            interaction.guildId = 'guild123';
+        });
+
+        it('should set up motivational messages', async () => {
+            interaction.options.getSubcommandGroup.mockReturnValue('motivational');
+            interaction.options.getSubcommand.mockReturnValue('setup');
+            interaction.options.getChannel.mockReturnValue({ id: 'chan123', type: 0 });
+            interaction.options.getString
+                .mockReturnValueOnce('daily')    // frequency
+                .mockReturnValueOnce('motivation') // category
+                .mockReturnValueOnce(null);       // schedule (use default)
+            MotivationalConfig.upsert.mockResolvedValue([{}, true]);
+
+            await config.execute(interaction, context);
+
+            expect(MotivationalConfig.upsert).toHaveBeenCalledWith(
+                expect.objectContaining({
+                    channelId: 'chan123',
+                    guildId: 'guild123',
+                    frequency: 'daily',
+                    category: 'motivation',
+                    isActive: true,
+                }),
+                expect.anything(),
+            );
+            expect(interaction.reply).toHaveBeenCalledWith(
+                expect.objectContaining({
+                    content: expect.stringContaining('Motivational messages configured'),
+                    ephemeral: true,
+                }),
+            );
+        });
+
+        it('should disable motivational messages', async () => {
+            interaction.options.getSubcommandGroup.mockReturnValue('motivational');
+            interaction.options.getSubcommand.mockReturnValue('disable');
+            interaction.options.getChannel.mockReturnValue({ id: 'chan123' });
+            MotivationalConfig.findOne.mockResolvedValue({
+                update: jest.fn().mockResolvedValue({}),
+            });
+
+            await config.execute(interaction, context);
+
+            expect(interaction.reply).toHaveBeenCalledWith(
+                expect.objectContaining({
+                    content: expect.stringContaining('disabled'),
+                    ephemeral: true,
+                }),
+            );
+        });
+
+        it('should enable motivational messages', async () => {
+            interaction.options.getSubcommandGroup.mockReturnValue('motivational');
+            interaction.options.getSubcommand.mockReturnValue('enable');
+            interaction.options.getChannel.mockReturnValue({ id: 'chan123' });
+            MotivationalConfig.findOne.mockResolvedValue({
+                update: jest.fn().mockResolvedValue({}),
+            });
+
+            await config.execute(interaction, context);
+
+            expect(interaction.reply).toHaveBeenCalledWith(
+                expect.objectContaining({
+                    content: expect.stringContaining('enabled'),
+                    ephemeral: true,
+                }),
+            );
+        });
+
+        it('should show motivational status', async () => {
+            interaction.options.getSubcommandGroup.mockReturnValue('motivational');
+            interaction.options.getSubcommand.mockReturnValue('status');
+            interaction.editReply = jest.fn().mockResolvedValue({});
+            MotivationalConfig.findAll.mockResolvedValue([]);
+
+            await config.execute(interaction, context);
+
+            expect(interaction.editReply).toHaveBeenCalledWith(
+                expect.objectContaining({
+                    content: expect.stringContaining('No motivational message configurations'),
+                }),
+            );
+        });
+
+        it('should error when disabling non-existent config', async () => {
+            interaction.options.getSubcommandGroup.mockReturnValue('motivational');
+            interaction.options.getSubcommand.mockReturnValue('disable');
+            interaction.options.getChannel.mockReturnValue({ id: 'chan123' });
+            MotivationalConfig.findOne.mockResolvedValue(null);
+
+            await config.execute(interaction, context);
+
+            expect(interaction.reply).toHaveBeenCalledWith(
+                expect.objectContaining({
+                    content: expect.stringContaining('error'),
+                    ephemeral: true,
+                }),
+            );
+        });
+
+        it('should error when enabling non-existent config', async () => {
+            interaction.options.getSubcommandGroup.mockReturnValue('motivational');
+            interaction.options.getSubcommand.mockReturnValue('enable');
+            interaction.options.getChannel.mockReturnValue({ id: 'chan123' });
+            MotivationalConfig.findOne.mockResolvedValue(null);
+
+            await config.execute(interaction, context);
+
+            expect(interaction.reply).toHaveBeenCalledWith(
+                expect.objectContaining({
+                    content: expect.stringContaining('error'),
+                    ephemeral: true,
+                }),
+            );
+        });
+    });
+
+    describe('tts subcommand group', () => {
+        it('should show TTS configuration', async () => {
+            interaction.options.getSubcommandGroup.mockReturnValue('tts');
+            interaction.options.getSubcommand.mockReturnValue('show');
+            interaction.guild = { id: 'guild123' };
+            Config.findAll.mockResolvedValue([]);
+            context.voiceService = null;
+
+            await config.execute(interaction, context);
+
+            expect(interaction.reply).toHaveBeenCalledWith(
+                expect.objectContaining({
+                    content: expect.stringContaining('TTS Configuration'),
+                    ephemeral: true,
+                }),
+            );
+        });
+
+        it('should set default voice', async () => {
+            interaction.options.getSubcommandGroup.mockReturnValue('tts');
+            interaction.options.getSubcommand.mockReturnValue('set-voice');
+            interaction.options.getString.mockReturnValue('nova');
+            Config.upsert.mockResolvedValue([{}, true]);
+
+            await config.execute(interaction, context);
+
+            expect(Config.upsert).toHaveBeenCalledWith(
+                { key: 'tts_default_voice', value: 'nova' },
+                expect.anything(),
+            );
+            expect(interaction.reply).toHaveBeenCalledWith(
+                expect.objectContaining({
+                    content: expect.stringContaining('nova'),
+                    ephemeral: true,
+                }),
+            );
+        });
+
+        it('should set max length', async () => {
+            interaction.options.getSubcommandGroup.mockReturnValue('tts');
+            interaction.options.getSubcommand.mockReturnValue('set-max-length');
+            interaction.options.getInteger.mockReturnValue(2000);
+            Config.upsert.mockResolvedValue([{}, true]);
+
+            await config.execute(interaction, context);
+
+            expect(Config.upsert).toHaveBeenCalledWith(
+                { key: 'tts_max_length', value: '2000' },
+                expect.anything(),
+            );
+            expect(interaction.reply).toHaveBeenCalledWith(
+                expect.objectContaining({
+                    content: expect.stringContaining('2000'),
+                    ephemeral: true,
+                }),
+            );
+        });
+
+        it('should reset TTS configuration', async () => {
+            interaction.options.getSubcommandGroup.mockReturnValue('tts');
+            interaction.options.getSubcommand.mockReturnValue('reset');
+            Config.destroy.mockResolvedValue(5);
+
+            await config.execute(interaction, context);
+
+            expect(Config.destroy).toHaveBeenCalled();
+            expect(interaction.reply).toHaveBeenCalledWith(
+                expect.objectContaining({
+                    content: expect.stringContaining('reset to defaults'),
+                    ephemeral: true,
+                }),
+            );
+        });
+    });
+
+    describe('dice subcommand group', () => {
+        it('should set max dice', async () => {
+            interaction.options.getSubcommandGroup.mockReturnValue('dice');
+            interaction.options.getSubcommand.mockReturnValue('max-dice');
+            interaction.options.getInteger.mockReturnValue(200);
+            interaction.guildId = 'guild123';
+            Config.upsert.mockResolvedValue([{}, true]);
+
+            await config.execute(interaction, context);
+
+            expect(Config.upsert).toHaveBeenCalledWith({
+                key: 'dice_max_dice_guild123',
+                value: '200',
+            });
+        });
+
+        it('should set show threshold', async () => {
+            interaction.options.getSubcommandGroup.mockReturnValue('dice');
+            interaction.options.getSubcommand.mockReturnValue('show-threshold');
+            interaction.options.getInteger.mockReturnValue(20);
+            interaction.guildId = 'guild123';
+            Config.upsert.mockResolvedValue([{}, true]);
+
+            await config.execute(interaction, context);
+
+            expect(Config.upsert).toHaveBeenCalledWith({
+                key: 'dice_show_individual_guild123',
+                value: '20',
             });
         });
     });

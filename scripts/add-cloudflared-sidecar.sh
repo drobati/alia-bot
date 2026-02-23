@@ -44,22 +44,17 @@ jq '
     "name": "cloudflared",
     "image": "cloudflare/cloudflared:latest",
     "essential": false,
+    "memory": 128,
     "command": ["tunnel", "--no-autoupdate", "run"],
     "secrets": [{
       "name": "TUNNEL_TOKEN",
       "valueFrom": "/alia-bot/prod/CLOUDFLARE_TUNNEL_TOKEN"
-    }],
-    "logConfiguration": {
-      "logDriver": "awslogs",
-      "options": {
-        "awslogs-group": .containerDefinitions[0].logConfiguration.options["awslogs-group"],
-        "awslogs-region": .containerDefinitions[0].logConfiguration.options["awslogs-region"],
-        "awslogs-stream-prefix": "cloudflared"
-      }
-    }
+    }]
   }] |
-  # Bump task memory to accommodate sidecar
-  .memory = "1024" |
+  # Reduce main container memory to fit sidecar on instance
+  .containerDefinitions[0].memory = 384 |
+  # Use host networking so cloudflared can reach the bot at localhost
+  .networkMode = "host" |
   # Clean fields that cannot be passed to register-task-definition
   del(.taskDefinitionArn, .revision, .status, .requiresAttributes,
       .compatibilities, .registeredAt, .registeredBy)

@@ -1,0 +1,564 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Alia Bot - Discord Bot for Arrakis</title>
+  <meta name="description" content="Alia is a feature-rich Discord bot for the Arrakis server. Spice economy, memes, trivia, D&D, and more.">
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Cinzel:wght@400;700;900&family=Inter:wght@300;400;500;600&display=swap');
+
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    :root {
+      --sand: #e8d5b7;
+      --sand-light: #f5ead6;
+      --sand-dark: #c4a882;
+      --spice: #d4740e;
+      --spice-glow: #ff8c1a;
+      --deep: #1a0f00;
+      --deep-mid: #2d1a05;
+      --night: #0d0800;
+      --text: #f0e6d6;
+      --text-dim: #a89880;
+      --blue-eyes: #3b8beb;
+    }
+
+    body {
+      font-family: 'Inter', sans-serif;
+      background: var(--night);
+      color: var(--text);
+      overflow-x: hidden;
+    }
+
+    /* Animated sand dunes background */
+    .dunes {
+      position: fixed;
+      top: 0; left: 0; right: 0; bottom: 0;
+      z-index: 0;
+      overflow: hidden;
+    }
+    .dunes::before, .dunes::after {
+      content: '';
+      position: absolute;
+      bottom: 0; left: -10%;
+      width: 120%;
+      height: 40%;
+      border-radius: 50% 50% 0 0;
+      opacity: 0.04;
+    }
+    .dunes::before {
+      background: var(--spice);
+      animation: drift 20s ease-in-out infinite alternate;
+    }
+    .dunes::after {
+      background: var(--sand-dark);
+      height: 30%;
+      animation: drift 15s ease-in-out infinite alternate-reverse;
+    }
+    @keyframes drift {
+      from { transform: translateX(-5%); }
+      to { transform: translateX(5%); }
+    }
+
+    /* Floating spice particles */
+    .particles {
+      position: fixed;
+      top: 0; left: 0; right: 0; bottom: 0;
+      z-index: 1;
+      pointer-events: none;
+    }
+    .particle {
+      position: absolute;
+      width: 3px; height: 3px;
+      background: var(--spice-glow);
+      border-radius: 50%;
+      opacity: 0;
+      animation: float linear infinite;
+    }
+    @keyframes float {
+      0% { opacity: 0; transform: translateY(100vh) scale(0); }
+      10% { opacity: 0.8; }
+      90% { opacity: 0.3; }
+      100% { opacity: 0; transform: translateY(-10vh) scale(1); }
+    }
+
+    .content {
+      position: relative;
+      z-index: 2;
+    }
+
+    /* Hero */
+    .hero {
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      text-align: center;
+      padding: 2rem;
+    }
+    .hero-badge {
+      display: inline-block;
+      padding: 0.4rem 1.2rem;
+      border: 1px solid var(--spice);
+      border-radius: 100px;
+      font-size: 0.75rem;
+      letter-spacing: 0.15em;
+      text-transform: uppercase;
+      color: var(--spice-glow);
+      margin-bottom: 2rem;
+      animation: fadeIn 1s ease-out 0.2s both;
+    }
+    .hero h1 {
+      font-family: 'Cinzel', serif;
+      font-size: clamp(3rem, 10vw, 7rem);
+      font-weight: 900;
+      letter-spacing: 0.05em;
+      line-height: 1;
+      margin-bottom: 0.5rem;
+      animation: fadeIn 1s ease-out 0.4s both;
+    }
+    .hero h1 .spice-text {
+      background: linear-gradient(135deg, var(--spice), var(--spice-glow), var(--sand));
+      -webkit-background-clip: text;
+      background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+    .hero .subtitle {
+      font-family: 'Cinzel', serif;
+      font-size: clamp(0.9rem, 2.5vw, 1.3rem);
+      color: var(--text-dim);
+      letter-spacing: 0.3em;
+      text-transform: uppercase;
+      margin-bottom: 2rem;
+      animation: fadeIn 1s ease-out 0.6s both;
+    }
+    .hero .tagline {
+      font-size: 1.1rem;
+      color: var(--sand-dark);
+      max-width: 500px;
+      line-height: 1.7;
+      animation: fadeIn 1s ease-out 0.8s both;
+    }
+    .scroll-hint {
+      position: absolute;
+      bottom: 2rem;
+      animation: fadeIn 1s ease-out 1.2s both, bob 2s ease-in-out infinite;
+      color: var(--text-dim);
+      font-size: 0.8rem;
+      letter-spacing: 0.1em;
+    }
+    @keyframes bob {
+      0%, 100% { transform: translateY(0); }
+      50% { transform: translateY(8px); }
+    }
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(20px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    /* Stats bar */
+    .stats-bar {
+      display: flex;
+      justify-content: center;
+      gap: 3rem;
+      padding: 3rem 2rem;
+      border-top: 1px solid rgba(212, 116, 14, 0.15);
+      border-bottom: 1px solid rgba(212, 116, 14, 0.15);
+      background: rgba(26, 15, 0, 0.6);
+      flex-wrap: wrap;
+    }
+    .stat {
+      text-align: center;
+    }
+    .stat-value {
+      font-family: 'Cinzel', serif;
+      font-size: 2.5rem;
+      font-weight: 700;
+      color: var(--spice-glow);
+    }
+    .stat-label {
+      font-size: 0.75rem;
+      letter-spacing: 0.15em;
+      text-transform: uppercase;
+      color: var(--text-dim);
+      margin-top: 0.3rem;
+    }
+
+    /* Commands section */
+    .commands {
+      max-width: 1100px;
+      margin: 0 auto;
+      padding: 5rem 2rem;
+    }
+    .commands h2 {
+      font-family: 'Cinzel', serif;
+      font-size: 2.2rem;
+      text-align: center;
+      margin-bottom: 0.5rem;
+    }
+    .commands .section-sub {
+      text-align: center;
+      color: var(--text-dim);
+      margin-bottom: 3rem;
+      font-size: 0.95rem;
+    }
+
+    /* Category tabs */
+    .category-tabs {
+      display: flex;
+      justify-content: center;
+      flex-wrap: wrap;
+      gap: 0.5rem;
+      margin-bottom: 2.5rem;
+    }
+    .cat-tab {
+      padding: 0.5rem 1.2rem;
+      border: 1px solid rgba(212, 116, 14, 0.25);
+      border-radius: 100px;
+      background: transparent;
+      color: var(--text-dim);
+      font-family: 'Inter', sans-serif;
+      font-size: 0.8rem;
+      letter-spacing: 0.05em;
+      cursor: pointer;
+      transition: all 0.3s;
+    }
+    .cat-tab:hover, .cat-tab.active {
+      background: var(--spice);
+      color: var(--deep);
+      border-color: var(--spice);
+    }
+
+    /* Command grid */
+    .cmd-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+      gap: 1rem;
+    }
+    .cmd-card {
+      padding: 1.2rem 1.4rem;
+      border: 1px solid rgba(212, 116, 14, 0.1);
+      border-radius: 12px;
+      background: rgba(45, 26, 5, 0.3);
+      transition: all 0.3s;
+      cursor: default;
+    }
+    .cmd-card:hover {
+      border-color: rgba(212, 116, 14, 0.35);
+      background: rgba(45, 26, 5, 0.5);
+      transform: translateY(-2px);
+    }
+    .cmd-card.hidden { display: none; }
+    .cmd-name {
+      font-family: 'Cinzel', serif;
+      font-weight: 700;
+      font-size: 1rem;
+      color: var(--spice-glow);
+      margin-bottom: 0.4rem;
+    }
+    .cmd-name::before {
+      content: '/';
+      color: var(--text-dim);
+      margin-right: 2px;
+    }
+    .cmd-desc {
+      font-size: 0.85rem;
+      color: var(--text-dim);
+      line-height: 1.5;
+    }
+    .cmd-tag {
+      display: inline-block;
+      font-size: 0.65rem;
+      padding: 0.15rem 0.5rem;
+      border-radius: 4px;
+      background: rgba(212, 116, 14, 0.15);
+      color: var(--spice);
+      margin-top: 0.5rem;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+
+    /* Features section */
+    .features {
+      padding: 4rem 2rem;
+      background: linear-gradient(180deg, transparent, rgba(45, 26, 5, 0.2), transparent);
+    }
+    .features-grid {
+      max-width: 900px;
+      margin: 0 auto;
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+      gap: 2rem;
+    }
+    .feature {
+      text-align: center;
+      padding: 2rem;
+    }
+    .feature-icon {
+      font-size: 2.5rem;
+      margin-bottom: 1rem;
+    }
+    .feature h3 {
+      font-family: 'Cinzel', serif;
+      font-size: 1.1rem;
+      margin-bottom: 0.5rem;
+    }
+    .feature p {
+      font-size: 0.85rem;
+      color: var(--text-dim);
+      line-height: 1.6;
+    }
+
+    /* Footer */
+    footer {
+      text-align: center;
+      padding: 3rem 2rem;
+      border-top: 1px solid rgba(212, 116, 14, 0.1);
+      color: var(--text-dim);
+      font-size: 0.8rem;
+    }
+    footer .litany {
+      font-family: 'Cinzel', serif;
+      font-style: italic;
+      font-size: 0.85rem;
+      color: var(--sand-dark);
+      max-width: 500px;
+      margin: 0 auto 1.5rem;
+      line-height: 1.8;
+    }
+
+    /* Search */
+    .search-wrap {
+      max-width: 400px;
+      margin: 0 auto 2rem;
+      position: relative;
+    }
+    .search-wrap input {
+      width: 100%;
+      padding: 0.75rem 1.2rem 0.75rem 2.8rem;
+      border: 1px solid rgba(212, 116, 14, 0.25);
+      border-radius: 100px;
+      background: rgba(45, 26, 5, 0.4);
+      color: var(--text);
+      font-family: 'Inter', sans-serif;
+      font-size: 0.9rem;
+      outline: none;
+      transition: border-color 0.3s;
+    }
+    .search-wrap input::placeholder { color: var(--text-dim); }
+    .search-wrap input:focus { border-color: var(--spice); }
+    .search-wrap svg {
+      position: absolute;
+      left: 1rem;
+      top: 50%;
+      transform: translateY(-50%);
+      width: 16px; height: 16px;
+      color: var(--text-dim);
+    }
+
+    @media (max-width: 600px) {
+      .stats-bar { gap: 1.5rem; }
+      .stat-value { font-size: 1.8rem; }
+      .cmd-grid { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+
+  <div class="dunes"></div>
+  <div class="particles" id="particles"></div>
+
+  <div class="content">
+    <!-- Hero -->
+    <section class="hero">
+      <span class="hero-badge">Discord Bot for Arrakis</span>
+      <h1><span class="spice-text">ALIA</span></h1>
+      <p class="subtitle">The Spice Must Flow</p>
+      <p class="tagline">A Dune-themed Discord bot with 45 commands. Harvest spice, generate memes, roll dice, play trivia, and more.</p>
+      <div class="scroll-hint">&#8595; explore commands</div>
+    </section>
+
+    <!-- Stats -->
+    <div class="stats-bar">
+      <div class="stat">
+        <div class="stat-value">44</div>
+        <div class="stat-label">Commands</div>
+      </div>
+      <div class="stat">
+        <div class="stat-value">7</div>
+        <div class="stat-label">Mini-Games</div>
+      </div>
+      <div class="stat">
+        <div class="stat-value">&infin;</div>
+        <div class="stat-label">Spice</div>
+      </div>
+    </div>
+
+    <!-- Features -->
+    <section class="features">
+      <div class="features-grid">
+        <div class="feature">
+          <div class="feature-icon">&#127982;</div>
+          <h3>Spice Economy</h3>
+          <p>Harvest spice from the desert, check your balance, pay tribute, and climb the hoarder leaderboard.</p>
+        </div>
+        <div class="feature">
+          <div class="feature-icon">&#127922;</div>
+          <h3>Games & Trivia</h3>
+          <p>Trivia, riddles, RPS, cocktail guessing, number games &mdash; all with timed voting rounds.</p>
+        </div>
+        <div class="feature">
+          <div class="feature-icon">&#129409;</div>
+          <h3>Memes & Fun</h3>
+          <p>Generate memes on-the-fly, dad jokes, roasts, horoscopes, fortunes, and the Magic 8-Ball.</p>
+        </div>
+        <div class="feature">
+          <div class="feature-icon">&#128302;</div>
+          <h3>D&D Toolkit</h3>
+          <p>Roll dice with any notation, manage game sessions, and run skill checks with custom dice.</p>
+        </div>
+        <div class="feature">
+          <div class="feature-icon">&#129504;</div>
+          <h3>AI Responses</h3>
+          <p>Powered by OpenAI for intelligent conversation, ad-lib templates, and trigger-based replies.</p>
+        </div>
+        <div class="feature">
+          <div class="feature-icon">&#128200;</div>
+          <h3>Utilities</h3>
+          <p>Weather, stocks, translations, QR codes, polls, reminders, and server stats at your fingertips.</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- Commands -->
+    <section class="commands" id="commands">
+      <h2>Commands</h2>
+      <p class="section-sub">Everything Alia can do for your server</p>
+
+      <div class="search-wrap">
+        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
+        <input type="text" id="cmdSearch" placeholder="Search commands...">
+      </div>
+
+      <div class="category-tabs" id="catTabs">
+        <button class="cat-tab active" data-cat="all">All</button>
+        <button class="cat-tab" data-cat="spice">Spice Economy</button>
+        <button class="cat-tab" data-cat="games">Games</button>
+        <button class="cat-tab" data-cat="fun">Fun & Social</button>
+        <button class="cat-tab" data-cat="tools">Tools</button>
+        <button class="cat-tab" data-cat="media">Media</button>
+      </div>
+
+      <div class="cmd-grid" id="cmdGrid"></div>
+    </section>
+
+    <!-- Footer -->
+    <footer>
+      <p class="litany">"I must not fear. Fear is the mind-killer. Fear is the little-death that brings total obliteration."</p>
+      <p>&copy; 2026 Alia Bot &middot; Built for the sands of Arrakis</p>
+    </footer>
+  </div>
+
+<script>
+const COMMANDS = [
+  { name: "8ball", desc: "Ask the Magic 8-Ball a yes/no question", cat: "fun" },
+  { name: "adlibs", desc: "Add or remove adlibs templates for automatic responses", cat: "fun" },
+  { name: "affirmation", desc: "Send a positive affirmation to someone (or yourself!)", cat: "fun" },
+  { name: "arc", desc: "ARC Raiders item lookup and wishlist management", cat: "games" },
+  { name: "avatar", desc: "Display user avatars and server icons", cat: "tools" },
+  { name: "balance", desc: "Check your Sparks balance", cat: "spice" },
+  { name: "calc", desc: "Evaluate math expressions with advanced functions and unit conversions", cat: "tools" },
+  { name: "exchange", desc: "Get real-time exchange rates from Coinbase", cat: "tools" },
+  { name: "color", desc: "Color conversion, palettes, and accessibility tools", cat: "tools" },
+
+  { name: "dadjoke", desc: "Get a random dad joke", cat: "fun" },
+  { name: "dice", desc: "Roll dice with various notations and custom options", cat: "games" },
+  { name: "dnd", desc: "Manage D&D game sessions, skill checks, and custom dice", cat: "games" },
+  { name: "dota", desc: "Dota 2 leaderboard and ranking commands", cat: "games" },
+  { name: "drink", desc: "Guess the cocktail! 45 seconds to vote on the correct drink name", cat: "games" },
+  { name: "fact", desc: "Get a random fun fact", cat: "fun" },
+  { name: "fear", desc: "Recite the Litany Against Fear", cat: "fun" },
+  { name: "fortune", desc: "Receive a fortune cookie message", cat: "fun" },
+  { name: "guess", desc: "Play a number guessing game", cat: "games" },
+  { name: "harvest", desc: "Harvest spice from the desert (once per hour)", cat: "spice" },
+  { name: "hoard", desc: "View the greatest spice hoarders of Arrakis", cat: "spice" },
+  { name: "horoscope", desc: "Get your personalized horoscope reading", cat: "fun" },
+  { name: "is", desc: "Describe your friends with roles and labels", cat: "fun" },
+  { name: "joke", desc: "Get a random joke", cat: "fun" },
+  { name: "loud", desc: "Manage loud messages \u2014 ALL CAPS responses", cat: "fun" },
+  { name: "meme", desc: "Generate memes with custom text overlays", cat: "fun" },
+  { name: "remember", desc: "Store and recall memories for your server", cat: "tools" },
+  { name: "no", desc: "Get a random rejection reason from No-as-a-Service", cat: "fun" },
+  { name: "password", desc: "Channel-based password system for role assignment", cat: "tools" },
+  { name: "poll", desc: "Create and manage polls with voting", cat: "tools" },
+  { name: "qr", desc: "Generate a QR code for any URL", cat: "tools" },
+  { name: "quote", desc: "Get a random inspirational quote", cat: "fun" },
+  { name: "remind", desc: "Set reminders for yourself or the channel", cat: "tools" },
+  { name: "riddle", desc: "Solve a riddle! 30 seconds to vote on the correct answer", cat: "games" },
+  { name: "roast", desc: "Get a playful roast for someone (or yourself!)", cat: "fun" },
+  { name: "rc", desc: "Roll Call \u2014 track attendance and participation", cat: "tools" },
+  { name: "rps", desc: "Rock-Paper-Scissors! Everyone has 15 seconds to pick", cat: "games" },
+  { name: "ship", desc: "Calculate compatibility between two users", cat: "fun" },
+  { name: "spice", desc: "Check your spice balance and economy stats", cat: "spice" },
+  { name: "stats", desc: "Display server and bot statistics", cat: "tools" },
+  { name: "stock", desc: "Stock market lookup and portfolio commands", cat: "tools" },
+  { name: "translate", desc: "Translate text between languages", cat: "tools" },
+  { name: "tribute", desc: "Pay tribute in spice to another member of the sietch", cat: "spice" },
+  { name: "trivia", desc: "Test your knowledge \u2014 30 seconds to vote on the answer", cat: "games" },
+  { name: "twitch", desc: "Manage Twitch stream notification subscriptions", cat: "media" },
+  { name: "weather", desc: "Get current weather and forecast for a location", cat: "tools" },
+];
+
+const CAT_LABELS = {
+  spice: "Spice Economy",
+  games: "Games",
+  fun: "Fun & Social",
+  tools: "Tools",
+  media: "Media",
+};
+
+// Render commands
+function render(filter = "all", search = "") {
+  const grid = document.getElementById("cmdGrid");
+  const q = search.toLowerCase();
+  grid.innerHTML = COMMANDS
+    .filter(c => (filter === "all" || c.cat === filter) && (!q || c.name.includes(q) || c.desc.toLowerCase().includes(q)))
+    .map(c => `<div class="cmd-card"><div class="cmd-name">${c.name}</div><div class="cmd-desc">${c.desc}</div><span class="cmd-tag">${CAT_LABELS[c.cat]}</span></div>`)
+    .join("");
+}
+
+// Tab clicks
+let activeCat = "all";
+document.getElementById("catTabs").addEventListener("click", e => {
+  if (!e.target.classList.contains("cat-tab")) return;
+  document.querySelectorAll(".cat-tab").forEach(t => t.classList.remove("active"));
+  e.target.classList.add("active");
+  activeCat = e.target.dataset.cat;
+  render(activeCat, document.getElementById("cmdSearch").value);
+});
+
+// Search
+document.getElementById("cmdSearch").addEventListener("input", e => {
+  render(activeCat, e.target.value);
+});
+
+// Particles
+(function initParticles() {
+  const container = document.getElementById("particles");
+  for (let i = 0; i < 30; i++) {
+    const p = document.createElement("div");
+    p.className = "particle";
+    p.style.left = Math.random() * 100 + "%";
+    p.style.animationDuration = (8 + Math.random() * 12) + "s";
+    p.style.animationDelay = Math.random() * 10 + "s";
+    p.style.width = p.style.height = (2 + Math.random() * 3) + "px";
+    container.appendChild(p);
+  }
+})();
+
+render();
+</script>
+</body>
+</html>
