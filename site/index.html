@@ -3,25 +3,25 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Alia Bot - Discord Bot for Arrakis</title>
-  <meta name="description" content="Alia is a feature-rich Discord bot for the Arrakis server. Spice economy, memes, trivia, D&D, and more.">
+  <title>Alia Bot - Feature-Rich Discord Bot</title>
+  <meta name="description" content="Alia is a feature-rich Discord bot with 45 commands. Games, memes, dice, trivia, AI, and more.">
   <style>
-    @import url('https://fonts.googleapis.com/css2?family=Cinzel:wght@400;700;900&family=Inter:wght@300;400;500;600&display=swap');
+    @import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;700&family=Inter:wght@300;400;500;600&display=swap');
 
     * { margin: 0; padding: 0; box-sizing: border-box; }
 
     :root {
-      --sand: #e8d5b7;
-      --sand-light: #f5ead6;
-      --sand-dark: #c4a882;
-      --spice: #d4740e;
-      --spice-glow: #ff8c1a;
-      --deep: #1a0f00;
-      --deep-mid: #2d1a05;
-      --night: #0d0800;
-      --text: #f0e6d6;
-      --text-dim: #a89880;
-      --blue-eyes: #3b8beb;
+      --silver: #c8d0e0;
+      --silver-light: #e0e6f0;
+      --silver-dark: #8892a8;
+      --accent: #7c5cbf;
+      --accent-glow: #a78bfa;
+      --deep: #0a0a1a;
+      --deep-mid: #12122a;
+      --night: #06060f;
+      --text: #e0e6f0;
+      --text-dim: #6b7394;
+      --cyan: #06b6d4;
     }
 
     body {
@@ -31,55 +31,59 @@
       overflow-x: hidden;
     }
 
-    /* Animated sand dunes background */
-    .dunes {
+    /* Animated cosmic background */
+    .cosmos {
       position: fixed;
       top: 0; left: 0; right: 0; bottom: 0;
       z-index: 0;
       overflow: hidden;
+      background: radial-gradient(ellipse at 50% 80%, rgba(124, 92, 191, 0.06) 0%, transparent 60%),
+                  radial-gradient(ellipse at 20% 20%, rgba(6, 182, 212, 0.04) 0%, transparent 50%);
     }
-    .dunes::before, .dunes::after {
+    .cosmos::before, .cosmos::after {
       content: '';
       position: absolute;
-      bottom: 0; left: -10%;
-      width: 120%;
-      height: 40%;
-      border-radius: 50% 50% 0 0;
-      opacity: 0.04;
+      border-radius: 50%;
+      opacity: 0.03;
     }
-    .dunes::before {
-      background: var(--spice);
-      animation: drift 20s ease-in-out infinite alternate;
+    .cosmos::before {
+      bottom: -20%; left: -10%;
+      width: 80%; height: 60%;
+      background: var(--accent);
+      animation: drift 25s ease-in-out infinite alternate;
     }
-    .dunes::after {
-      background: var(--sand-dark);
-      height: 30%;
-      animation: drift 15s ease-in-out infinite alternate-reverse;
+    .cosmos::after {
+      top: -10%; right: -10%;
+      width: 60%; height: 40%;
+      background: var(--cyan);
+      animation: drift 20s ease-in-out infinite alternate-reverse;
     }
     @keyframes drift {
-      from { transform: translateX(-5%); }
-      to { transform: translateX(5%); }
+      from { transform: translate(-3%, 2%); }
+      to { transform: translate(3%, -2%); }
     }
 
-    /* Floating spice particles */
+    /* Floating star particles */
     .particles {
       position: fixed;
       top: 0; left: 0; right: 0; bottom: 0;
       z-index: 1;
       pointer-events: none;
     }
-    .particle {
+    .star {
       position: absolute;
-      width: 3px; height: 3px;
-      background: var(--spice-glow);
+      width: 2px; height: 2px;
+      background: var(--silver-light);
       border-radius: 50%;
       opacity: 0;
-      animation: float linear infinite;
+      animation: twinkle linear infinite;
     }
-    @keyframes float {
+    .star.accent { background: var(--accent-glow); }
+    .star.cyan { background: var(--cyan); }
+    @keyframes twinkle {
       0% { opacity: 0; transform: translateY(100vh) scale(0); }
-      10% { opacity: 0.8; }
-      90% { opacity: 0.3; }
+      10% { opacity: 0.7; }
+      90% { opacity: 0.2; }
       100% { opacity: 0; transform: translateY(-10vh) scale(1); }
     }
 
@@ -101,32 +105,32 @@
     .hero-badge {
       display: inline-block;
       padding: 0.4rem 1.2rem;
-      border: 1px solid var(--spice);
+      border: 1px solid var(--accent);
       border-radius: 100px;
       font-size: 0.75rem;
       letter-spacing: 0.15em;
       text-transform: uppercase;
-      color: var(--spice-glow);
+      color: var(--accent-glow);
       margin-bottom: 2rem;
       animation: fadeIn 1s ease-out 0.2s both;
     }
     .hero h1 {
-      font-family: 'Cinzel', serif;
+      font-family: 'Space Grotesk', sans-serif;
       font-size: clamp(3rem, 10vw, 7rem);
-      font-weight: 900;
+      font-weight: 700;
       letter-spacing: 0.05em;
       line-height: 1;
       margin-bottom: 0.5rem;
       animation: fadeIn 1s ease-out 0.4s both;
     }
-    .hero h1 .spice-text {
-      background: linear-gradient(135deg, var(--spice), var(--spice-glow), var(--sand));
+    .hero h1 .glow-text {
+      background: linear-gradient(135deg, var(--accent), var(--accent-glow), var(--cyan));
       -webkit-background-clip: text;
       background-clip: text;
       -webkit-text-fill-color: transparent;
     }
     .hero .subtitle {
-      font-family: 'Cinzel', serif;
+      font-family: 'Space Grotesk', sans-serif;
       font-size: clamp(0.9rem, 2.5vw, 1.3rem);
       color: var(--text-dim);
       letter-spacing: 0.3em;
@@ -136,7 +140,7 @@
     }
     .hero .tagline {
       font-size: 1.1rem;
-      color: var(--sand-dark);
+      color: var(--silver-dark);
       max-width: 500px;
       line-height: 1.7;
       animation: fadeIn 1s ease-out 0.8s both;
@@ -164,19 +168,19 @@
       justify-content: center;
       gap: 3rem;
       padding: 3rem 2rem;
-      border-top: 1px solid rgba(212, 116, 14, 0.15);
-      border-bottom: 1px solid rgba(212, 116, 14, 0.15);
-      background: rgba(26, 15, 0, 0.6);
+      border-top: 1px solid rgba(124, 92, 191, 0.15);
+      border-bottom: 1px solid rgba(124, 92, 191, 0.15);
+      background: rgba(10, 10, 26, 0.6);
       flex-wrap: wrap;
     }
     .stat {
       text-align: center;
     }
     .stat-value {
-      font-family: 'Cinzel', serif;
+      font-family: 'Space Grotesk', sans-serif;
       font-size: 2.5rem;
       font-weight: 700;
-      color: var(--spice-glow);
+      color: var(--accent-glow);
     }
     .stat-label {
       font-size: 0.75rem;
@@ -193,7 +197,7 @@
       padding: 5rem 2rem;
     }
     .commands h2 {
-      font-family: 'Cinzel', serif;
+      font-family: 'Space Grotesk', sans-serif;
       font-size: 2.2rem;
       text-align: center;
       margin-bottom: 0.5rem;
@@ -215,7 +219,7 @@
     }
     .cat-tab {
       padding: 0.5rem 1.2rem;
-      border: 1px solid rgba(212, 116, 14, 0.25);
+      border: 1px solid rgba(124, 92, 191, 0.25);
       border-radius: 100px;
       background: transparent;
       color: var(--text-dim);
@@ -226,9 +230,9 @@
       transition: all 0.3s;
     }
     .cat-tab:hover, .cat-tab.active {
-      background: var(--spice);
-      color: var(--deep);
-      border-color: var(--spice);
+      background: var(--accent);
+      color: #fff;
+      border-color: var(--accent);
     }
 
     /* Command grid */
@@ -239,23 +243,23 @@
     }
     .cmd-card {
       padding: 1.2rem 1.4rem;
-      border: 1px solid rgba(212, 116, 14, 0.1);
+      border: 1px solid rgba(124, 92, 191, 0.1);
       border-radius: 12px;
-      background: rgba(45, 26, 5, 0.3);
+      background: rgba(18, 18, 42, 0.3);
       transition: all 0.3s;
       cursor: default;
     }
     .cmd-card:hover {
-      border-color: rgba(212, 116, 14, 0.35);
-      background: rgba(45, 26, 5, 0.5);
+      border-color: rgba(124, 92, 191, 0.35);
+      background: rgba(18, 18, 42, 0.5);
       transform: translateY(-2px);
     }
     .cmd-card.hidden { display: none; }
     .cmd-name {
-      font-family: 'Cinzel', serif;
+      font-family: 'Space Grotesk', sans-serif;
       font-weight: 700;
       font-size: 1rem;
-      color: var(--spice-glow);
+      color: var(--accent-glow);
       margin-bottom: 0.4rem;
     }
     .cmd-name::before {
@@ -273,8 +277,8 @@
       font-size: 0.65rem;
       padding: 0.15rem 0.5rem;
       border-radius: 4px;
-      background: rgba(212, 116, 14, 0.15);
-      color: var(--spice);
+      background: rgba(124, 92, 191, 0.15);
+      color: var(--accent);
       margin-top: 0.5rem;
       text-transform: uppercase;
       letter-spacing: 0.05em;
@@ -283,7 +287,7 @@
     /* Features section */
     .features {
       padding: 4rem 2rem;
-      background: linear-gradient(180deg, transparent, rgba(45, 26, 5, 0.2), transparent);
+      background: linear-gradient(180deg, transparent, rgba(18, 18, 42, 0.2), transparent);
     }
     .features-grid {
       max-width: 900px;
@@ -301,7 +305,7 @@
       margin-bottom: 1rem;
     }
     .feature h3 {
-      font-family: 'Cinzel', serif;
+      font-family: 'Space Grotesk', sans-serif;
       font-size: 1.1rem;
       margin-bottom: 0.5rem;
     }
@@ -315,18 +319,9 @@
     footer {
       text-align: center;
       padding: 3rem 2rem;
-      border-top: 1px solid rgba(212, 116, 14, 0.1);
+      border-top: 1px solid rgba(124, 92, 191, 0.1);
       color: var(--text-dim);
       font-size: 0.8rem;
-    }
-    footer .litany {
-      font-family: 'Cinzel', serif;
-      font-style: italic;
-      font-size: 0.85rem;
-      color: var(--sand-dark);
-      max-width: 500px;
-      margin: 0 auto 1.5rem;
-      line-height: 1.8;
     }
 
     /* Search */
@@ -338,9 +333,9 @@
     .search-wrap input {
       width: 100%;
       padding: 0.75rem 1.2rem 0.75rem 2.8rem;
-      border: 1px solid rgba(212, 116, 14, 0.25);
+      border: 1px solid rgba(124, 92, 191, 0.25);
       border-radius: 100px;
-      background: rgba(45, 26, 5, 0.4);
+      background: rgba(18, 18, 42, 0.4);
       color: var(--text);
       font-family: 'Inter', sans-serif;
       font-size: 0.9rem;
@@ -348,7 +343,7 @@
       transition: border-color 0.3s;
     }
     .search-wrap input::placeholder { color: var(--text-dim); }
-    .search-wrap input:focus { border-color: var(--spice); }
+    .search-wrap input:focus { border-color: var(--accent); }
     .search-wrap svg {
       position: absolute;
       left: 1rem;
@@ -367,16 +362,16 @@
 </head>
 <body>
 
-  <div class="dunes"></div>
+  <div class="cosmos"></div>
   <div class="particles" id="particles"></div>
 
   <div class="content">
     <!-- Hero -->
     <section class="hero">
-      <span class="hero-badge">Discord Bot for Arrakis</span>
-      <h1><span class="spice-text">ALIA</span></h1>
-      <p class="subtitle">The Spice Must Flow</p>
-      <p class="tagline">A Dune-themed Discord bot with 45 commands. Harvest spice, generate memes, roll dice, play trivia, and more.</p>
+      <span class="hero-badge">Discord Bot</span>
+      <h1><span class="glow-text">ALIA</span></h1>
+      <p class="subtitle">Your Server, Supercharged</p>
+      <p class="tagline">A feature-rich Discord bot with 45 commands. Generate memes, roll dice, play trivia, and more.</p>
       <div class="scroll-hint">&#8595; explore commands</div>
     </section>
 
@@ -392,7 +387,7 @@
       </div>
       <div class="stat">
         <div class="stat-value">&infin;</div>
-        <div class="stat-label">Spice</div>
+        <div class="stat-label">Fun</div>
       </div>
     </div>
 
@@ -400,9 +395,9 @@
     <section class="features">
       <div class="features-grid">
         <div class="feature">
-          <div class="feature-icon">&#127982;</div>
-          <h3>Spice Economy</h3>
-          <p>Harvest spice from the desert, check your balance, pay tribute, and climb the hoarder leaderboard.</p>
+          <div class="feature-icon">&#128176;</div>
+          <h3>Economy System</h3>
+          <p>Earn currency, check your balance, pay tribute, and climb the leaderboard.</p>
         </div>
         <div class="feature">
           <div class="feature-icon">&#127922;</div>
@@ -444,7 +439,7 @@
 
       <div class="category-tabs" id="catTabs">
         <button class="cat-tab active" data-cat="all">All</button>
-        <button class="cat-tab" data-cat="spice">Spice Economy</button>
+        <button class="cat-tab" data-cat="economy">Economy</button>
         <button class="cat-tab" data-cat="games">Games</button>
         <button class="cat-tab" data-cat="fun">Fun & Social</button>
         <button class="cat-tab" data-cat="tools">Tools</button>
@@ -456,8 +451,7 @@
 
     <!-- Footer -->
     <footer>
-      <p class="litany">"I must not fear. Fear is the mind-killer. Fear is the little-death that brings total obliteration."</p>
-      <p>&copy; 2026 Alia Bot &middot; Built for the sands of Arrakis</p>
+      <p>&copy; 2026 Alia Bot</p>
     </footer>
   </div>
 
@@ -468,7 +462,7 @@ const COMMANDS = [
   { name: "affirmation", desc: "Send a positive affirmation to someone (or yourself!)", cat: "fun" },
   { name: "arc", desc: "ARC Raiders item lookup and wishlist management", cat: "games" },
   { name: "avatar", desc: "Display user avatars and server icons", cat: "tools" },
-  { name: "balance", desc: "Check your Sparks balance", cat: "spice" },
+  { name: "balance", desc: "Check your balance", cat: "economy" },
   { name: "calc", desc: "Evaluate math expressions with advanced functions and unit conversions", cat: "tools" },
   { name: "exchange", desc: "Get real-time exchange rates from Coinbase", cat: "tools" },
   { name: "color", desc: "Color conversion, palettes, and accessibility tools", cat: "tools" },
@@ -482,8 +476,8 @@ const COMMANDS = [
   { name: "fear", desc: "Recite the Litany Against Fear", cat: "fun" },
   { name: "fortune", desc: "Receive a fortune cookie message", cat: "fun" },
   { name: "guess", desc: "Play a number guessing game", cat: "games" },
-  { name: "harvest", desc: "Harvest spice from the desert (once per hour)", cat: "spice" },
-  { name: "hoard", desc: "View the greatest spice hoarders of Arrakis", cat: "spice" },
+  { name: "harvest", desc: "Harvest currency (once per hour)", cat: "economy" },
+  { name: "hoard", desc: "View the top hoarders leaderboard", cat: "economy" },
   { name: "horoscope", desc: "Get your personalized horoscope reading", cat: "fun" },
   { name: "is", desc: "Describe your friends with roles and labels", cat: "fun" },
   { name: "joke", desc: "Get a random joke", cat: "fun" },
@@ -501,18 +495,18 @@ const COMMANDS = [
   { name: "rc", desc: "Roll Call \u2014 track attendance and participation", cat: "tools" },
   { name: "rps", desc: "Rock-Paper-Scissors! Everyone has 15 seconds to pick", cat: "games" },
   { name: "ship", desc: "Calculate compatibility between two users", cat: "fun" },
-  { name: "spice", desc: "Check your spice balance and economy stats", cat: "spice" },
+  { name: "spice", desc: "Check your balance and economy stats", cat: "economy" },
   { name: "stats", desc: "Display server and bot statistics", cat: "tools" },
   { name: "stock", desc: "Stock market lookup and portfolio commands", cat: "tools" },
   { name: "translate", desc: "Translate text between languages", cat: "tools" },
-  { name: "tribute", desc: "Pay tribute in spice to another member of the sietch", cat: "spice" },
+  { name: "tribute", desc: "Pay tribute to another member", cat: "economy" },
   { name: "trivia", desc: "Test your knowledge \u2014 30 seconds to vote on the answer", cat: "games" },
   { name: "twitch", desc: "Manage Twitch stream notification subscriptions", cat: "media" },
   { name: "weather", desc: "Get current weather and forecast for a location", cat: "tools" },
 ];
 
 const CAT_LABELS = {
-  spice: "Spice Economy",
+  economy: "Economy",
   games: "Games",
   fun: "Fun & Social",
   tools: "Tools",
@@ -544,16 +538,17 @@ document.getElementById("cmdSearch").addEventListener("input", e => {
   render(activeCat, e.target.value);
 });
 
-// Particles
-(function initParticles() {
+// Star particles
+(function initStars() {
   const container = document.getElementById("particles");
-  for (let i = 0; i < 30; i++) {
+  const classes = ["star", "star accent", "star cyan"];
+  for (let i = 0; i < 40; i++) {
     const p = document.createElement("div");
-    p.className = "particle";
+    p.className = classes[i % 3];
     p.style.left = Math.random() * 100 + "%";
-    p.style.animationDuration = (8 + Math.random() * 12) + "s";
-    p.style.animationDelay = Math.random() * 10 + "s";
-    p.style.width = p.style.height = (2 + Math.random() * 3) + "px";
+    p.style.animationDuration = (10 + Math.random() * 15) + "s";
+    p.style.animationDelay = Math.random() * 12 + "s";
+    p.style.width = p.style.height = (1 + Math.random() * 2.5) + "px";
     container.appendChild(p);
   }
 })();
