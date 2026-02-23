@@ -1,0 +1,191 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Join Cerebral Discharge — Dota 2</title>
+  <meta name="description" content="Join the Cerebral Discharge Discord for Dota 2.">
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;700&family=Inter:wght@300;400;500;600&display=swap');
+
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    :root {
+      --silver: #c8d0e0;
+      --silver-light: #e0e6f0;
+      --accent: #7c5cbf;
+      --accent-glow: #a78bfa;
+      --deep: #0a0a1a;
+      --night: #06060f;
+      --text: #e0e6f0;
+      --text-dim: #6b7394;
+      --cyan: #06b6d4;
+    }
+
+    body {
+      font-family: 'Inter', sans-serif;
+      background: var(--night);
+      color: var(--text);
+      overflow-x: hidden;
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .cosmos {
+      position: fixed;
+      top: 0; left: 0; right: 0; bottom: 0;
+      z-index: 0;
+      overflow: hidden;
+      background: radial-gradient(ellipse at 50% 50%, rgba(124, 92, 191, 0.08) 0%, transparent 60%),
+                  radial-gradient(ellipse at 80% 20%, rgba(6, 182, 212, 0.04) 0%, transparent 40%);
+    }
+
+    .particles {
+      position: fixed;
+      top: 0; left: 0; right: 0; bottom: 0;
+      z-index: 1;
+      pointer-events: none;
+    }
+    .star {
+      position: absolute;
+      width: 2px; height: 2px;
+      background: var(--silver-light);
+      border-radius: 50%;
+      opacity: 0;
+      animation: twinkle linear infinite;
+    }
+    .star.accent { background: var(--accent-glow); }
+    .star.cyan { background: var(--cyan); }
+    @keyframes twinkle {
+      0% { opacity: 0; transform: scale(0); }
+      50% { opacity: 0.6; transform: scale(1); }
+      100% { opacity: 0; transform: scale(0); }
+    }
+
+    .card {
+      position: relative;
+      z-index: 2;
+      text-align: center;
+      padding: 3rem 2.5rem;
+      max-width: 460px;
+      width: 90%;
+      border: 1px solid rgba(124, 92, 191, 0.2);
+      border-radius: 20px;
+      background: rgba(18, 18, 42, 0.6);
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+      animation: fadeIn 0.8s ease-out both;
+    }
+
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(20px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    .card h1 {
+      font-family: 'Space Grotesk', sans-serif;
+      font-size: 1.8rem;
+      font-weight: 700;
+      margin-bottom: 0.5rem;
+      background: linear-gradient(135deg, var(--accent-glow), var(--cyan));
+      -webkit-background-clip: text;
+      background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+
+    .card .sub {
+      color: var(--text-dim);
+      font-size: 0.95rem;
+      margin-bottom: 2rem;
+    }
+
+    .join-btn {
+      display: inline-block;
+      padding: 0.9rem 2.5rem;
+      background: linear-gradient(135deg, var(--accent), #5b3fa0);
+      color: #fff;
+      font-family: 'Space Grotesk', sans-serif;
+      font-size: 1rem;
+      font-weight: 700;
+      letter-spacing: 0.05em;
+      border: none;
+      border-radius: 100px;
+      text-decoration: none;
+      cursor: pointer;
+      transition: transform 0.2s, box-shadow 0.2s;
+      box-shadow: 0 4px 20px rgba(124, 92, 191, 0.3);
+    }
+    .join-btn:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 6px 28px rgba(124, 92, 191, 0.45);
+    }
+    .join-btn:active {
+      transform: translateY(0);
+    }
+
+    .instructions {
+      margin-top: 2rem;
+      padding: 1.2rem 1.4rem;
+      border: 1px solid rgba(124, 92, 191, 0.15);
+      border-radius: 12px;
+      background: rgba(10, 10, 26, 0.5);
+      text-align: left;
+      font-size: 0.85rem;
+      color: var(--text-dim);
+      line-height: 1.7;
+    }
+    .instructions strong {
+      color: var(--text);
+    }
+    .instructions code {
+      background: rgba(124, 92, 191, 0.15);
+      color: var(--accent-glow);
+      padding: 0.15rem 0.4rem;
+      border-radius: 4px;
+      font-size: 0.8rem;
+    }
+
+    @media (max-width: 480px) {
+      .card {
+        padding: 2rem 1.5rem;
+      }
+      .card h1 {
+        font-size: 1.5rem;
+      }
+    }
+  </style>
+</head>
+<body>
+
+  <div class="cosmos"></div>
+  <div class="particles" id="particles"></div>
+
+  <div class="card">
+    <h1>Cerebral Discharge</h1>
+    <p class="sub">Dota 2 Community</p>
+    <a href="https://discord.gg/TCaeJDCrg9" class="join-btn">Join the Server</a>
+    <div class="instructions">
+      <strong>After joining:</strong> Use the password <code>meepo</code> in <code>#purgatory</code> to get assigned the <code>@dota</code> role, which will give you access to our voice channels.
+    </div>
+  </div>
+
+<script>
+(function initStars() {
+  const container = document.getElementById("particles");
+  const classes = ["star", "star accent", "star cyan"];
+  for (let i = 0; i < 50; i++) {
+    const s = document.createElement("div");
+    s.className = classes[i % 3];
+    s.style.left = Math.random() * 100 + "%";
+    s.style.top = Math.random() * 100 + "%";
+    s.style.animationDuration = (3 + Math.random() * 5) + "s";
+    s.style.animationDelay = Math.random() * 5 + "s";
+    s.style.width = s.style.height = (1 + Math.random() * 2) + "px";
+    container.appendChild(s);
+  }
+})();
+</script>
+</body>
+</html>
