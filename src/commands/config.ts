@@ -10,36 +10,46 @@ import { Op } from "sequelize";
 import { Context } from "../types";
 import { checkOwnerPermission, isOwner } from "../utils/permissions";
 import { Sentry } from "../lib/sentry";
+import { TTS_CONFIG } from "../utils/constants";
 
 const MAX_WELCOME_MESSAGE_LENGTH = 2000;
 
-// Duration parsing helper
-function parseDuration(duration: string): number | null {
-    const match = duration.match(/^(\d+)(h|d|w)$/i);
-    if (!match) {return null;}
+// Motivational helpers
+function validateCronSchedule(schedule: string): boolean {
+    const cronRegex = /^(\*|([0-5]?\d)) (\*|([01]?\d|2[0-3])) (\*|([01]?\d|[12]\d|3[01])) (\*|([01]?\d)) (\*|[0-6])$/;
+    return cronRegex.test(schedule);
+}
 
-    const value = parseInt(match[1], 10);
-    const unit = match[2].toLowerCase();
-
-    switch (unit) {
-        case 'h': return value * 3600;
-        case 'd': return value * 86400;
-        case 'w': return value * 604800;
-        default: return null;
+function getDefaultCronSchedule(frequency: string): string {
+    switch (frequency) {
+        case 'daily':
+            return '0 9 * * *';
+        case 'weekly':
+            return '0 9 * * 1';
+        default:
+            return '0 9 * * *';
     }
 }
 
-function formatDuration(seconds: number): string {
-    if (seconds >= 604800 && seconds % 604800 === 0) {
-        return `${seconds / 604800} week(s)`;
-    } else if (seconds >= 86400 && seconds % 86400 === 0) {
-        return `${seconds / 86400} day(s)`;
-    } else {
-        return `${seconds / 3600} hour(s)`;
-    }
-}
+// TTS constants
+const TTS_CONFIG_KEYS = {
+    DEFAULT_VOICE: 'tts_default_voice',
+    MAX_LENGTH: 'tts_max_length',
+    RATE_LIMIT_COOLDOWN: 'tts_rate_limit_cooldown',
+    ALLOWED_USERS: 'tts_allowed_users',
+    AUTO_JOIN: 'tts_auto_join',
+};
 
-// Handler functions
+const VOICE_CHOICES = [
+    { name: 'Alloy (Neutral)', value: 'alloy' },
+    { name: 'Echo (Male)', value: 'echo' },
+    { name: 'Fable (British Male)', value: 'fable' },
+    { name: 'Onyx (Deep Male)', value: 'onyx' },
+    { name: 'Nova (Female)', value: 'nova' },
+    { name: 'Shimmer (Soft Female)', value: 'shimmer' },
+];
+
+// General handlers
 async function handleGeneralAdd(interaction: ChatInputCommandInteraction, context: Context) {
     const key = interaction.options.getString('key', true);
     const value = interaction.options.getString('value', true);
@@ -71,6 +81,7 @@ async function handleGeneralRemove(interaction: ChatInputCommandInteraction, con
     await interaction.reply({ content: `Configuration for \`${key}\` has been removed.`, ephemeral: true });
 }
 
+// Welcome handlers
 async function handleWelcomeChannel(interaction: ChatInputCommandInteraction, context: Context) {
     const channel = interaction.options.getChannel('channel', true);
     const guildId = interaction.guildId;
@@ -111,64 +122,7 @@ async function handleWelcomeMessage(interaction: ChatInputCommandInteraction, co
     });
 }
 
-async function handleVerifyExpiration(interaction: ChatInputCommandInteraction, context: Context) {
-    const duration = interaction.options.getString('duration', true);
-    const guildId = interaction.guildId;
-
-    if (!guildId) {
-        return interaction.reply({ content: "This command can only be used in a server.", ephemeral: true });
-    }
-
-    const seconds = parseDuration(duration);
-    if (seconds === null) {
-        return interaction.reply({
-            content: "Invalid duration format. Use format like `24h`, `7d`, or `2w` (hours, days, weeks).",
-            ephemeral: true,
-        });
-    }
-
-    const key = `verify_expiration_${guildId}`;
-    await context.tables.Config.upsert({ key, value: seconds.toString() });
-
-    await interaction.reply({
-        content: `Verification code expiration set to ${formatDuration(seconds)}.`,
-        ephemeral: true,
-    });
-}
-
-async function handleVerifyAllowedRoles(interaction: ChatInputCommandInteraction, context: Context) {
-    const guildId = interaction.guildId;
-
-    if (!guildId) {
-        return interaction.reply({ content: "This command can only be used in a server.", ephemeral: true });
-    }
-
-    // Get all role options (up to 5 roles supported)
-    const roles: string[] = [];
-    for (let i = 1; i <= 5; i++) {
-        const role = interaction.options.getRole(`role${i}`);
-        if (role) {
-            roles.push(role.id);
-        }
-    }
-
-    if (roles.length === 0) {
-        return interaction.reply({
-            content: "Please specify at least one role.",
-            ephemeral: true,
-        });
-    }
-
-    const key = `verify_allowed_roles_${guildId}`;
-    await context.tables.Config.upsert({ key, value: JSON.stringify(roles) });
-
-    const roleNames = roles.map(id => `<@&${id}>`).join(', ');
-    await interaction.reply({
-        content: `Verification allowed roles set to: ${roleNames}`,
-        ephemeral: true,
-    });
-}
-
+// Log handlers
 async function handleLogChannel(interaction: ChatInputCommandInteraction, context: Context) {
     const channel = interaction.options.getChannel('channel', true);
     const guildId = interaction.guildId;
@@ -219,13 +173,12 @@ async function handleLogShow(interaction: ChatInputCommandInteraction, context: 
         });
     }
 
-    // Verify the channel exists
     const guild = interaction.guild;
     const channel = guild?.channels.cache.get(config.value);
 
     if (!channel) {
         return interaction.reply({
-            content: `⚠️ **Warning**: Log channel is configured to ID \`${config.value}\`, `
+            content: `Warning: Log channel is configured to ID \`${config.value}\`, `
                 + `but this channel no longer exists.\n`
                 + `Use \`/config logs channel\` to set a valid channel.`,
             ephemeral: true,
@@ -234,12 +187,13 @@ async function handleLogShow(interaction: ChatInputCommandInteraction, context: 
 
     await interaction.reply({
         content: `**Current Log Settings**\n`
-            + `📋 Log Channel: <#${config.value}> (\`${config.value}\`)\n`
-            + `✅ Channel exists and is accessible`,
+            + `Log Channel: <#${config.value}> (\`${config.value}\`)\n`
+            + `Channel exists and is accessible`,
         ephemeral: true,
     });
 }
 
+// Dice handlers
 async function handleDiceMaxDice(interaction: ChatInputCommandInteraction, context: Context) {
     const maxDice = interaction.options.getInteger('limit', true);
     const guildId = interaction.guildId;
@@ -270,6 +224,230 @@ async function handleDiceShowThreshold(interaction: ChatInputCommandInteraction,
 
     await interaction.reply({
         content: `Individual dice results will be shown for rolls with **${threshold}** or fewer dice.`,
+        ephemeral: true,
+    });
+}
+
+// Motivational handlers
+async function handleMotivationalSetup(interaction: ChatInputCommandInteraction, context: Context) {
+    const channel = interaction.options.getChannel('channel', true);
+    const frequency = interaction.options.getString('frequency', true);
+    const category = interaction.options.getString('category', true);
+    const schedule = interaction.options.getString('schedule') || getDefaultCronSchedule(frequency);
+
+    if (channel.type !== ChannelType.GuildText) {
+        throw new Error('Only text channels are supported for motivational messages.');
+    }
+
+    if (!validateCronSchedule(schedule)) {
+        throw new Error(
+            'Invalid cron schedule format. Use format: "minute hour day month dayOfWeek" (e.g., "0 9 * * *").',
+        );
+    }
+
+    const result = await context.sequelize.transaction(async (transaction: any) => {
+        const [config, created] = await context.tables.MotivationalConfig.upsert({
+            channelId: channel.id,
+            guildId: interaction.guildId,
+            frequency,
+            category,
+            cronSchedule: schedule,
+            isActive: true,
+        }, { transaction });
+        return { config, created };
+    });
+
+    if (context.motivationalScheduler) {
+        try {
+            await context.motivationalScheduler.updateSchedule(channel.id);
+        } catch (schedulerError) {
+            context.log.error('Failed to update scheduler', { channelId: channel.id, error: schedulerError });
+        }
+    }
+
+    const action = result.created ? 'configured' : 'updated';
+    const freqText = frequency === 'daily' ? 'daily' : 'weekly (Mondays)';
+
+    await interaction.reply({
+        content: `Motivational messages ${action} for ${channel}!\n` +
+                `**Frequency**: ${freqText}\n` +
+                `**Category**: ${category}\n` +
+                `**Schedule**: ${schedule}\n` +
+                `**Status**: Active`,
+        ephemeral: true,
+    });
+}
+
+async function handleMotivationalDisable(interaction: ChatInputCommandInteraction, context: Context) {
+    const channel = interaction.options.getChannel('channel', true);
+
+    await context.sequelize.transaction(async (transaction: any) => {
+        const config = await context.tables.MotivationalConfig.findOne({
+            where: { channelId: channel.id },
+            transaction,
+        });
+
+        if (!config) {
+            throw new Error(`No motivational message configuration found for ${channel}.`);
+        }
+
+        await config.update({ isActive: false }, { transaction });
+    });
+
+    if (context.motivationalScheduler) {
+        try {
+            await context.motivationalScheduler.removeSchedule(channel.id);
+        } catch (schedulerError) {
+            context.log.error('Failed to remove from scheduler', { channelId: channel.id, error: schedulerError });
+        }
+    }
+
+    await interaction.reply({
+        content: `Motivational messages disabled for ${channel}.`,
+        ephemeral: true,
+    });
+}
+
+async function handleMotivationalEnable(interaction: ChatInputCommandInteraction, context: Context) {
+    const channel = interaction.options.getChannel('channel', true);
+
+    await context.sequelize.transaction(async (transaction: any) => {
+        const config = await context.tables.MotivationalConfig.findOne({
+            where: { channelId: channel.id },
+            transaction,
+        });
+
+        if (!config) {
+            throw new Error(
+                `No motivational message configuration found for ${channel}. Use \`/config motivational setup\` first.`,
+            );
+        }
+
+        await config.update({ isActive: true }, { transaction });
+    });
+
+    if (context.motivationalScheduler) {
+        try {
+            await context.motivationalScheduler.updateSchedule(channel.id);
+        } catch (schedulerError) {
+            context.log.error('Failed to update scheduler', { channelId: channel.id, error: schedulerError });
+        }
+    }
+
+    await interaction.reply({
+        content: `Motivational messages enabled for ${channel}.`,
+        ephemeral: true,
+    });
+}
+
+async function handleMotivationalStatus(interaction: ChatInputCommandInteraction, context: Context) {
+    await interaction.reply({
+        content: 'Status command received and processing...',
+        ephemeral: true,
+    });
+
+    if (!context.tables.MotivationalConfig) {
+        await interaction.editReply({
+            content: 'MotivationalConfig model not available. Please check bot setup.',
+        });
+        return;
+    }
+
+    const configs = await context.tables.MotivationalConfig.findAll({
+        where: { guildId: interaction.guildId },
+    });
+
+    const resultMessage = configs.length === 0
+        ? 'No motivational message configurations found for this server.'
+        : `Found ${configs.length} configuration(s) for this server.`;
+
+    await interaction.editReply({ content: resultMessage });
+}
+
+// TTS handlers
+async function handleTtsShow(interaction: ChatInputCommandInteraction, context: Context) {
+    const configs = await context.tables.Config.findAll({
+        where: {
+            key: Object.values(TTS_CONFIG_KEYS),
+        },
+    });
+
+    const configMap = new Map(configs.map((config: any) => [config.key, config.value]));
+
+    const defaultVoice = configMap.get(TTS_CONFIG_KEYS.DEFAULT_VOICE) || 'alloy';
+    const maxLength = configMap.get(TTS_CONFIG_KEYS.MAX_LENGTH) || String(TTS_CONFIG.MAX_TEXT_LENGTH);
+    const rateLimitCooldown = configMap.get(TTS_CONFIG_KEYS.RATE_LIMIT_COOLDOWN) || '5';
+
+    const status = context.voiceService ?
+        (context.voiceService.isConnectedToVoice(interaction.guild!.id) ? 'Connected' : 'Disconnected') :
+        'Not initialized';
+
+    const configText = [
+        '**TTS Configuration**',
+        '',
+        `**Voice Status:** ${status}`,
+        `**Default Voice:** ${defaultVoice}`,
+        `**Max Text Length:** ${maxLength} characters`,
+        `**Rate Limit Cooldown:** ${rateLimitCooldown} seconds`,
+        '',
+        '*Use `/config tts set-voice` and `/config tts set-max-length` to modify settings.*',
+    ].join('\n');
+
+    await interaction.reply({ content: configText, ephemeral: true });
+}
+
+async function handleTtsSetVoice(interaction: ChatInputCommandInteraction, context: Context) {
+    const voice = interaction.options.getString('voice', true);
+
+    await context.sequelize.transaction(async (transaction: any) => {
+        await context.tables.Config.upsert(
+            { key: TTS_CONFIG_KEYS.DEFAULT_VOICE, value: voice },
+            { transaction },
+        );
+    });
+
+    await interaction.reply({
+        content: `Default TTS voice set to **${voice}**`,
+        ephemeral: true,
+    });
+}
+
+async function handleTtsSetMaxLength(interaction: ChatInputCommandInteraction, context: Context) {
+    const maxLength = interaction.options.getInteger('max_length', true);
+
+    if (maxLength < 1 || maxLength > TTS_CONFIG.MAX_TEXT_LENGTH) {
+        await interaction.reply({
+            content: `Max length must be between 1 and ${TTS_CONFIG.MAX_TEXT_LENGTH} characters.`,
+            ephemeral: true,
+        });
+        return;
+    }
+
+    await context.sequelize.transaction(async (transaction: any) => {
+        await context.tables.Config.upsert(
+            { key: TTS_CONFIG_KEYS.MAX_LENGTH, value: maxLength.toString() },
+            { transaction },
+        );
+    });
+
+    await interaction.reply({
+        content: `TTS max text length set to **${maxLength}** characters`,
+        ephemeral: true,
+    });
+}
+
+async function handleTtsReset(interaction: ChatInputCommandInteraction, context: Context) {
+    await context.sequelize.transaction(async (transaction: any) => {
+        await context.tables.Config.destroy({
+            where: {
+                key: Object.values(TTS_CONFIG_KEYS),
+            },
+            transaction,
+        });
+    });
+
+    await interaction.reply({
+        content: 'All TTS configuration has been reset to defaults.',
         ephemeral: true,
     });
 }
@@ -311,7 +489,7 @@ export default {
                 .setDescription('Set the welcome channel.')
                 .addChannelOption((option: any) => option
                     .setName('channel')
-                    .setDescription('The channel for welcome messages and verification codes.')
+                    .setDescription('The channel for welcome messages.')
                     .addChannelTypes(ChannelType.GuildText)
                     .setRequired(true)))
             .addSubcommand((subcommand: any) => subcommand
@@ -321,40 +499,6 @@ export default {
                     .setName('message')
                     .setDescription('The welcome message. Use {user}, {server}, {memberCount} as placeholders.')
                     .setRequired(true))))
-        // Verify subcommand group
-        .addSubcommandGroup((group: any) => group
-            .setName('verify')
-            .setDescription('Verification code settings.')
-            .addSubcommand((subcommand: any) => subcommand
-                .setName('expiration')
-                .setDescription('Set how long verification codes are valid.')
-                .addStringOption((option: any) => option
-                    .setName('duration')
-                    .setDescription('Duration (e.g., 24h, 7d, 2w)')
-                    .setRequired(true)))
-            .addSubcommand((subcommand: any) => subcommand
-                .setName('allowed-roles')
-                .setDescription('Set which roles can be granted via verification codes.')
-                .addRoleOption((option: any) => option
-                    .setName('role1')
-                    .setDescription('First role to allow.')
-                    .setRequired(true))
-                .addRoleOption((option: any) => option
-                    .setName('role2')
-                    .setDescription('Second role to allow.')
-                    .setRequired(false))
-                .addRoleOption((option: any) => option
-                    .setName('role3')
-                    .setDescription('Third role to allow.')
-                    .setRequired(false))
-                .addRoleOption((option: any) => option
-                    .setName('role4')
-                    .setDescription('Fourth role to allow.')
-                    .setRequired(false))
-                .addRoleOption((option: any) => option
-                    .setName('role5')
-                    .setDescription('Fifth role to allow.')
-                    .setRequired(false))))
         // Dice subcommand group
         .addSubcommandGroup((group: any) => group
             .setName('dice')
@@ -383,7 +527,7 @@ export default {
             .setDescription('Bot logging settings.')
             .addSubcommand((subcommand: any) => subcommand
                 .setName('channel')
-                .setDescription('Set the bot log channel for all events (member joins, verification, etc).')
+                .setDescription('Set the bot log channel for all events (member joins, etc).')
                 .addChannelOption((option: any) => option
                     .setName('channel')
                     .setDescription('The channel to log bot events.')
@@ -391,7 +535,86 @@ export default {
                     .setRequired(true)))
             .addSubcommand((subcommand: any) => subcommand
                 .setName('show')
-                .setDescription('Show current log channel configuration.'))),
+                .setDescription('Show current log channel configuration.')))
+        // Motivational subcommand group
+        .addSubcommandGroup((group: any) => group
+            .setName('motivational')
+            .setDescription('Automated motivational message settings.')
+            .addSubcommand((subcommand: any) => subcommand
+                .setName('setup')
+                .setDescription('Set up motivational messages for a channel.')
+                .addChannelOption((option: any) => option
+                    .setName('channel')
+                    .setDescription('The channel to send motivational messages to.')
+                    .addChannelTypes(ChannelType.GuildText)
+                    .setRequired(true))
+                .addStringOption((option: any) => option
+                    .setName('frequency')
+                    .setDescription('How often to send messages.')
+                    .setRequired(true)
+                    .addChoices(
+                        { name: 'Daily', value: 'daily' },
+                        { name: 'Weekly', value: 'weekly' },
+                    ))
+                .addStringOption((option: any) => option
+                    .setName('category')
+                    .setDescription('Type of motivational messages.')
+                    .setRequired(true)
+                    .addChoices(
+                        { name: 'Motivation', value: 'motivation' },
+                        { name: 'Productivity', value: 'productivity' },
+                        { name: 'General', value: 'general' },
+                    ))
+                .addStringOption((option: any) => option
+                    .setName('schedule')
+                    .setDescription('Custom cron schedule (e.g., "0 9 * * *" for 9 AM daily). Optional.')
+                    .setRequired(false)))
+            .addSubcommand((subcommand: any) => subcommand
+                .setName('disable')
+                .setDescription('Disable motivational messages for a channel.')
+                .addChannelOption((option: any) => option
+                    .setName('channel')
+                    .setDescription('The channel to disable messages for.')
+                    .addChannelTypes(ChannelType.GuildText)
+                    .setRequired(true)))
+            .addSubcommand((subcommand: any) => subcommand
+                .setName('enable')
+                .setDescription('Enable motivational messages for a channel.')
+                .addChannelOption((option: any) => option
+                    .setName('channel')
+                    .setDescription('The channel to enable messages for.')
+                    .addChannelTypes(ChannelType.GuildText)
+                    .setRequired(true)))
+            .addSubcommand((subcommand: any) => subcommand
+                .setName('status')
+                .setDescription('View status of all motivational message configurations.')))
+        // TTS subcommand group
+        .addSubcommandGroup((group: any) => group
+            .setName('tts')
+            .setDescription('Text-to-speech settings.')
+            .addSubcommand((subcommand: any) => subcommand
+                .setName('show')
+                .setDescription('Show current TTS configuration.'))
+            .addSubcommand((subcommand: any) => subcommand
+                .setName('set-voice')
+                .setDescription('Set the default TTS voice.')
+                .addStringOption((option: any) => option
+                    .setName('voice')
+                    .setDescription('Voice to use as default')
+                    .setRequired(true)
+                    .addChoices(...VOICE_CHOICES)))
+            .addSubcommand((subcommand: any) => subcommand
+                .setName('set-max-length')
+                .setDescription('Set maximum text length for TTS.')
+                .addIntegerOption((option: any) => option
+                    .setName('max_length')
+                    .setDescription(`Maximum characters (1-${TTS_CONFIG.MAX_TEXT_LENGTH})`)
+                    .setRequired(true)
+                    .setMinValue(1)
+                    .setMaxValue(TTS_CONFIG.MAX_TEXT_LENGTH)))
+            .addSubcommand((subcommand: any) => subcommand
+                .setName('reset')
+                .setDescription('Reset all TTS configuration to defaults.'))),
 
     async autocomplete(interaction: AutocompleteInteraction, { tables }: Context) {
         // Only show autocomplete options to owner
@@ -455,14 +678,6 @@ export default {
                     }
                     break;
 
-                case 'verify':
-                    if (subcommand === 'expiration') {
-                        await handleVerifyExpiration(interaction, context);
-                    } else if (subcommand === 'allowed-roles') {
-                        await handleVerifyAllowedRoles(interaction, context);
-                    }
-                    break;
-
                 case 'dice':
                     if (subcommand === 'max-dice') {
                         await handleDiceMaxDice(interaction, context);
@@ -476,6 +691,30 @@ export default {
                         await handleLogChannel(interaction, context);
                     } else if (subcommand === 'show') {
                         await handleLogShow(interaction, context);
+                    }
+                    break;
+
+                case 'motivational':
+                    if (subcommand === 'setup') {
+                        await handleMotivationalSetup(interaction, context);
+                    } else if (subcommand === 'disable') {
+                        await handleMotivationalDisable(interaction, context);
+                    } else if (subcommand === 'enable') {
+                        await handleMotivationalEnable(interaction, context);
+                    } else if (subcommand === 'status') {
+                        await handleMotivationalStatus(interaction, context);
+                    }
+                    break;
+
+                case 'tts':
+                    if (subcommand === 'show') {
+                        await handleTtsShow(interaction, context);
+                    } else if (subcommand === 'set-voice') {
+                        await handleTtsSetVoice(interaction, context);
+                    } else if (subcommand === 'set-max-length') {
+                        await handleTtsSetMaxLength(interaction, context);
+                    } else if (subcommand === 'reset') {
+                        await handleTtsReset(interaction, context);
                     }
                     break;
 
@@ -512,7 +751,6 @@ export default {
             log.error({ error, subcommandGroup, subcommand }, 'Error executing config command');
             const errorMessage = error instanceof Error ? error.message : 'Unknown error';
 
-            // Try to reply, but handle case where interaction already replied/deferred
             try {
                 if (interaction.replied || interaction.deferred) {
                     await interaction.followUp({

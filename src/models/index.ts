@@ -15,6 +15,7 @@ import HoroscopeUser from "./horoscopeUser";
 import HoroscopeCache from "./horoscopeCache";
 import DndGame from "./dndGame";
 import VerificationCode from "./verificationCode";
+import Password from "./password";
 import ScheduledEvent from "./scheduledEvent";
 import UserDescriptions from "./userDescriptions";
 import SparksUser from "./sparksUser";
@@ -41,6 +42,7 @@ export default {
     HoroscopeCache,
     DndGame,
     VerificationCode,
+    Password,
     ScheduledEvent,
     UserDescriptions,
     SparksUser,

@@ -181,6 +181,18 @@ export interface VerificationCodeAttributes {
     updatedAt?: Date;
 }
 
+export interface PasswordAttributes {
+    id?: number;
+    guildId: string;
+    channelId: string;
+    roleId: string;
+    password: string;
+    createdBy: string;
+    active: boolean;
+    createdAt?: Date;
+    updatedAt?: Date;
+}
+
 export interface ArcWishlistAttributes {
     id?: number;
     guild_id: string;
@@ -278,6 +290,11 @@ export interface DndGameModel extends DndGameAttributes {
 
 export interface VerificationCodeModel extends VerificationCodeAttributes {
     update(_values: Partial<VerificationCodeAttributes>): Promise<VerificationCodeModel>;
+    destroy(): Promise<void>;
+}
+
+export interface PasswordModel extends PasswordAttributes {
+    update(_values: Partial<PasswordAttributes>): Promise<PasswordModel>;
     destroy(): Promise<void>;
 }
 
@@ -424,6 +441,20 @@ export interface VerificationCodeModelStatic {
     count(options?: FindOptions<VerificationCodeAttributes>): Promise<number>;
 }
 
+export interface PasswordModelStatic {
+    findAll(options?: FindOptions<PasswordAttributes>): Promise<PasswordModel[]>;
+    findOne(options?: FindOptions<PasswordAttributes>): Promise<PasswordModel | null>;
+    create(values: PasswordAttributes): Promise<PasswordModel>;
+    findOrCreate(options: FindOrCreateOptions<PasswordAttributes>): Promise<[PasswordModel, boolean]>;
+    upsert(values: PasswordAttributes, options?: UpsertOptions): Promise<[PasswordModel, boolean]>;
+    update(
+        values: Partial<PasswordAttributes>,
+        options: { where: WhereOptions<PasswordAttributes> },
+    ): Promise<[number]>;
+    destroy(options: DestroyOptions<PasswordAttributes>): Promise<number>;
+    count(options?: FindOptions<PasswordAttributes>): Promise<number>;
+}
+
 export interface ArcWishlistModelStatic {
     findAll(options?: FindOptions<ArcWishlistAttributes>): Promise<ArcWishlistModel[]>;
     findOne(options?: FindOptions<ArcWishlistAttributes>): Promise<ArcWishlistModel | null>;
@@ -474,6 +505,7 @@ export interface DatabaseTables {
     HoroscopeCache: HoroscopeCacheModelStatic;
     DndGame: DndGameModelStatic;
     VerificationCode: VerificationCodeModelStatic;
+    Password: PasswordModelStatic;
     ArcWishlist: ArcWishlistModelStatic;
     SpiceBalance: SpiceBalanceModelStatic;
     SpiceLedger: SpiceLedgerModelStatic;

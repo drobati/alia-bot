@@ -113,58 +113,6 @@ describe('commands/config', () => {
         });
     });
 
-    describe('verify subcommand group', () => {
-        it('should set verification expiration', async () => {
-            interaction.options.getSubcommandGroup.mockReturnValue('verify');
-            interaction.options.getSubcommand.mockReturnValue('expiration');
-            interaction.options.getString.mockReturnValue('24h');
-            interaction.guildId = 'guild123';
-            Config.upsert.mockResolvedValue([{}, true]);
-
-            await config.execute(interaction, context);
-
-            expect(Config.upsert).toHaveBeenCalledWith({
-                key: 'verify_expiration_guild123',
-                value: '86400',
-            });
-        });
-
-        it('should handle invalid duration format', async () => {
-            interaction.options.getSubcommandGroup.mockReturnValue('verify');
-            interaction.options.getSubcommand.mockReturnValue('expiration');
-            interaction.options.getString.mockReturnValue('invalid');
-            interaction.guildId = 'guild123';
-
-            await config.execute(interaction, context);
-
-            expect(interaction.reply).toHaveBeenCalledWith({
-                content: "Invalid duration format. Use format like `24h`, `7d`, or `2w` (hours, days, weeks).",
-                ephemeral: true,
-            });
-        });
-
-        it('should set allowed roles', async () => {
-            interaction.options.getSubcommandGroup.mockReturnValue('verify');
-            interaction.options.getSubcommand.mockReturnValue('allowed-roles');
-            interaction.options.getRole = jest.fn()
-                .mockReturnValueOnce({ id: 'role1' })
-                .mockReturnValueOnce({ id: 'role2' })
-                .mockReturnValueOnce(null)
-                .mockReturnValueOnce(null)
-                .mockReturnValueOnce(null);
-            interaction.guildId = 'guild123';
-            Config.upsert.mockResolvedValue([{}, true]);
-
-            await config.execute(interaction, context);
-
-            expect(Config.upsert).toHaveBeenCalledWith({
-                key: 'verify_allowed_roles_guild123',
-                value: JSON.stringify(['role1', 'role2']),
-            });
-        });
-
-    });
-
     describe('logs subcommand group', () => {
         it('should set bot log channel', async () => {
             interaction.options.getSubcommandGroup.mockReturnValue('logs');
