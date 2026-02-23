@@ -11,15 +11,15 @@
     * { margin: 0; padding: 0; box-sizing: border-box; }
 
     :root {
-      --silver: #c8d0e0;
-      --silver-light: #e0e6f0;
-      --accent: #7c5cbf;
-      --accent-glow: #a78bfa;
-      --deep: #0a0a1a;
-      --night: #06060f;
-      --text: #e0e6f0;
-      --text-dim: #6b7394;
-      --cyan: #06b6d4;
+      --red: #c23c2a;
+      --red-glow: #e74c3c;
+      --red-bright: #ff5544;
+      --gold: #c9a44a;
+      --gold-dim: #8a7033;
+      --deep: #0d0a0a;
+      --night: #0a0606;
+      --text: #e8e0d8;
+      --text-dim: #7a6e66;
     }
 
     body {
@@ -38,8 +38,8 @@
       top: 0; left: 0; right: 0; bottom: 0;
       z-index: 0;
       overflow: hidden;
-      background: radial-gradient(ellipse at 50% 50%, rgba(124, 92, 191, 0.08) 0%, transparent 60%),
-                  radial-gradient(ellipse at 80% 20%, rgba(6, 182, 212, 0.04) 0%, transparent 40%);
+      background: radial-gradient(ellipse at 50% 50%, rgba(194, 60, 42, 0.08) 0%, transparent 60%),
+                  radial-gradient(ellipse at 80% 20%, rgba(201, 164, 74, 0.04) 0%, transparent 40%);
     }
 
     .particles {
@@ -51,13 +51,13 @@
     .star {
       position: absolute;
       width: 2px; height: 2px;
-      background: var(--silver-light);
+      background: rgba(232, 224, 216, 0.6);
       border-radius: 50%;
       opacity: 0;
       animation: twinkle linear infinite;
     }
-    .star.accent { background: var(--accent-glow); }
-    .star.cyan { background: var(--cyan); }
+    .star.red { background: var(--red-bright); }
+    .star.gold { background: var(--gold); }
     @keyframes twinkle {
       0% { opacity: 0; transform: scale(0); }
       50% { opacity: 0.6; transform: scale(1); }
@@ -71,9 +71,9 @@
       padding: 3rem 2.5rem;
       max-width: 460px;
       width: 90%;
-      border: 1px solid rgba(124, 92, 191, 0.2);
+      border: 1px solid rgba(194, 60, 42, 0.25);
       border-radius: 20px;
-      background: rgba(18, 18, 42, 0.6);
+      background: rgba(20, 14, 14, 0.7);
       backdrop-filter: blur(12px);
       -webkit-backdrop-filter: blur(12px);
       animation: fadeIn 0.8s ease-out both;
@@ -89,7 +89,7 @@
       font-size: 1.8rem;
       font-weight: 700;
       margin-bottom: 0.5rem;
-      background: linear-gradient(135deg, var(--accent-glow), var(--cyan));
+      background: linear-gradient(135deg, var(--red-glow), var(--gold));
       -webkit-background-clip: text;
       background-clip: text;
       -webkit-text-fill-color: transparent;
@@ -104,7 +104,7 @@
     .join-btn {
       display: inline-block;
       padding: 0.9rem 2.5rem;
-      background: linear-gradient(135deg, var(--accent), #5b3fa0);
+      background: linear-gradient(135deg, var(--red), #8b1a1a);
       color: #fff;
       font-family: 'Space Grotesk', sans-serif;
       font-size: 1rem;
@@ -115,11 +115,11 @@
       text-decoration: none;
       cursor: pointer;
       transition: transform 0.2s, box-shadow 0.2s;
-      box-shadow: 0 4px 20px rgba(124, 92, 191, 0.3);
+      box-shadow: 0 4px 20px rgba(194, 60, 42, 0.35);
     }
     .join-btn:hover {
       transform: translateY(-2px);
-      box-shadow: 0 6px 28px rgba(124, 92, 191, 0.45);
+      box-shadow: 0 6px 28px rgba(194, 60, 42, 0.5);
     }
     .join-btn:active {
       transform: translateY(0);
@@ -128,9 +128,9 @@
     .instructions {
       margin-top: 2rem;
       padding: 1.2rem 1.4rem;
-      border: 1px solid rgba(124, 92, 191, 0.15);
+      border: 1px solid rgba(194, 60, 42, 0.15);
       border-radius: 12px;
-      background: rgba(10, 10, 26, 0.5);
+      background: rgba(13, 10, 10, 0.5);
       text-align: left;
       font-size: 0.85rem;
       color: var(--text-dim);
@@ -140,8 +140,8 @@
       color: var(--text);
     }
     .instructions code {
-      background: rgba(124, 92, 191, 0.15);
-      color: var(--accent-glow);
+      background: rgba(194, 60, 42, 0.15);
+      color: var(--red-bright);
       padding: 0.15rem 0.4rem;
       border-radius: 4px;
       font-size: 0.8rem;
@@ -164,7 +164,7 @@
 
   <div class="card">
     <h1>Cerebral Discharge</h1>
-    <p class="sub">Where brains melt and good times orbit</p>
+    <p class="sub">Join in the trolling, or join to be trolled</p>
     <a href="https://discord.gg/TCaeJDCrg9" class="join-btn">Join the Server</a>
     <div class="instructions">
       <strong>After joining:</strong> Use the password <code>meepo</code> in <code>#purgatory</code> to get assigned the <code>@dota</code> role, which will give you access to our voice channels.
@@ -174,7 +174,7 @@
 <script>
 (function initStars() {
   const container = document.getElementById("particles");
-  const classes = ["star", "star accent", "star cyan"];
+  const classes = ["star", "star red", "star gold"];
   for (let i = 0; i < 50; i++) {
     const s = document.createElement("div");
     s.className = classes[i % 3];
