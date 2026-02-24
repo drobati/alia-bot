@@ -126,6 +126,30 @@ describe('commands/remind', () => {
             );
         });
 
+        it('should create a recurring reminder for repeating time input', async () => {
+            mockInteraction.options.getString
+                .mockReturnValueOnce('every day at 9am')  // when
+                .mockReturnValueOnce('Daily standup');      // message
+            mockInteraction.options.getBoolean.mockReturnValue(false);
+
+            await remind.execute(mockInteraction, mockContext);
+
+            expect(mockContext.schedulerService.scheduleEvent).toHaveBeenCalledWith(
+                expect.objectContaining({
+                    scheduleType: 'recurring',
+                    cronSchedule: '0 9 * * *',
+                    eventType: 'reminder',
+                    payload: expect.objectContaining({
+                        message: 'Daily standup',
+                    }),
+                }),
+            );
+            // Verify the embed title indicates recurring
+            const replyCall = mockInteraction.reply.mock.calls[0][0];
+            const embed = replyCall.embeds[0].data;
+            expect(embed.title).toBe('Recurring Reminder Set');
+        });
+
         it('should handle missing scheduler service', async () => {
             mockContext.schedulerService = undefined;
             mockInteraction.options.getString
@@ -159,6 +183,7 @@ describe('commands/remind', () => {
             expect(mockContext.schedulerService.scheduleEvent).toHaveBeenCalledWith(
                 expect.objectContaining({
                     channelId: 'channel123',
+                    scheduleType: 'once',
                     payload: expect.objectContaining({
                         mentionUser: false,
                         sendDm: false,
@@ -170,6 +195,28 @@ describe('commands/remind', () => {
                     embeds: expect.any(Array),
                 }),
             );
+        });
+
+        it('should create a recurring channel reminder', async () => {
+            mockInteraction.options.getString
+                .mockReturnValueOnce('every monday at 10am')
+                .mockReturnValueOnce('Weekly sync');
+
+            await remind.execute(mockInteraction, mockContext);
+
+            expect(mockContext.schedulerService.scheduleEvent).toHaveBeenCalledWith(
+                expect.objectContaining({
+                    channelId: 'channel123',
+                    scheduleType: 'recurring',
+                    cronSchedule: '0 10 * * 1',
+                    payload: expect.objectContaining({
+                        message: 'Weekly sync',
+                    }),
+                }),
+            );
+            const replyCall = mockInteraction.reply.mock.calls[0][0];
+            const embed = replyCall.embeds[0].data;
+            expect(embed.title).toBe('Recurring Channel Reminder Set');
         });
     });
 

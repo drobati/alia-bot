@@ -164,22 +164,24 @@ async function handleRemindMe(interaction: any, context: Context) {
         creatorId: interaction.user.id,
         eventType: 'reminder',
         payload,
-        scheduleType: 'once',
+        scheduleType: parsed.isRecurring ? 'recurring' : 'once',
         executeAt: parsed.date,
+        ...(parsed.isRecurring && parsed.cronSchedule ? { cronSchedule: parsed.cronSchedule } : {}),
     });
 
     // Build confirmation embed
     const embed = new EmbedBuilder()
         .setColor(0x57F287)
-        .setTitle('Reminder Set')
+        .setTitle(parsed.isRecurring ? 'Recurring Reminder Set' : 'Reminder Set')
         .setDescription(`I'll remind you **${parsed.displayText}**`)
         .addFields(
             { name: 'Message', value: message, inline: false },
             { name: 'Reminder ID', value: `\`${event.eventId}\``, inline: true },
             { name: 'Delivery', value: sendDm ? 'DM' : 'This channel', inline: true },
+            ...(parsed.isRecurring ? [{ name: 'Repeat', value: parsed.displayText, inline: true }] : []),
         )
         .setTimestamp(parsed.date)
-        .setFooter({ text: 'Reminder scheduled for' });
+        .setFooter({ text: parsed.isRecurring ? 'Next occurrence' : 'Reminder scheduled for' });
 
     await interaction.reply({
         embeds: [embed],
@@ -192,6 +194,7 @@ async function handleRemindMe(interaction: any, context: Context) {
         guildId: interaction.guildId,
         executeAt: parsed.date,
         sendDm,
+        recurring: parsed.isRecurring,
     });
 }
 
@@ -241,22 +244,24 @@ async function handleRemindChannel(interaction: any, context: Context) {
         creatorId: interaction.user.id,
         eventType: 'reminder',
         payload,
-        scheduleType: 'once',
+        scheduleType: parsed.isRecurring ? 'recurring' : 'once',
         executeAt: parsed.date,
+        ...(parsed.isRecurring && parsed.cronSchedule ? { cronSchedule: parsed.cronSchedule } : {}),
     });
 
     // Build confirmation embed
     const embed = new EmbedBuilder()
         .setColor(0x57F287)
-        .setTitle('Channel Reminder Set')
+        .setTitle(parsed.isRecurring ? 'Recurring Channel Reminder Set' : 'Channel Reminder Set')
         .setDescription(`Reminder will be posted **${parsed.displayText}**`)
         .addFields(
             { name: 'Message', value: message, inline: false },
             { name: 'Reminder ID', value: `\`${event.eventId}\``, inline: true },
             { name: 'Channel', value: `<#${interaction.channelId}>`, inline: true },
+            ...(parsed.isRecurring ? [{ name: 'Repeat', value: parsed.displayText, inline: true }] : []),
         )
         .setTimestamp(parsed.date)
-        .setFooter({ text: 'Reminder scheduled for' });
+        .setFooter({ text: parsed.isRecurring ? 'Next occurrence' : 'Reminder scheduled for' });
 
     await interaction.reply({
         embeds: [embed],
@@ -268,6 +273,7 @@ async function handleRemindChannel(interaction: any, context: Context) {
         guildId: interaction.guildId,
         channelId: interaction.channelId,
         executeAt: parsed.date,
+        recurring: parsed.isRecurring,
     });
 }
 

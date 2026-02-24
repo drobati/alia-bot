@@ -24,6 +24,9 @@ export interface HypePayload {
     description?: string;
     showCountdown: boolean;
     announceAt: string[]; // Array of "24h", "1h", "15m" etc.
+    eventTime: string; // ISO date string of the actual event
+    announcementTier: string; // Which tier this specific announcement is (e.g., "24h", "1h", "now")
+    hypeGroupId: string; // Links all announcements for the same hype event
 }
 
 export interface TipsPayload {

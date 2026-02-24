@@ -1,9 +1,13 @@
 import { SchedulerService } from '../schedulerService';
 import { ReminderHandler } from './reminderHandler';
+import { HypeHandler } from './hypeHandler';
+import { BirthdayHandler } from './birthdayHandler';
 import { EventHandler } from './types';
 
 // Export all handlers
 export { ReminderHandler } from './reminderHandler';
+export { HypeHandler } from './hypeHandler';
+export { BirthdayHandler } from './birthdayHandler';
 
 // Export types
 export * from './types';
@@ -13,7 +17,9 @@ export * from './types';
  */
 export const defaultHandlers: EventHandler[] = [
     ReminderHandler,
-    // Future handlers: BirthdayHandler, HypeHandler, TipsHandler
+    HypeHandler,
+    BirthdayHandler,
+    // Future handlers: TipsHandler
 ];
 
 /**
