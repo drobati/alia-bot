@@ -31,6 +31,62 @@ function getDefaultCronSchedule(frequency: string): string {
     }
 }
 
+// Birthday handlers
+async function handleBirthdayChannel(interaction: ChatInputCommandInteraction, context: Context) {
+    const channel = interaction.options.getChannel('channel', true);
+    const guildId = interaction.guildId;
+
+    if (!guildId) {
+        return interaction.reply({ content: "This command can only be used in a server.", ephemeral: true });
+    }
+
+    const key = `birthday_channel_${guildId}`;
+    await context.tables.Config.upsert({ key, value: channel.id });
+
+    await interaction.reply({
+        content: `Birthday announcement channel set to <#${channel.id}>.`,
+        ephemeral: true,
+    });
+}
+
+async function handleBirthdayShow(interaction: ChatInputCommandInteraction, context: Context) {
+    const guildId = interaction.guildId;
+
+    if (!guildId) {
+        return interaction.reply({ content: "This command can only be used in a server.", ephemeral: true });
+    }
+
+    const key = `birthday_channel_${guildId}`;
+    const config = await context.tables.Config.findOne({ where: { key } });
+
+    if (!config?.value) {
+        return interaction.reply({
+            content: "No birthday channel is configured for this server.\n"
+                + "Use `/config birthday channel` to set one.",
+            ephemeral: true,
+        });
+    }
+
+    const guild = interaction.guild;
+    const channel = guild?.channels.cache.get(config.value);
+
+    if (!channel) {
+        return interaction.reply({
+            content: `Warning: Birthday channel is configured to ID \`${config.value}\`, `
+                + `but this channel no longer exists.\n`
+                + `Use \`/config birthday channel\` to set a valid channel.`,
+            ephemeral: true,
+        });
+    }
+
+    await interaction.reply({
+        content: `**Birthday Settings**\n`
+            + `Announcement Channel: <#${config.value}>\n`
+            + `Birthdays are announced at 9:00 AM on the registered date.`,
+        ephemeral: true,
+    });
+}
+
 // TTS constants
 const TTS_CONFIG_KEYS = {
     DEFAULT_VOICE: 'tts_default_voice',
@@ -588,6 +644,21 @@ export default {
             .addSubcommand((subcommand: any) => subcommand
                 .setName('status')
                 .setDescription('View status of all motivational message configurations.')))
+        // Birthday subcommand group
+        .addSubcommandGroup((group: any) => group
+            .setName('birthday')
+            .setDescription('Birthday announcement settings.')
+            .addSubcommand((subcommand: any) => subcommand
+                .setName('channel')
+                .setDescription('Set the channel for birthday announcements.')
+                .addChannelOption((option: any) => option
+                    .setName('channel')
+                    .setDescription('The channel to post birthday celebrations.')
+                    .addChannelTypes(ChannelType.GuildText)
+                    .setRequired(true)))
+            .addSubcommand((subcommand: any) => subcommand
+                .setName('show')
+                .setDescription('Show current birthday channel configuration.')))
         // TTS subcommand group
         .addSubcommandGroup((group: any) => group
             .setName('tts')
@@ -703,6 +774,14 @@ export default {
                         await handleMotivationalEnable(interaction, context);
                     } else if (subcommand === 'status') {
                         await handleMotivationalStatus(interaction, context);
+                    }
+                    break;
+
+                case 'birthday':
+                    if (subcommand === 'channel') {
+                        await handleBirthdayChannel(interaction, context);
+                    } else if (subcommand === 'show') {
+                        await handleBirthdayShow(interaction, context);
                     }
                     break;
 
