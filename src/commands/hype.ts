@@ -28,6 +28,7 @@ export default {
                         .setMaxLength(500))
                 .addStringOption(option =>
                     option.setName('intervals')
+                        // eslint-disable-next-line max-len
                         .setDescription('Announcement intervals (comma-separated, e.g., "24h,1h,15m,now"). Default: 24h,1h,15m,now')
                         .setRequired(false)))
         .addSubcommand(subcommand =>
@@ -173,7 +174,9 @@ async function handleCreate(interaction: any, context: Context) {
         const announceAt = new Date(eventTime.getTime() - intervalMs);
 
         // Skip announcements that are already in the past
-        if (announceAt <= now) continue;
+        if (announceAt <= now) {
+            continue;
+        }
 
         const payload: HypePayload = {
             eventName: name,
@@ -200,7 +203,8 @@ async function handleCreate(interaction: any, context: Context) {
 
     if (scheduledCount === 0) {
         await interaction.reply({
-            content: 'All announcement times are in the past. Try an event further in the future or use shorter intervals.',
+            content: 'All announcement times are in the past. '
+                + 'Try an event further in the future or use shorter intervals.',
             ephemeral: true,
         });
         return;
@@ -298,9 +302,11 @@ async function handleList(interaction: any, context: Context) {
         .setDescription(
             Array.from(groups.values()).map((group, index) => {
                 const timeDisplay = formatRelativeTime(group.eventTime);
-                return `**${index + 1}.** \`${group.hypeGroupId}\` — **${group.name}**\n` +
-                    `${timeDisplay} • ${group.announcements} announcement${group.announcements !== 1 ? 's' : ''} remaining` +
-                    ` • <@${group.creatorId}>`;
+                const countText = group.announcements !== 1 ? 's' : '';
+                return `**${index + 1}.** \`${group.hypeGroupId}\` — ` +
+                    `**${group.name}**\n` +
+                    `${timeDisplay} • ${group.announcements} announcement` +
+                    `${countText} remaining • <@${group.creatorId}>`;
             }).join('\n\n'),
         )
         .setFooter({ text: 'Use /hype cancel to cancel a hype event' });
@@ -356,13 +362,17 @@ async function handleCancel(interaction: any, context: Context) {
     let cancelledCount = 0;
     for (const event of groupEvents) {
         const cancelled = await context.schedulerService.cancelEvent(event.eventId);
-        if (cancelled) cancelledCount++;
+        if (cancelled) {
+            cancelledCount++;
+        }
     }
 
     const payload = parsePayload<HypePayload>(groupEvents[0].payload);
 
+    const countText = cancelledCount !== 1 ? 's' : '';
     await interaction.reply({
-        content: `Cancelled hype event **${payload.eventName}** (\`${hypeId}\`) — ${cancelledCount} announcement${cancelledCount !== 1 ? 's' : ''} removed.`,
+        content: `Cancelled hype event **${payload.eventName}** (\`${hypeId}\`) `
+            + `— ${cancelledCount} announcement${countText} removed.`,
         ephemeral: true,
     });
 
