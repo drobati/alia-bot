@@ -7,10 +7,14 @@ const DEFAULT_VOICE_ID = 'Df0A8fHl2LOO7kDNIlpg';
 
 export default async function ttsChannel(message: Message, context: Context): Promise<boolean> {
     const guildId = message.guildId;
-    if (!guildId) return false;
+    if (!guildId) {
+        return false;
+    }
 
     // Only process owner messages
-    if (!isOwner(message.author.id)) return false;
+    if (!isOwner(message.author.id)) {
+        return false;
+    }
 
     // Check if this channel is the configured TTS channel
     const ttsChannelConfig = await context.tables.Config.findOne({
@@ -28,7 +32,9 @@ export default async function ttsChannel(message: Message, context: Context): Pr
     }
 
     const member = message.member;
-    if (!member) return false;
+    if (!member) {
+        return false;
+    }
 
     const userVoiceChannel = voiceService.getUserVoiceChannel(member);
     if (!userVoiceChannel) {
@@ -39,7 +45,9 @@ export default async function ttsChannel(message: Message, context: Context): Pr
     }
 
     const text = message.content;
-    if (!text || text.length === 0) return false;
+    if (!text || text.length === 0) {
+        return false;
+    }
 
     if (text.length > TTS_CONFIG.MAX_TEXT_LENGTH) {
         try {

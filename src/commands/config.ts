@@ -531,7 +531,8 @@ async function handleTtsSetChannel(interaction: ChatInputCommandInteraction, con
     await context.tables.Config.upsert({ key, value: channel.id });
 
     await interaction.reply({
-        content: `TTS channel set to <#${channel.id}>. Messages from the bot owner in that channel will be auto-spoken.`,
+        content: `TTS channel set to <#${channel.id}>. ` +
+            'Owner messages in that channel will be auto-spoken.',
         ephemeral: true,
     });
 }

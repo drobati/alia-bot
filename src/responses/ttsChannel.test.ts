@@ -1,7 +1,9 @@
 import ttsChannel from './ttsChannel';
 
+import config from 'config';
+
 jest.mock('config');
-const mockConfig = require('config');
+const mockConfig = config as jest.Mocked<typeof config>;
 
 describe('ttsChannel handler', () => {
     let mockMessage: any;
@@ -14,7 +16,7 @@ describe('ttsChannel handler', () => {
         jest.clearAllMocks();
 
         mockConfig.get.mockImplementation((key: string) => {
-            if (key === 'owner') return 'test-owner-id';
+            if (key === 'owner') {return 'test-owner-id';}
             return undefined;
         });
 
