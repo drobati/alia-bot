@@ -151,7 +151,7 @@ export class VoiceService {
                 text: text.substring(0, TTS_CONFIG.MAX_TEXT_LENGTH),
                 modelId: 'eleven_v3',
                 voiceSettings: {
-                    stability: 0.3,
+                    stability: 0.0,
                     similarityBoost: 0.75,
                     style: 0.0,
                 },

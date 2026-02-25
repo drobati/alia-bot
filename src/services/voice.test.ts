@@ -255,7 +255,7 @@ describe('VoiceService', () => {
                 text: 'Hello world',
                 modelId: 'eleven_v3',
                 voiceSettings: {
-                    stability: 0.3,
+                    stability: 0.0,
                     similarityBoost: 0.75,
                     style: 0.0,
                 },
