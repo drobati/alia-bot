@@ -15,7 +15,8 @@ export interface VoiceService {
     speakText: (
         text: string,
         guildId: string,
-        voice?: string
+        voice?: string,
+        stability?: number
     ) => Promise<void>;
     getUserVoiceChannel: (member: any) => any;
     isConnectedToVoice: (guildId: string) => boolean;
