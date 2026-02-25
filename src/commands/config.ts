@@ -737,8 +737,9 @@ export default {
                 .setDescription('Set the default TTS voice.')
                 .addStringOption((option: any) => option
                     .setName('voice')
-                    .setDescription('ElevenLabs voice ID')
-                    .setRequired(true)))
+                    .setDescription('Saved voice name or ElevenLabs voice ID')
+                    .setRequired(true)
+                    .setAutocomplete(true)))
             .addSubcommand((subcommand: any) => subcommand
                 .setName('set-stability')
                 .setDescription('Set TTS voice stability/creativity mode.')
@@ -801,6 +802,22 @@ export default {
                 value: record.key,
             }));
             await interaction.respond(choices);
+        } else if (subcommandGroup === 'tts' && subcommand === 'set-voice') {
+            const focused = interaction.options.getFocused();
+            const voices = await tables.Voice.findAll({
+                where: {
+                    name: {
+                        [Op.like]: `%${focused}%`,
+                    },
+                },
+                limit: 25,
+            });
+            await interaction.respond(
+                voices.map((v: any) => ({
+                    name: `${v.name} - ${v.description}`,
+                    value: v.voiceId,
+                })),
+            );
         }
     },
 

@@ -491,6 +491,30 @@ export interface SpiceLedgerModelStatic {
     count(options?: FindOptions<SpiceLedgerAttributes>): Promise<number>;
 }
 
+export interface VoiceAttributes {
+    id?: number;
+    name: string;
+    voiceId: string;
+    description: string;
+    createdAt?: Date;
+    updatedAt?: Date;
+}
+
+export interface VoiceModel extends VoiceAttributes {
+    update(_values: Partial<VoiceAttributes>): Promise<VoiceModel>;
+    destroy(): Promise<void>;
+}
+
+export interface VoiceModelStatic {
+    findAll(options?: FindOptions<VoiceAttributes>): Promise<VoiceModel[]>;
+    findOne(options?: FindOptions<VoiceAttributes>): Promise<VoiceModel | null>;
+    create(values: VoiceAttributes): Promise<VoiceModel>;
+    findOrCreate(options: FindOrCreateOptions<VoiceAttributes>): Promise<[VoiceModel, boolean]>;
+    upsert(values: VoiceAttributes, options?: UpsertOptions): Promise<[VoiceModel, boolean]>;
+    destroy(options: DestroyOptions<VoiceAttributes>): Promise<number>;
+    count(options?: FindOptions<VoiceAttributes>): Promise<number>;
+}
+
 // Combined database tables interface
 export interface DatabaseTables {
     Adlibs: AdlibsModelStatic;
@@ -509,5 +533,6 @@ export interface DatabaseTables {
     ArcWishlist: ArcWishlistModelStatic;
     SpiceBalance: SpiceBalanceModelStatic;
     SpiceLedger: SpiceLedgerModelStatic;
+    Voice: VoiceModelStatic;
     [key: string]: any; // Allow dynamic table access
 }

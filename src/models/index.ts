@@ -23,6 +23,7 @@ import SparksBalance from "./sparksBalance";
 import SparksLedger from "./sparksLedger";
 import SparksEngagement from "./sparksEngagement";
 import ArcWishlist from "./arcWishlist";
+import Voice from "./voice";
 
 export default {
     Adlibs,
@@ -50,4 +51,5 @@ export default {
     SparksLedger,
     SparksEngagement,
     ArcWishlist,
+    Voice,
 };
