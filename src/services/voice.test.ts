@@ -398,6 +398,55 @@ describe('VoiceService', () => {
         });
     });
 
+    describe('resetIdleTimer', () => {
+        it('should set an idle timer that auto-leaves after timeout', () => {
+            jest.useFakeTimers();
+
+            voiceService.resetIdleTimer('test-guild-id');
+
+            // Timer should not have fired yet
+            jest.advanceTimersByTime(4 * 60 * 1000); // 4 minutes
+            expect(mockContext.log.info).not.toHaveBeenCalledWith(
+                'Auto-leaving voice channel due to idle timeout',
+                expect.anything(),
+            );
+
+            jest.useRealTimers();
+        });
+
+        it('should clear previous timer when reset', () => {
+            jest.useFakeTimers();
+
+            voiceService.resetIdleTimer('test-guild-id');
+            voiceService.resetIdleTimer('test-guild-id'); // reset again
+
+            // Should not have doubled up
+            jest.advanceTimersByTime(5 * 60 * 1000 + 100);
+            jest.useRealTimers();
+        });
+    });
+
+    describe('clearIdleTimer', () => {
+        it('should clear an existing idle timer', () => {
+            jest.useFakeTimers();
+
+            voiceService.resetIdleTimer('test-guild-id');
+            voiceService.clearIdleTimer('test-guild-id');
+
+            jest.advanceTimersByTime(6 * 60 * 1000);
+            expect(mockContext.log.info).not.toHaveBeenCalledWith(
+                'Auto-leaving voice channel due to idle timeout',
+                expect.anything(),
+            );
+
+            jest.useRealTimers();
+        });
+
+        it('should handle clearing when no timer exists', () => {
+            expect(() => voiceService.clearIdleTimer('no-timer-guild')).not.toThrow();
+        });
+    });
+
     describe('destroy', () => {
         it('should destroy all connections', async () => {
             await voiceService.joinVoiceChannel(mockChannel);
