@@ -90,6 +90,7 @@ async function handleBirthdayShow(interaction: ChatInputCommandInteraction, cont
 // TTS constants
 const TTS_CONFIG_KEYS = {
     DEFAULT_VOICE: 'tts_default_voice',
+    STABILITY: 'tts_stability',
     MAX_LENGTH: 'tts_max_length',
     RATE_LIMIT_COOLDOWN: 'tts_rate_limit_cooldown',
     ALLOWED_USERS: 'tts_allowed_users',
@@ -422,6 +423,13 @@ async function handleTtsShow(interaction: ChatInputCommandInteraction, context: 
     const configMap = new Map(configs.map((config: any) => [config.key, config.value]));
 
     const defaultVoice = configMap.get(TTS_CONFIG_KEYS.DEFAULT_VOICE) || 'Df0A8fHl2LOO7kDNIlpg';
+    const stabilityVal = configMap.get(TTS_CONFIG_KEYS.STABILITY) || '0.0';
+    const stabilityLabels: Record<string, string> = {
+        '0.0': 'Creative (most expressive)',
+        '0.5': 'Natural (balanced)',
+        '1.0': 'Robust (most stable)',
+    };
+    const stabilityLabel = stabilityLabels[stabilityVal] || stabilityVal;
     const maxLength = configMap.get(TTS_CONFIG_KEYS.MAX_LENGTH) || String(TTS_CONFIG.MAX_TEXT_LENGTH);
     const rateLimitCooldown = configMap.get(TTS_CONFIG_KEYS.RATE_LIMIT_COOLDOWN) || '5';
 
@@ -442,6 +450,7 @@ async function handleTtsShow(interaction: ChatInputCommandInteraction, context: 
         `**Voice Status:** ${status}`,
         `**TTS Channel:** ${ttsChannel}`,
         `**Default Voice:** ${defaultVoice}`,
+        `**Stability:** ${stabilityLabel}`,
         `**Max Text Length:** ${maxLength} characters`,
         `**Rate Limit Cooldown:** ${rateLimitCooldown} seconds`,
         '',
@@ -463,6 +472,28 @@ async function handleTtsSetVoice(interaction: ChatInputCommandInteraction, conte
 
     await interaction.reply({
         content: `Default TTS voice set to **${voice}**`,
+        ephemeral: true,
+    });
+}
+
+async function handleTtsSetStability(interaction: ChatInputCommandInteraction, context: Context) {
+    const stability = interaction.options.getString('mode', true);
+
+    await context.sequelize.transaction(async (transaction: any) => {
+        await context.tables.Config.upsert(
+            { key: TTS_CONFIG_KEYS.STABILITY, value: stability },
+            { transaction },
+        );
+    });
+
+    const labels: Record<string, string> = {
+        '0.0': 'Creative (most expressive)',
+        '0.5': 'Natural (balanced)',
+        '1.0': 'Robust (most stable)',
+    };
+
+    await interaction.reply({
+        content: `TTS stability set to **${labels[stability] || stability}**`,
         ephemeral: true,
     });
 }
@@ -709,6 +740,18 @@ export default {
                     .setDescription('ElevenLabs voice ID')
                     .setRequired(true)))
             .addSubcommand((subcommand: any) => subcommand
+                .setName('set-stability')
+                .setDescription('Set TTS voice stability/creativity mode.')
+                .addStringOption((option: any) => option
+                    .setName('mode')
+                    .setDescription('Stability mode')
+                    .setRequired(true)
+                    .addChoices(
+                        { name: 'Creative (most expressive)', value: '0.0' },
+                        { name: 'Natural (balanced)', value: '0.5' },
+                        { name: 'Robust (most stable)', value: '1.0' },
+                    )))
+            .addSubcommand((subcommand: any) => subcommand
                 .setName('set-max-length')
                 .setDescription('Set maximum text length for TTS.')
                 .addIntegerOption((option: any) => option
@@ -835,6 +878,8 @@ export default {
                         await handleTtsShow(interaction, context);
                     } else if (subcommand === 'set-voice') {
                         await handleTtsSetVoice(interaction, context);
+                    } else if (subcommand === 'set-stability') {
+                        await handleTtsSetStability(interaction, context);
                     } else if (subcommand === 'set-max-length') {
                         await handleTtsSetMaxLength(interaction, context);
                     } else if (subcommand === 'reset') {

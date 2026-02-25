@@ -354,6 +354,26 @@ describe('commands/config', () => {
             );
         });
 
+        it('should set stability mode', async () => {
+            interaction.options.getSubcommandGroup.mockReturnValue('tts');
+            interaction.options.getSubcommand.mockReturnValue('set-stability');
+            interaction.options.getString.mockReturnValue('0.0');
+            Config.upsert.mockResolvedValue([{}, true]);
+
+            await config.execute(interaction, context);
+
+            expect(Config.upsert).toHaveBeenCalledWith(
+                { key: 'tts_stability', value: '0.0' },
+                expect.anything(),
+            );
+            expect(interaction.reply).toHaveBeenCalledWith(
+                expect.objectContaining({
+                    content: expect.stringContaining('Creative'),
+                    ephemeral: true,
+                }),
+            );
+        });
+
         it('should set max length', async () => {
             interaction.options.getSubcommandGroup.mockReturnValue('tts');
             interaction.options.getSubcommand.mockReturnValue('set-max-length');

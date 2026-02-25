@@ -131,6 +131,7 @@ export class VoiceService {
         text: string,
         guildId: string,
         voice: string = 'Df0A8fHl2LOO7kDNIlpg',
+        stability: number = 0.0,
     ): Promise<void> {
         const connection = this.connections.get(guildId);
         if (!connection) {
@@ -151,7 +152,7 @@ export class VoiceService {
                 text: text.substring(0, TTS_CONFIG.MAX_TEXT_LENGTH),
                 modelId: 'eleven_v3',
                 voiceSettings: {
-                    stability: 0.0,
+                    stability,
                     similarityBoost: 0.75,
                     style: 0.0,
                 },

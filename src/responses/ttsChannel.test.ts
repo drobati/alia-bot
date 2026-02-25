@@ -144,6 +144,7 @@ describe('ttsChannel handler', () => {
             'Hello world',
             'test-guild-id',
             'Df0A8fHl2LOO7kDNIlpg',
+            0,
         );
         expect(mockVoiceService.resetIdleTimer).toHaveBeenCalledWith('test-guild-id');
         expect(mockMessage.react).toHaveBeenCalledWith('\uD83D\uDD0A');
@@ -181,6 +182,7 @@ describe('ttsChannel handler', () => {
             'Hello world',
             'test-guild-id',
             'Df0A8fHl2LOO7kDNIlpg',
+            0,
         );
     });
 

@@ -67,13 +67,15 @@ export default async function ttsChannel(message: Message, context: Context): Pr
             });
         }
 
-        // Get configured default voice
-        const voiceConfig = await context.tables.Config.findOne({
-            where: { key: 'tts_default_voice' },
-        });
+        // Get configured default voice and stability
+        const [voiceConfig, stabilityConfig] = await Promise.all([
+            context.tables.Config.findOne({ where: { key: 'tts_default_voice' } }),
+            context.tables.Config.findOne({ where: { key: 'tts_stability' } }),
+        ]);
         const voice = voiceConfig?.value || DEFAULT_VOICE_ID;
+        const stability = parseFloat(stabilityConfig?.value || '0.0');
 
-        await voiceService.speakText(text, guildId, voice);
+        await voiceService.speakText(text, guildId, voice, stability);
         voiceService.resetIdleTimer(guildId);
 
         try {
