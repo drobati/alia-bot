@@ -253,7 +253,12 @@ describe('VoiceService', () => {
 
             expect(mockElevenLabs.textToSpeech.convert).toHaveBeenCalledWith(voiceId, {
                 text: 'Hello world',
-                modelId: 'eleven_turbo_v2_5',
+                modelId: 'eleven_v3',
+                voiceSettings: {
+                    stability: 0.3,
+                    similarityBoost: 0.75,
+                    style: 0.0,
+                },
             });
 
             expect(mockContext.log.info).toHaveBeenCalledWith(
