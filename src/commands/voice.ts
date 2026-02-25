@@ -173,7 +173,7 @@ async function handleList(interaction: ChatInputCommandInteraction, context: Con
     }
 
     const lines = voices.map((v: any) =>
-        `**${v.name}** \`${v.voiceId}\`\n> ${v.description}`
+        `**${v.name}** \`${v.voiceId}\`\n> ${v.description}`,
     );
 
     await interaction.reply({

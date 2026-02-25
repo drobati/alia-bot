@@ -21,7 +21,7 @@ describe('commands/voice', () => {
         // Default to owner
         interaction.user.id = 'test-owner-id';
         mockConfig.get.mockImplementation((key: string) => {
-            if (key === 'owner') return 'test-owner-id';
+            if (key === 'owner') { return 'test-owner-id'; }
             return undefined;
         });
     });
