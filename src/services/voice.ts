@@ -10,7 +10,7 @@ import {
 import { VoiceChannel, GuildMember, ChannelType } from 'discord.js';
 import { Context } from '../utils/types';
 import { TTS_CONFIG } from '../utils/constants';
-import OpenAI from 'openai';
+import { ElevenLabsClient } from '@elevenlabs/elevenlabs-js';
 import { createWriteStream, createReadStream, unlinkSync } from 'fs';
 import { join } from 'path';
 import { tmpdir } from 'os';
@@ -18,18 +18,20 @@ import { randomUUID } from 'crypto';
 
 export class VoiceService {
     private connections = new Map<string, VoiceConnection>();
-    private openai: OpenAI;
+    private idleTimers = new Map<string, NodeJS.Timeout>();
+    private elevenlabs: ElevenLabsClient;
     private context: Context;
+    private static IDLE_TIMEOUT_MS = 5 * 60 * 1000; // 5 minutes
 
     constructor(context: Context) {
         this.context = context;
 
-        if (!process.env.OPENAI_API_KEY) {
-            throw new Error('OPENAI_API_KEY environment variable is required for TTS functionality');
+        if (!process.env.ELEVENLABS_API_KEY) {
+            throw new Error('ELEVENLABS_API_KEY environment variable is required for TTS functionality');
         }
 
-        this.openai = new OpenAI({
-            apiKey: process.env.OPENAI_API_KEY,
+        this.elevenlabs = new ElevenLabsClient({
+            apiKey: process.env.ELEVENLABS_API_KEY,
         });
     }
 
@@ -84,6 +86,7 @@ export class VoiceService {
     }
 
     async leaveVoiceChannel(guildId: string): Promise<void> {
+        this.clearIdleTimer(guildId);
         const connection = this.connections.get(guildId);
         if (!connection) {
             throw new Error('Not connected to any voice channel in this server');
@@ -95,10 +98,39 @@ export class VoiceService {
         this.context.log.info('Left voice channel', { guildId });
     }
 
+    resetIdleTimer(guildId: string): void {
+        const existingTimer = this.idleTimers.get(guildId);
+        if (existingTimer) {
+            clearTimeout(existingTimer);
+        }
+
+        const timer = setTimeout(async () => {
+            this.idleTimers.delete(guildId);
+            if (this.isConnectedToVoice(guildId)) {
+                this.context.log.info('Auto-leaving voice channel due to idle timeout', { guildId });
+                try {
+                    await this.leaveVoiceChannel(guildId);
+                } catch (error) {
+                    this.context.log.error('Failed to auto-leave voice channel', { guildId, error });
+                }
+            }
+        }, VoiceService.IDLE_TIMEOUT_MS);
+
+        this.idleTimers.set(guildId, timer);
+    }
+
+    clearIdleTimer(guildId: string): void {
+        const timer = this.idleTimers.get(guildId);
+        if (timer) {
+            clearTimeout(timer);
+            this.idleTimers.delete(guildId);
+        }
+    }
+
     async speakText(
         text: string,
         guildId: string,
-        voice: 'alloy' | 'echo' | 'fable' | 'onyx' | 'nova' | 'shimmer' = 'alloy',
+        voice: string = 'Df0A8fHl2LOO7kDNIlpg',
     ): Promise<void> {
         const connection = this.connections.get(guildId);
         if (!connection) {
@@ -114,12 +146,10 @@ export class VoiceService {
                 voice,
             });
 
-            // Generate TTS audio using OpenAI
-            const mp3Response = await this.openai.audio.speech.create({
-                model: 'tts-1',
-                voice: voice,
-                input: text.substring(0, TTS_CONFIG.MAX_TEXT_LENGTH), // OpenAI TTS character limit
-                response_format: 'mp3',
+            // Generate TTS audio using ElevenLabs
+            const audioStream = await this.elevenlabs.textToSpeech.convert(voice, {
+                text: text.substring(0, TTS_CONFIG.MAX_TEXT_LENGTH),
+                modelId: 'eleven_turbo_v2_5',
             });
 
             // Save audio to temporary file
@@ -127,7 +157,11 @@ export class VoiceService {
             const fileName = `tts_${randomUUID()}.mp3`;
             tempFilePath = join(tempDir, fileName);
 
-            const buffer = Buffer.from(await mp3Response.arrayBuffer());
+            // Convert ReadableStream to buffer
+            const response = new Response(audioStream);
+            const arrayBuffer = await response.arrayBuffer();
+            const buffer = Buffer.from(arrayBuffer);
+
             const writeStream = createWriteStream(tempFilePath);
             writeStream.write(buffer);
             writeStream.end();
@@ -226,6 +260,11 @@ export class VoiceService {
 
     // Cleanup all connections on bot shutdown
     destroy(): void {
+        for (const [, timer] of this.idleTimers) {
+            clearTimeout(timer);
+        }
+        this.idleTimers.clear();
+
         for (const [guildId, connection] of this.connections) {
             try {
                 connection.destroy();

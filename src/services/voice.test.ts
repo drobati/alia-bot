@@ -19,7 +19,7 @@ jest.mock('@discordjs/voice', () => ({
     },
 }));
 
-jest.mock('openai');
+jest.mock('@elevenlabs/elevenlabs-js');
 jest.mock('fs');
 jest.mock('os');
 jest.mock('crypto');
@@ -27,7 +27,7 @@ jest.mock('crypto');
 describe('VoiceService', () => {
     let voiceService: VoiceService;
     let mockContext: Context;
-    let mockOpenAI: any;
+    let mockElevenLabs: any;
     let mockVoiceConnection: any;
     let mockChannel: any;
     let mockMember: any;
@@ -36,18 +36,16 @@ describe('VoiceService', () => {
         jest.clearAllMocks();
 
         // Mock environment
-        process.env.OPENAI_API_KEY = 'test-api-key';
+        process.env.ELEVENLABS_API_KEY = 'test-api-key';
 
-        // Mock OpenAI
-        const OpenAI = jest.requireMock('openai');
-        mockOpenAI = {
-            audio: {
-                speech: {
-                    create: jest.fn(),
-                },
+        // Mock ElevenLabs
+        const { ElevenLabsClient } = jest.requireMock('@elevenlabs/elevenlabs-js');
+        mockElevenLabs = {
+            textToSpeech: {
+                convert: jest.fn(),
             },
         };
-        OpenAI.mockImplementation(() => mockOpenAI);
+        ElevenLabsClient.mockImplementation(() => mockElevenLabs);
 
         // Mock voice connection
         mockVoiceConnection = {
@@ -93,7 +91,7 @@ describe('VoiceService', () => {
     });
 
     afterEach(() => {
-        delete process.env.OPENAI_API_KEY;
+        delete process.env.ELEVENLABS_API_KEY;
     });
 
     describe('constructor', () => {
@@ -101,17 +99,17 @@ describe('VoiceService', () => {
             expect(voiceService).toBeInstanceOf(VoiceService);
         });
 
-        it('should throw error when OPENAI_API_KEY is missing', () => {
-            delete process.env.OPENAI_API_KEY;
+        it('should throw error when ELEVENLABS_API_KEY is missing', () => {
+            delete process.env.ELEVENLABS_API_KEY;
             expect(() => new VoiceService(mockContext)).toThrow(
-                'OPENAI_API_KEY environment variable is required for TTS functionality',
+                'ELEVENLABS_API_KEY environment variable is required for TTS functionality',
             );
         });
 
-        it('should throw error when OPENAI_API_KEY is empty', () => {
-            process.env.OPENAI_API_KEY = '';
+        it('should throw error when ELEVENLABS_API_KEY is empty', () => {
+            process.env.ELEVENLABS_API_KEY = '';
             expect(() => new VoiceService(mockContext)).toThrow(
-                'OPENAI_API_KEY environment variable is required for TTS functionality',
+                'ELEVENLABS_API_KEY environment variable is required for TTS functionality',
             );
         });
     });
@@ -222,11 +220,15 @@ describe('VoiceService', () => {
                 }
             });
 
-            // Mock OpenAI TTS response
-            const mockArrayBuffer = new ArrayBuffer(1024);
-            mockOpenAI.audio.speech.create.mockResolvedValue({
-                arrayBuffer: jest.fn().mockResolvedValue(mockArrayBuffer),
+            // Mock ElevenLabs TTS response as a ReadableStream
+            const mockAudioData = new Uint8Array(1024);
+            const mockReadableStream = new ReadableStream({
+                start(controller) {
+                    controller.enqueue(mockAudioData);
+                    controller.close();
+                },
             });
+            mockElevenLabs.textToSpeech.convert.mockResolvedValue(mockReadableStream);
 
             // Mock audio player
             const discordVoice = jest.requireMock('@discordjs/voice');
@@ -246,13 +248,12 @@ describe('VoiceService', () => {
         });
 
         it('should successfully speak text', async () => {
-            await voiceService.speakText('Hello world', 'test-guild-id', 'alloy');
+            const voiceId = '21m00Tcm4TlvDq8ikWAM';
+            await voiceService.speakText('Hello world', 'test-guild-id', voiceId);
 
-            expect(mockOpenAI.audio.speech.create).toHaveBeenCalledWith({
-                model: 'tts-1',
-                voice: 'alloy',
-                input: 'Hello world',
-                response_format: 'mp3',
+            expect(mockElevenLabs.textToSpeech.convert).toHaveBeenCalledWith(voiceId, {
+                text: 'Hello world',
+                modelId: 'eleven_turbo_v2_5',
             });
 
             expect(mockContext.log.info).toHaveBeenCalledWith(
@@ -266,26 +267,27 @@ describe('VoiceService', () => {
 
         it('should truncate long text to max character limit', async () => {
             const longText = 'x'.repeat(5000);
-            await voiceService.speakText(longText, 'test-guild-id', 'alloy');
+            await voiceService.speakText(longText, 'test-guild-id', '21m00Tcm4TlvDq8ikWAM');
 
-            expect(mockOpenAI.audio.speech.create).toHaveBeenCalledWith(
+            expect(mockElevenLabs.textToSpeech.convert).toHaveBeenCalledWith(
+                '21m00Tcm4TlvDq8ikWAM',
                 expect.objectContaining({
-                    input: 'x'.repeat(4096), // TTS_CONFIG.MAX_TEXT_LENGTH value
+                    text: 'x'.repeat(4096), // TTS_CONFIG.MAX_TEXT_LENGTH value
                 }),
             );
         });
 
         it('should throw error when not connected', async () => {
-            await expect(voiceService.speakText('Hello', 'other-guild-id', 'alloy')).rejects.toThrow(
+            await expect(voiceService.speakText('Hello', 'other-guild-id', '21m00Tcm4TlvDq8ikWAM')).rejects.toThrow(
                 'Bot is not connected to any voice channel in this server',
             );
         });
 
-        it('should handle OpenAI API error', async () => {
+        it('should handle ElevenLabs API error', async () => {
             const apiError = new Error('API error');
-            mockOpenAI.audio.speech.create.mockRejectedValue(apiError);
+            mockElevenLabs.textToSpeech.convert.mockRejectedValue(apiError);
 
-            await expect(voiceService.speakText('Hello', 'test-guild-id', 'alloy')).rejects.toThrow(
+            await expect(voiceService.speakText('Hello', 'test-guild-id', '21m00Tcm4TlvDq8ikWAM')).rejects.toThrow(
                 'TTS failed: API error',
             );
 
@@ -299,11 +301,15 @@ describe('VoiceService', () => {
         });
 
         it('should clean up temporary file even on error', async () => {
-            // Mock OpenAI to succeed first, then fail during playback
-            const mockArrayBuffer = new ArrayBuffer(1024);
-            mockOpenAI.audio.speech.create.mockResolvedValue({
-                arrayBuffer: jest.fn().mockResolvedValue(mockArrayBuffer),
+            // Mock ElevenLabs to succeed first, then fail during playback
+            const mockAudioData = new Uint8Array(1024);
+            const mockStream = new ReadableStream({
+                start(controller) {
+                    controller.enqueue(mockAudioData);
+                    controller.close();
+                },
             });
+            mockElevenLabs.textToSpeech.convert.mockResolvedValue(mockStream);
 
             // Mock player to fail
             const discordVoice = jest.requireMock('@discordjs/voice');
@@ -320,7 +326,7 @@ describe('VoiceService', () => {
                 }
             });
 
-            await expect(voiceService.speakText('Hello', 'test-guild-id', 'alloy')).rejects.toThrow();
+            await expect(voiceService.speakText('Hello', 'test-guild-id', '21m00Tcm4TlvDq8ikWAM')).rejects.toThrow();
 
             expect(jest.spyOn(fs, 'unlinkSync')).toHaveBeenCalledWith(
                 '/tmp/tts_12345678-1234-1234-1234-123456789012.mp3',
@@ -333,7 +339,7 @@ describe('VoiceService', () => {
                 throw cleanupError;
             });
 
-            await voiceService.speakText('Hello', 'test-guild-id', 'alloy');
+            await voiceService.speakText('Hello', 'test-guild-id', '21m00Tcm4TlvDq8ikWAM');
 
             expect(mockContext.log.warn).toHaveBeenCalledWith(
                 'Failed to clean up temporary TTS file',
@@ -389,6 +395,55 @@ describe('VoiceService', () => {
                 connected: true,
                 channelId: 'test-channel-id',
             });
+        });
+    });
+
+    describe('resetIdleTimer', () => {
+        it('should set an idle timer that auto-leaves after timeout', () => {
+            jest.useFakeTimers();
+
+            voiceService.resetIdleTimer('test-guild-id');
+
+            // Timer should not have fired yet
+            jest.advanceTimersByTime(4 * 60 * 1000); // 4 minutes
+            expect(mockContext.log.info).not.toHaveBeenCalledWith(
+                'Auto-leaving voice channel due to idle timeout',
+                expect.anything(),
+            );
+
+            jest.useRealTimers();
+        });
+
+        it('should clear previous timer when reset', () => {
+            jest.useFakeTimers();
+
+            voiceService.resetIdleTimer('test-guild-id');
+            voiceService.resetIdleTimer('test-guild-id'); // reset again
+
+            // Should not have doubled up
+            jest.advanceTimersByTime(5 * 60 * 1000 + 100);
+            jest.useRealTimers();
+        });
+    });
+
+    describe('clearIdleTimer', () => {
+        it('should clear an existing idle timer', () => {
+            jest.useFakeTimers();
+
+            voiceService.resetIdleTimer('test-guild-id');
+            voiceService.clearIdleTimer('test-guild-id');
+
+            jest.advanceTimersByTime(6 * 60 * 1000);
+            expect(mockContext.log.info).not.toHaveBeenCalledWith(
+                'Auto-leaving voice channel due to idle timeout',
+                expect.anything(),
+            );
+
+            jest.useRealTimers();
+        });
+
+        it('should handle clearing when no timer exists', () => {
+            expect(() => voiceService.clearIdleTimer('no-timer-guild')).not.toThrow();
         });
     });
 

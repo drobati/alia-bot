@@ -97,12 +97,14 @@ const TTS_CONFIG_KEYS = {
 };
 
 const VOICE_CHOICES = [
-    { name: 'Alloy (Neutral)', value: 'alloy' },
-    { name: 'Echo (Male)', value: 'echo' },
-    { name: 'Fable (British Male)', value: 'fable' },
-    { name: 'Onyx (Deep Male)', value: 'onyx' },
-    { name: 'Nova (Female)', value: 'nova' },
-    { name: 'Shimmer (Soft Female)', value: 'shimmer' },
+    { name: 'Rachel (Calm Female)', value: '21m00Tcm4TlvDq8ikWAM' },
+    { name: 'Adam (Deep Male)', value: 'pNInz6obpgDQGcFmaJgB' },
+    { name: 'Antoni (Warm Male)', value: 'ErXwobaYiN019PkySvjV' },
+    { name: 'Arnold (Crisp Male)', value: 'VR6AewLTigWG4xSOukaG' },
+    { name: 'Charlotte (Confident Female)', value: 'XB0fDUnXU5powFXDhCwa' },
+    { name: 'Charlie (Casual Male)', value: 'IKne3meq5aSn9XLyUdCD' },
+    { name: 'Dorothy (Expressive Female)', value: 'ThT5KcBeYPX3keUQqHPh' },
+    { name: 'Josh (Young Male)', value: 'TxGEqnHWrfWFTfGW9XjX' },
 ];
 
 // General handlers
@@ -430,7 +432,7 @@ async function handleTtsShow(interaction: ChatInputCommandInteraction, context: 
 
     const configMap = new Map(configs.map((config: any) => [config.key, config.value]));
 
-    const defaultVoice = configMap.get(TTS_CONFIG_KEYS.DEFAULT_VOICE) || 'alloy';
+    const defaultVoice = configMap.get(TTS_CONFIG_KEYS.DEFAULT_VOICE) || 'Df0A8fHl2LOO7kDNIlpg';
     const maxLength = configMap.get(TTS_CONFIG_KEYS.MAX_LENGTH) || String(TTS_CONFIG.MAX_TEXT_LENGTH);
     const rateLimitCooldown = configMap.get(TTS_CONFIG_KEYS.RATE_LIMIT_COOLDOWN) || '5';
 
@@ -438,15 +440,23 @@ async function handleTtsShow(interaction: ChatInputCommandInteraction, context: 
         (context.voiceService.isConnectedToVoice(interaction.guild!.id) ? 'Connected' : 'Disconnected') :
         'Not initialized';
 
+    const ttsChannelConfig = await context.tables.Config.findOne({
+        where: { key: `tts_channel_${interaction.guildId}` },
+    });
+    const ttsChannel = ttsChannelConfig?.value
+        ? `<#${ttsChannelConfig.value}>`
+        : 'Not configured';
+
     const configText = [
         '**TTS Configuration**',
         '',
         `**Voice Status:** ${status}`,
+        `**TTS Channel:** ${ttsChannel}`,
         `**Default Voice:** ${defaultVoice}`,
         `**Max Text Length:** ${maxLength} characters`,
         `**Rate Limit Cooldown:** ${rateLimitCooldown} seconds`,
         '',
-        '*Use `/config tts set-voice` and `/config tts set-max-length` to modify settings.*',
+        '*Use `/config tts set-channel` to set the TTS input channel.*',
     ].join('\n');
 
     await interaction.reply({ content: configText, ephemeral: true });
@@ -504,6 +514,42 @@ async function handleTtsReset(interaction: ChatInputCommandInteraction, context:
 
     await interaction.reply({
         content: 'All TTS configuration has been reset to defaults.',
+        ephemeral: true,
+    });
+}
+
+async function handleTtsSetChannel(interaction: ChatInputCommandInteraction, context: Context) {
+    const channel = interaction.options.getChannel('channel', true);
+    const guildId = interaction.guildId;
+
+    if (!guildId) {
+        await interaction.reply({ content: 'This command can only be used in a server.', ephemeral: true });
+        return;
+    }
+
+    const key = `tts_channel_${guildId}`;
+    await context.tables.Config.upsert({ key, value: channel.id });
+
+    await interaction.reply({
+        content: `TTS channel set to <#${channel.id}>. ` +
+            'Owner messages in that channel will be auto-spoken.',
+        ephemeral: true,
+    });
+}
+
+async function handleTtsClearChannel(interaction: ChatInputCommandInteraction, context: Context) {
+    const guildId = interaction.guildId;
+
+    if (!guildId) {
+        await interaction.reply({ content: 'This command can only be used in a server.', ephemeral: true });
+        return;
+    }
+
+    const key = `tts_channel_${guildId}`;
+    await context.tables.Config.destroy({ where: { key } });
+
+    await interaction.reply({
+        content: 'TTS channel cleared. Auto-speak mode is disabled.',
         ephemeral: true,
     });
 }
@@ -685,7 +731,18 @@ export default {
                     .setMaxValue(TTS_CONFIG.MAX_TEXT_LENGTH)))
             .addSubcommand((subcommand: any) => subcommand
                 .setName('reset')
-                .setDescription('Reset all TTS configuration to defaults.'))),
+                .setDescription('Reset all TTS configuration to defaults.'))
+            .addSubcommand((subcommand: any) => subcommand
+                .setName('set-channel')
+                .setDescription('Set the text channel for TTS mode (messages are auto-spoken).')
+                .addChannelOption((option: any) => option
+                    .setName('channel')
+                    .setDescription('The text channel to watch for TTS messages.')
+                    .addChannelTypes(ChannelType.GuildText)
+                    .setRequired(true)))
+            .addSubcommand((subcommand: any) => subcommand
+                .setName('clear-channel')
+                .setDescription('Clear the TTS channel and disable auto-speak mode.'))),
 
     async autocomplete(interaction: AutocompleteInteraction, { tables }: Context) {
         // Only show autocomplete options to owner
@@ -794,6 +851,10 @@ export default {
                         await handleTtsSetMaxLength(interaction, context);
                     } else if (subcommand === 'reset') {
                         await handleTtsReset(interaction, context);
+                    } else if (subcommand === 'set-channel') {
+                        await handleTtsSetChannel(interaction, context);
+                    } else if (subcommand === 'clear-channel') {
+                        await handleTtsClearChannel(interaction, context);
                     }
                     break;
 

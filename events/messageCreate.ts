@@ -2,6 +2,7 @@ import { Events, Message } from 'discord.js';
 import { Context, BotEvent } from '../src/utils/types';
 import response from '../src/responses'; // Adjust the import path as needed
 import reactions from '../src/responses/reactions';
+import ttsChannel from '../src/responses/ttsChannel';
 
 const messageCreateEvent: BotEvent = {
     name: Events.MessageCreate,
@@ -153,6 +154,11 @@ const messageCreateEvent: BotEvent = {
             }
 
             // Independent processing (runs regardless of which response handled the message)
+
+            // Process TTS channel messages (owner-only, auto-speak in voice)
+            ttsChannel(message, context).catch(error => {
+                context.log.error('TTS channel processing failed', { error });
+            });
 
             // Occasionally react to messages with contextual emoji
             reactions(message, context).catch(error => {
