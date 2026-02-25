@@ -15,11 +15,13 @@ export interface VoiceService {
     speakText: (
         text: string,
         guildId: string,
-        voice?: 'alloy' | 'echo' | 'fable' | 'onyx' | 'nova' | 'shimmer'
+        voice?: string
     ) => Promise<void>;
     getUserVoiceChannel: (member: any) => any;
     isConnectedToVoice: (guildId: string) => boolean;
     getConnectionInfo: (guildId: string) => any;
+    resetIdleTimer: (guildId: string) => void;
+    clearIdleTimer: (guildId: string) => void;
     destroy: () => void;
 }
 

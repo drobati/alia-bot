@@ -28,6 +28,7 @@
     "homepage": "https://github.com/desert-planet/alia#readme",
     "dependencies": {
         "@discordjs/voice": "^0.19.0",
+        "@elevenlabs/elevenlabs-js": "^2.36.0",
         "@hapi/hapi": "^21.3.2",
         "@sentry/node": "^10.8.0",
         "@sentry/profiling-node": "^10.8.0",
