@@ -96,17 +96,6 @@ const TTS_CONFIG_KEYS = {
     AUTO_JOIN: 'tts_auto_join',
 };
 
-const VOICE_CHOICES = [
-    { name: 'Rachel (Calm Female)', value: '21m00Tcm4TlvDq8ikWAM' },
-    { name: 'Adam (Deep Male)', value: 'pNInz6obpgDQGcFmaJgB' },
-    { name: 'Antoni (Warm Male)', value: 'ErXwobaYiN019PkySvjV' },
-    { name: 'Arnold (Crisp Male)', value: 'VR6AewLTigWG4xSOukaG' },
-    { name: 'Charlotte (Confident Female)', value: 'XB0fDUnXU5powFXDhCwa' },
-    { name: 'Charlie (Casual Male)', value: 'IKne3meq5aSn9XLyUdCD' },
-    { name: 'Dorothy (Expressive Female)', value: 'ThT5KcBeYPX3keUQqHPh' },
-    { name: 'Josh (Young Male)', value: 'TxGEqnHWrfWFTfGW9XjX' },
-];
-
 // General handlers
 async function handleGeneralAdd(interaction: ChatInputCommandInteraction, context: Context) {
     const key = interaction.options.getString('key', true);
@@ -717,9 +706,8 @@ export default {
                 .setDescription('Set the default TTS voice.')
                 .addStringOption((option: any) => option
                     .setName('voice')
-                    .setDescription('Voice to use as default')
-                    .setRequired(true)
-                    .addChoices(...VOICE_CHOICES)))
+                    .setDescription('ElevenLabs voice ID')
+                    .setRequired(true)))
             .addSubcommand((subcommand: any) => subcommand
                 .setName('set-max-length')
                 .setDescription('Set maximum text length for TTS.')

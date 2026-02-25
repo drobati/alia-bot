@@ -178,12 +178,14 @@ export class VoiceService {
                 fileSize: buffer.length,
             });
 
-            // Create audio resource and play
+            // Subscribe player first, then brief delay so Discord audio
+            // stream is established before playback begins
             const resource = createAudioResource(createReadStream(tempFilePath));
             const player = createAudioPlayer();
 
-            player.play(resource);
             connection.subscribe(player);
+            await new Promise(resolve => setTimeout(resolve, 200));
+            player.play(resource);
 
             // Wait for audio to finish playing
             await new Promise<void>((resolve, reject) => {
