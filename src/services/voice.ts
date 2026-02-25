@@ -146,10 +146,15 @@ export class VoiceService {
                 voice,
             });
 
-            // Generate TTS audio using ElevenLabs
+            // Generate TTS audio using ElevenLabs v3
             const audioStream = await this.elevenlabs.textToSpeech.convert(voice, {
                 text: text.substring(0, TTS_CONFIG.MAX_TEXT_LENGTH),
-                modelId: 'eleven_turbo_v2_5',
+                modelId: 'eleven_v3',
+                voiceSettings: {
+                    stability: 0.3,
+                    similarityBoost: 0.75,
+                    style: 0.0,
+                },
             });
 
             // Save audio to temporary file
