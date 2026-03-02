@@ -24,6 +24,8 @@ import SparksLedger from "./sparksLedger";
 import SparksEngagement from "./sparksEngagement";
 import ArcWishlist from "./arcWishlist";
 import Voice from "./voice";
+import SpiceBalance from "./spiceBalance";
+import SpiceLedger from "./spiceLedger";
 
 export default {
     Adlibs,
@@ -52,4 +54,6 @@ export default {
     SparksEngagement,
     ArcWishlist,
     Voice,
+    SpiceBalance,
+    SpiceLedger,
 };
