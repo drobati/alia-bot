@@ -49,6 +49,12 @@ export interface SparksService {
     ) => Promise<boolean>;
 }
 
+// Forward declaration for StockSchedulerService
+export interface StockSchedulerService {
+    initialize: () => Promise<void>;
+    shutdown: () => void;
+}
+
 // Re-export types from dedicated type files
 export { BotCommand, ExtendedClient, BotEvent, MessageResponse } from '../types/discord';
 export { DatabaseTables } from '../types/database';
@@ -64,6 +70,7 @@ export interface Context {
     voiceService?: VoiceService;
     schedulerService?: SchedulerService;
     sparksService?: SparksService;
+    stockSchedulerService?: StockSchedulerService;
     client?: any; // Discord client for sending messages
 }
 

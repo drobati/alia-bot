@@ -230,6 +230,10 @@ process.on('SIGINT', () => {
         context.schedulerService.shutdown();
         log.info('Scheduler service shut down');
     }
+    if (context.stockSchedulerService) {
+        context.stockSchedulerService.shutdown();
+        log.info('Stock scheduler service shut down');
+    }
     if (voiceService) {
         voiceService.destroy();
         log.info('Voice service destroyed');
@@ -246,6 +250,10 @@ process.on('SIGTERM', () => {
     if (context.schedulerService) {
         context.schedulerService.shutdown();
         log.info('Scheduler service shut down');
+    }
+    if (context.stockSchedulerService) {
+        context.stockSchedulerService.shutdown();
+        log.info('Stock scheduler service shut down');
     }
     if (voiceService) {
         voiceService.destroy();

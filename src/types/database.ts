@@ -491,6 +491,39 @@ export interface SpiceLedgerModelStatic {
     count(options?: FindOptions<SpiceLedgerAttributes>): Promise<number>;
 }
 
+export interface StockTrackingAttributes {
+    id?: number;
+    guild_id: string;
+    channel_id: string;
+    user_id: string;
+    ticker: string;
+    feature: 'market_open' | 'market_close' | 'big_swing';
+    threshold?: number | null;
+    is_active: boolean;
+    last_notified_at?: Date | null;
+    created_at?: Date;
+    updated_at?: Date;
+}
+
+export interface StockTrackingModel extends StockTrackingAttributes {
+    update(_values: Partial<StockTrackingAttributes>): Promise<StockTrackingModel>;
+    destroy(): Promise<void>;
+}
+
+export interface StockTrackingModelStatic {
+    findAll(options?: FindOptions<StockTrackingAttributes>): Promise<StockTrackingModel[]>;
+    findOne(options?: FindOptions<StockTrackingAttributes>): Promise<StockTrackingModel | null>;
+    create(values: StockTrackingAttributes): Promise<StockTrackingModel>;
+    findOrCreate(options: FindOrCreateOptions<StockTrackingAttributes>): Promise<[StockTrackingModel, boolean]>;
+    upsert(values: StockTrackingAttributes, options?: UpsertOptions): Promise<[StockTrackingModel, boolean]>;
+    update(
+        values: Partial<StockTrackingAttributes>,
+        options: { where: WhereOptions<StockTrackingAttributes> },
+    ): Promise<[number]>;
+    destroy(options: DestroyOptions<StockTrackingAttributes>): Promise<number>;
+    count(options?: FindOptions<StockTrackingAttributes>): Promise<number>;
+}
+
 export interface VoiceAttributes {
     id?: number;
     name: string;
@@ -534,5 +567,6 @@ export interface DatabaseTables {
     SpiceBalance: SpiceBalanceModelStatic;
     SpiceLedger: SpiceLedgerModelStatic;
     Voice: VoiceModelStatic;
+    StockTracking: StockTrackingModelStatic;
     [key: string]: any; // Allow dynamic table access
 }

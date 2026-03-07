@@ -52,10 +52,11 @@ describe('Stock Command - Integration Tests', () => {
             expect(typeof stockCommand.autocomplete).toBe('function');
         });
 
-        it('should have get subcommand with autocomplete', () => {
+        it('should have all subcommands', () => {
             const commandData = stockCommand.data.toJSON();
-            expect(commandData.options).toHaveLength(1);
-            expect(commandData.options![0].name).toBe('get');
+            expect(commandData.options).toHaveLength(4);
+            const names = commandData.options!.map((o: any) => o.name);
+            expect(names).toEqual(['get', 'track', 'untrack', 'list']);
         });
     });
 
