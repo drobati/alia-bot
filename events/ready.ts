@@ -5,6 +5,7 @@ import { stripIndent } from 'common-tags';
 import { safelyFindChannel, safelySendToChannel, isTextChannel } from '../src/utils/discordHelpers';
 import { SchedulerService } from '../src/services/schedulerService';
 import { registerDefaultHandlers } from '../src/services/eventHandlers';
+import { StockSchedulerService } from '../src/services/stockSchedulerService';
 import { Sentry } from '../src/lib/sentry';
 
 const clientReadyEvent: BotEvent = {
@@ -104,6 +105,18 @@ const clientReadyEvent: BotEvent = {
                         tags: { service: 'scheduler', phase: 'initialization' },
                     });
                 }
+            }
+            // Initialize stock scheduler service
+            try {
+                const stockSchedulerService = new StockSchedulerService(client, context);
+                context.stockSchedulerService = stockSchedulerService;
+                await stockSchedulerService.initialize();
+                log.info({ category: 'service_initialization' }, 'Stock scheduler service initialized');
+            } catch (stockError) {
+                log.warn({
+                    error: stockError,
+                    category: 'service_initialization',
+                }, 'Stock scheduler service failed to initialize - bot will continue without stock notifications');
             }
         } catch (tableSyncError) {
             log.error({ error: tableSyncError, category: 'database' }, 'Critical error during table sync');

@@ -26,6 +26,7 @@ import ArcWishlist from "./arcWishlist";
 import Voice from "./voice";
 import SpiceBalance from "./spiceBalance";
 import SpiceLedger from "./spiceLedger";
+import StockTracking from "./stockTracking";
 
 export default {
     Adlibs,
@@ -56,4 +57,5 @@ export default {
     Voice,
     SpiceBalance,
     SpiceLedger,
+    StockTracking,
 };

@@ -240,6 +240,200 @@ async function handleStockError(
     }
 }
 
+const FEATURE_LABELS: Record<string, string> = {
+    market_open: 'Market Open',
+    market_close: 'Market Close',
+    big_swing: 'Big Swing',
+};
+
+async function handleTrack(interaction: CommandInteraction, context: Context) {
+    if (!interaction.isChatInputCommand()) {return;}
+    const { log } = context;
+
+    const ticker = interaction.options.getString('ticker')?.toUpperCase();
+    const feature = interaction.options.getString('feature') as 'market_open' | 'market_close' | 'big_swing';
+    const threshold = interaction.options.getNumber('threshold');
+
+    if (!ticker || !feature) {
+        await interaction.reply({ content: 'Missing required options.', ephemeral: true });
+        return;
+    }
+
+    const tickerRegex = /^[A-Za-z]{1,10}$/;
+    if (!tickerRegex.test(ticker)) {
+        await interaction.reply({
+            content: 'Invalid ticker format. Please use 1-10 letters only (e.g., AAPL, MSFT).',
+            ephemeral: true,
+        });
+        return;
+    }
+
+    const channelId = interaction.channelId;
+    const guildId = interaction.guildId;
+
+    if (!guildId) {
+        await interaction.reply({ content: 'This command can only be used in a server.', ephemeral: true });
+        return;
+    }
+
+    // Check if already tracking
+    const existing = await context.tables.StockTracking.findOne({
+        where: {
+            guild_id: guildId,
+            channel_id: channelId,
+            ticker,
+            feature,
+            is_active: true,
+        },
+    });
+
+    if (existing) {
+        // Update threshold if it changed
+        if (feature === 'big_swing' && threshold !== null && threshold !== existing.threshold) {
+            await existing.update({ threshold });
+            await interaction.reply({
+                content: `Updated **${ticker}** ${FEATURE_LABELS[feature]}` +
+                         ` threshold to **${threshold}%** in this channel.`,
+            });
+            return;
+        }
+        await interaction.reply({
+            content: `Already tracking **${ticker}** for ${FEATURE_LABELS[feature]} in this channel.`,
+            ephemeral: true,
+        });
+        return;
+    }
+
+    await context.tables.StockTracking.create({
+        guild_id: guildId,
+        channel_id: channelId,
+        user_id: interaction.user.id,
+        ticker,
+        feature,
+        threshold: feature === 'big_swing' ? (threshold ?? 5) : null,
+        is_active: true,
+    });
+
+    // Ensure scheduler cron jobs are running
+    if (context.stockSchedulerService) {
+        (context.stockSchedulerService as any).startCronJobs?.();
+    }
+
+    const thresholdMsg = feature === 'big_swing'
+        ? ` (threshold: ${threshold ?? 5}%)`
+        : '';
+
+    log.info({
+        ticker, feature, channelId, userId: interaction.user.id,
+        category: 'stock_tracking',
+    }, `Stock tracking added: ${ticker} ${feature}`);
+
+    await interaction.reply({
+        content: `Now tracking **${ticker}** for **${FEATURE_LABELS[feature]}**${thresholdMsg} in this channel.`,
+    });
+}
+
+async function handleUntrack(interaction: CommandInteraction, context: Context) {
+    if (!interaction.isChatInputCommand()) {return;}
+
+    const ticker = interaction.options.getString('ticker')?.toUpperCase();
+    const feature = interaction.options.getString('feature');
+    const channelId = interaction.channelId;
+    const guildId = interaction.guildId;
+
+    if (!ticker || !guildId) {
+        await interaction.reply({ content: 'Missing required options.', ephemeral: true });
+        return;
+    }
+
+    const where: any = {
+        guild_id: guildId,
+        channel_id: channelId,
+        ticker,
+        is_active: true,
+    };
+
+    if (feature) {
+        where.feature = feature;
+    }
+
+    const [updatedCount] = await context.tables.StockTracking.update(
+        { is_active: false },
+        { where },
+    );
+
+    if (updatedCount === 0) {
+        await interaction.reply({
+            content: `Not tracking **${ticker}**${feature ? ` for ${FEATURE_LABELS[feature]}` : ''} in this channel.`,
+            ephemeral: true,
+        });
+        return;
+    }
+
+    context.log.info({
+        ticker, feature: feature || 'all', channelId,
+        category: 'stock_tracking',
+    }, `Stock tracking removed: ${ticker}`);
+
+    await interaction.reply({
+        content: `Stopped tracking **${ticker}**${feature ? ` for ${FEATURE_LABELS[feature]}` : ' (all features)'}` +
+                 ` in this channel. (${updatedCount} removed)`,
+    });
+}
+
+async function handleList(interaction: CommandInteraction, context: Context) {
+    const channelId = interaction.channelId;
+    const guildId = interaction.guildId;
+
+    if (!guildId) {
+        await interaction.reply({ content: 'This command can only be used in a server.', ephemeral: true });
+        return;
+    }
+
+    const trackings = await context.tables.StockTracking.findAll({
+        where: {
+            guild_id: guildId,
+            channel_id: channelId,
+            is_active: true,
+        },
+    });
+
+    if (trackings.length === 0) {
+        await interaction.reply({
+            content: 'No active stock tracking in this channel.\n' +
+                     'Use `/stock track <ticker> <feature>` to start tracking.',
+            ephemeral: true,
+        });
+        return;
+    }
+
+    // Group by ticker
+    const byTicker = new Map<string, string[]>();
+    for (const t of trackings) {
+        if (!byTicker.has(t.ticker)) {byTicker.set(t.ticker, []);}
+        let label = FEATURE_LABELS[t.feature] || t.feature;
+        if (t.feature === 'big_swing' && t.threshold) {
+            label += ` (${t.threshold}%)`;
+        }
+        byTicker.get(t.ticker)!.push(label);
+    }
+
+    const embed = new EmbedBuilder()
+        .setTitle('Stock Tracking - This Channel')
+        .setColor(0x0099ff)
+        .setTimestamp(new Date());
+
+    const lines: string[] = [];
+    for (const [ticker, features] of byTicker) {
+        lines.push(`**${ticker}** - ${features.join(', ')}`);
+    }
+
+    embed.setDescription(lines.join('\n'));
+    embed.setFooter({ text: `${trackings.length} active subscription(s)` });
+
+    await interaction.reply({ embeds: [embed] });
+}
+
 export default {
     data: new SlashCommandBuilder()
         .setName('stock')
@@ -256,22 +450,96 @@ export default {
                         .setMaxLength(10)
                         .setAutocomplete(true),
                 ),
+        )
+        .addSubcommand(subcommand =>
+            subcommand
+                .setName('track')
+                .setDescription('Track a stock for automatic notifications in this channel')
+                .addStringOption(option =>
+                    option
+                        .setName('ticker')
+                        .setDescription('Stock ticker symbol (e.g., AAPL, TSLA, MSFT)')
+                        .setRequired(true)
+                        .setMaxLength(10)
+                        .setAutocomplete(true),
+                )
+                .addStringOption(option =>
+                    option
+                        .setName('feature')
+                        .setDescription('What to track')
+                        .setRequired(true)
+                        .addChoices(
+                            { name: 'Market Open - daily opening prices', value: 'market_open' },
+                            { name: 'Market Close - daily closing prices', value: 'market_close' },
+                            { name: 'Big Swing - alert on large % moves', value: 'big_swing' },
+                        ),
+                )
+                .addNumberOption(option =>
+                    option
+                        .setName('threshold')
+                        .setDescription('Swing threshold % (default: 5, only for big_swing)')
+                        .setRequired(false)
+                        .setMinValue(1)
+                        .setMaxValue(50),
+                ),
+        )
+        .addSubcommand(subcommand =>
+            subcommand
+                .setName('untrack')
+                .setDescription('Stop tracking a stock in this channel')
+                .addStringOption(option =>
+                    option
+                        .setName('ticker')
+                        .setDescription('Stock ticker symbol to stop tracking')
+                        .setRequired(true)
+                        .setMaxLength(10)
+                        .setAutocomplete(true),
+                )
+                .addStringOption(option =>
+                    option
+                        .setName('feature')
+                        .setDescription('Which feature to stop (leave empty to stop all)')
+                        .setRequired(false)
+                        .addChoices(
+                            { name: 'Market Open', value: 'market_open' },
+                            { name: 'Market Close', value: 'market_close' },
+                            { name: 'Big Swing', value: 'big_swing' },
+                        ),
+                ),
+        )
+        .addSubcommand(subcommand =>
+            subcommand
+                .setName('list')
+                .setDescription('List all stock tracking subscriptions in this channel'),
         ),
 
     async execute(interaction: CommandInteraction, context: Context) {
         const { log } = context;
 
-        // Check if this is a chat input command with options
         if (!interaction.isChatInputCommand()) {
             return;
         }
 
         const subcommand = interaction.options.getSubcommand();
 
-        // Check if this is the 'get' subcommand
+        if (subcommand === 'track') {
+            await handleTrack(interaction, context);
+            return;
+        }
+
+        if (subcommand === 'untrack') {
+            await handleUntrack(interaction, context);
+            return;
+        }
+
+        if (subcommand === 'list') {
+            await handleList(interaction, context);
+            return;
+        }
+
         if (subcommand !== 'get') {
             await interaction.reply({
-                content: 'Unknown subcommand. Use `/stock get <ticker>` to get stock prices.',
+                content: 'Unknown subcommand.',
                 ephemeral: true,
             });
             return;
