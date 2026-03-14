@@ -38,6 +38,16 @@ for (const file of commandFiles) {
     }
 }
 
+// Load context menu commands
+try {
+    const clipModule = require(join(commandsPath, 'clip.js'));
+    if (clipModule.contextMenu) {
+        commands.push(clipModule.contextMenu.data.toJSON());
+    }
+} catch (error) {
+    console.error('[ERROR] Failed to load clip context menu command:', error);
+}
+
 // Construct and prepare an instance of the REST module
 const rest = new REST().setToken(token);
 

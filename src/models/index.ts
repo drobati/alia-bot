@@ -27,6 +27,7 @@ import Voice from "./voice";
 import SpiceBalance from "./spiceBalance";
 import SpiceLedger from "./spiceLedger";
 import StockTracking from "./stockTracking";
+import Clip from "./clip";
 
 export default {
     Adlibs,
@@ -58,4 +59,5 @@ export default {
     SpiceBalance,
     SpiceLedger,
     StockTracking,
+    Clip,
 };

@@ -1,8 +1,10 @@
 /* eslint-disable no-unused-vars */
 import {
     SlashCommandBuilder,
+    ContextMenuCommandBuilder,
     CommandInteraction,
     AutocompleteInteraction,
+    MessageContextMenuCommandInteraction,
     Message,
     Client,
     Collection,
@@ -17,9 +19,15 @@ export interface BotCommand {
     autocomplete?(interaction: AutocompleteInteraction, context: Context): Promise<void>;
 }
 
+// Context menu command interface (right-click actions on messages)
+export interface BotContextMenuCommand {
+    data: ContextMenuCommandBuilder;
+    execute(interaction: MessageContextMenuCommandInteraction, context: Context): Promise<void>;
+}
+
 // Extended Discord client interface
 export interface ExtendedClient extends Client {
-    commands: Collection<string, BotCommand>;
+    commands: Collection<string, BotCommand | BotContextMenuCommand>;
 }
 
 // Event handler interface

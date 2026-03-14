@@ -1,4 +1,7 @@
-import { CommandInteraction, Events, Interaction, ActionRowBuilder, ButtonBuilder, ButtonStyle } from "discord.js";
+import {
+    CommandInteraction, Events, Interaction,
+    ActionRowBuilder, ButtonBuilder, ButtonStyle,
+} from "discord.js";
 import { Command, Context, BotEvent, ExtendedClient } from "../src/utils/types";
 import { Sentry } from "../src/lib/sentry";
 import { DndGameAttributes, SkillCheckVote } from "../src/types/database";
@@ -18,6 +21,41 @@ const interactionCreateEventHandler: BotEvent = {
         // Handle button interactions for D&D skill checks
         if (interaction.isButton() && interaction.customId.startsWith('dnd_skill_')) {
             await handleDndSkillVote(interaction, context);
+            return;
+        }
+
+        // Handle message context menu commands (e.g., "Save Clip")
+        if (interaction.isMessageContextMenuCommand()) {
+            const command = (interaction.client as ExtendedClient).commands
+                .get(interaction.commandName) as any;
+
+            if (!command) {
+                log.error(`No context menu command matching ${interaction.commandName} was found.`);
+                return;
+            }
+
+            try {
+                log.info(`Executing context menu command: ${interaction.commandName}`);
+                await command.execute(interaction, context);
+            } catch (error) {
+                log.error(error);
+                Sentry.captureException(error, {
+                    tags: {
+                        handler: 'interactionCreate',
+                        command: interaction.commandName,
+                    },
+                    extra: {
+                        userId: interaction.user?.id,
+                        guildId: interaction.guildId,
+                    },
+                });
+                const errMsg = 'There was an error while executing this command!';
+                if (interaction.replied || interaction.deferred) {
+                    await interaction.followUp({ content: errMsg, ephemeral: true });
+                } else {
+                    await interaction.reply({ content: errMsg, ephemeral: true });
+                }
+            }
             return;
         }
 
