@@ -59,6 +59,24 @@ for (const file of commandFiles) {
     }
 }
 
+// Load context menu commands from modules that export them
+for (const file of commandFiles) {
+    const filePath = path.join(commandsPath, file);
+    try {
+        const command = require(filePath);
+        if (command.contextMenu && command.contextMenu.data) {
+            const menuData = command.contextMenu.data.toJSON ?
+                command.contextMenu.data.toJSON() :
+                command.contextMenu.data;
+            commands.push(menuData);
+            console.log(`✅ Loaded context menu command: ${menuData.name}`);
+        }
+    } catch (_error) {
+        // Already warned in previous loop
+        continue;
+    }
+}
+
 console.log(`\n📦 Loaded ${commands.length} commands`);
 
 // Deploy commands to Discord
