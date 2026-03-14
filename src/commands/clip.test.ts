@@ -47,6 +47,8 @@ function createMockSlashInteraction(subcommand: string, options: any = {}) {
             getUser: (name: string) => options[name] || null,
             // eslint-disable-next-line no-unused-vars, @typescript-eslint/no-unused-vars
             getInteger: (name: string, _required?: boolean) => options[name] ?? null,
+            // eslint-disable-next-line no-unused-vars, @typescript-eslint/no-unused-vars
+            getString: (name: string, _required?: boolean) => options[name] ?? null,
         },
         reply: jest.fn(),
         replied: false,
@@ -61,11 +63,11 @@ describe('clip command', () => {
             expect(clipCommand.data.name).toBe('clip');
         });
 
-        it('should have three subcommands', () => {
+        it('should have four subcommands', () => {
             const json = clipCommand.data.toJSON();
-            expect(json.options).toHaveLength(3);
+            expect(json.options).toHaveLength(4);
             const names = json.options!.map((o: any) => o.name);
-            expect(names).toEqual(['random', 'list', 'delete']);
+            expect(names).toEqual(['random', 'list', 'search', 'delete']);
         });
     });
 
@@ -230,6 +232,66 @@ describe('clip command', () => {
 
             expect(interaction.reply).toHaveBeenCalledWith(
                 expect.objectContaining({ content: expect.stringContaining('No clips saved yet') }),
+            );
+        });
+    });
+
+    describe('/clip search', () => {
+        it('should return a matching clip', async () => {
+            const context = createMockContext();
+            const interaction = createMockSlashInteraction('search', { query: 'funny' });
+
+            context.tables.Clip.count.mockResolvedValue(2);
+            context.tables.Clip.findAll.mockResolvedValue([{
+                id: 5,
+                guild_id: 'guild1',
+                channel_id: 'ch1',
+                message_id: 'msg5',
+                message_content: 'Something funny happened',
+                message_author_id: 'author1',
+                clipped_by_username: 'Clipper',
+                message_timestamp: new Date(),
+            }]);
+
+            await clipCommand.execute(interaction, context);
+
+            expect(interaction.reply).toHaveBeenCalledWith(
+                expect.objectContaining({ embeds: expect.any(Array) }),
+            );
+        });
+
+        it('should filter by user when provided', async () => {
+            const context = createMockContext();
+            const mockUser = { id: 'author1', displayName: 'Author', username: 'author' };
+            const interaction = createMockSlashInteraction('search', {
+                query: 'funny', user: mockUser,
+            });
+
+            context.tables.Clip.count.mockResolvedValue(0);
+
+            await clipCommand.execute(interaction, context);
+
+            expect(context.tables.Clip.count).toHaveBeenCalledWith(
+                expect.objectContaining({
+                    where: expect.objectContaining({
+                        message_author_id: 'author1',
+                    }),
+                }),
+            );
+        });
+
+        it('should handle no matches', async () => {
+            const context = createMockContext();
+            const interaction = createMockSlashInteraction('search', { query: 'nonexistent' });
+
+            context.tables.Clip.count.mockResolvedValue(0);
+
+            await clipCommand.execute(interaction, context);
+
+            expect(interaction.reply).toHaveBeenCalledWith(
+                expect.objectContaining({
+                    content: expect.stringContaining('No clips matching'),
+                }),
             );
         });
     });

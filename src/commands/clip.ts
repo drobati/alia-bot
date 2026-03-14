@@ -6,6 +6,7 @@ import {
     MessageContextMenuCommandInteraction,
     EmbedBuilder,
 } from 'discord.js';
+import { Op } from 'sequelize';
 import { Context } from '../utils/types';
 
 const CLIPS_PER_PAGE = 10;
@@ -98,6 +99,20 @@ export default {
                 ),
         )
         .addSubcommand(sub =>
+            sub.setName('search')
+                .setDescription('Search clips by content')
+                .addStringOption(opt =>
+                    opt.setName('query')
+                        .setDescription('Text to search for')
+                        .setRequired(true),
+                )
+                .addUserOption(opt =>
+                    opt.setName('user')
+                        .setDescription('Filter by who said it')
+                        .setRequired(false),
+                ),
+        )
+        .addSubcommand(sub =>
             sub.setName('delete')
                 .setDescription('Delete a clip')
                 .addIntegerOption(opt =>
@@ -118,6 +133,9 @@ export default {
                 break;
             case 'list':
                 await handleList(interaction, context);
+                break;
+            case 'search':
+                await handleSearch(interaction, context);
                 break;
             case 'delete':
                 await handleDelete(interaction, context);
@@ -161,6 +179,48 @@ async function handleRandom(interaction: CommandInteraction, context: Context) {
     const randomOffset = Math.floor(Math.random() * count);
     const clips = await context.tables.Clip.findAll({
         where: { guild_id: interaction.guildId },
+        limit: 1,
+        offset: randomOffset,
+    });
+
+    if (clips.length === 0) {
+        await interaction.reply({ content: 'No clips found.', ephemeral: true });
+        return;
+    }
+
+    await interaction.reply({ embeds: [buildClipEmbed(clips[0])] });
+}
+
+async function handleSearch(interaction: CommandInteraction, context: Context) {
+    if (!interaction.isChatInputCommand() || !interaction.guildId) {
+        await interaction.reply({ content: 'Clips only work in servers.', ephemeral: true });
+        return;
+    }
+
+    const query = interaction.options.getString('query', true);
+    const user = interaction.options.getUser('user');
+
+    const where: any = {
+        guild_id: interaction.guildId,
+        message_content: { [Op.like]: `%${query}%` },
+    };
+    if (user) {
+        where.message_author_id = user.id;
+    }
+
+    const count = await context.tables.Clip.count({ where });
+
+    if (count === 0) {
+        const msg = user
+            ? `No clips matching "${query}" by ${user.displayName || user.username}.`
+            : `No clips matching "${query}".`;
+        await interaction.reply({ content: msg, ephemeral: true });
+        return;
+    }
+
+    const randomOffset = Math.floor(Math.random() * count);
+    const clips = await context.tables.Clip.findAll({
+        where,
         limit: 1,
         offset: randomOffset,
     });
