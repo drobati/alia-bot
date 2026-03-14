@@ -16,13 +16,13 @@ export interface StockQuote {
     isMarketOpen?: boolean;
 }
 
-export interface PolygonPreviousDayResponse {
+export interface PolygonAggregateResponse {
     ticker: string;
     queryCount: number;
     resultsCount: number;
     adjusted: boolean;
     results: Array<{
-        T: string; // ticker
+        T?: string; // ticker
         v: number; // volume
         vw: number; // volume weighted average price
         o: number; // open
@@ -122,33 +122,45 @@ export class PolygonService {
 
             this.logger.info(`Fetching stock quote for ${normalizedSymbol} from Polygon.io API`);
 
-            // Get previous day's data (most reliable endpoint for free tier)
-            const response = await this.client.rest.stocks.previousClose(normalizedSymbol) as
-                PolygonPreviousDayResponse;
+            // Use aggregates with a 7-day range to get today's bar + previous trading day
+            const today = new Date();
+            const sevenDaysAgo = new Date(today);
+            sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
+
+            const fromDate = this.formatDate(sevenDaysAgo);
+            const toDate = this.formatDate(today);
+
+            const response = await this.client.rest.stocks.aggregates(
+                normalizedSymbol, 1, 'day', fromDate, toDate,
+                { adjusted: true, sort: 'asc' },
+            ) as PolygonAggregateResponse;
 
             if (!response.results || response.results.length === 0) {
                 this.logger.warn(`No stock data found for symbol: ${normalizedSymbol}`);
                 return null;
             }
 
-            const result = response.results[0];
+            const bars = response.results;
+            const currentBar = bars[bars.length - 1];
+            const previousBar = bars.length > 1 ? bars[bars.length - 2] : null;
 
-            // Calculate change from previous day
-            const change = result.c - result.o;
-            const changePercent = result.o !== 0 ? (change / result.o) * 100 : 0;
+            // Previous close is the prior trading day's close price
+            const prevClose = previousBar?.c ?? currentBar.o;
+            const change = currentBar.c - prevClose;
+            const changePercent = prevClose !== 0 ? (change / prevClose) * 100 : 0;
 
             const stockQuote: StockQuote = {
                 symbol: normalizedSymbol,
-                price: result.c,
-                change: change,
-                changePercent: changePercent,
-                volume: result.v,
-                high: result.h,
-                low: result.l,
-                open: result.o,
-                previousClose: result.o, // For previous day data, open is the previous close
-                timestamp: result.t,
-                isMarketOpen: this.isMarketOpen(), // Simple market hours check
+                price: currentBar.c,
+                change,
+                changePercent,
+                volume: currentBar.v,
+                high: currentBar.h,
+                low: currentBar.l,
+                open: currentBar.o,
+                previousClose: prevClose,
+                timestamp: currentBar.t,
+                isMarketOpen: this.isMarketOpen(),
             };
 
             // Cache the result
@@ -157,7 +169,7 @@ export class PolygonService {
                 timestamp: Date.now(),
             });
 
-            this.logger.info(`Successfully fetched stock quote for ${normalizedSymbol}: $${result.c}`);
+            this.logger.info(`Successfully fetched stock quote for ${normalizedSymbol}: $${currentBar.c}`);
             return stockQuote;
 
         } catch (error) {
@@ -187,6 +199,13 @@ export class PolygonService {
         }
 
         return cached.data;
+    }
+
+    /**
+     * Format a Date as YYYY-MM-DD for Polygon API
+     */
+    private formatDate(date: Date): string {
+        return date.toISOString().split('T')[0];
     }
 
     /**
