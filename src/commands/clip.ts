@@ -99,17 +99,18 @@ export default {
                 ),
         )
         .addSubcommand(sub =>
-            sub.setName('search')
-                .setDescription('Search clips by content')
-                .addStringOption(opt =>
-                    opt.setName('query')
-                        .setDescription('Text to search for')
-                        .setRequired(true),
-                )
+            sub.setName('show')
+                .setDescription('Search and show a clip')
                 .addUserOption(opt =>
                     opt.setName('user')
                         .setDescription('Filter by who said it')
                         .setRequired(false),
+                )
+                .addStringOption(opt =>
+                    opt.setName('query')
+                        .setDescription('Search clip content')
+                        .setRequired(false)
+                        .setAutocomplete(true),
                 ),
         )
         .addSubcommand(sub =>
@@ -134,13 +135,44 @@ export default {
             case 'list':
                 await handleList(interaction, context);
                 break;
-            case 'search':
-                await handleSearch(interaction, context);
+            case 'show':
+                await handleShow(interaction, context);
                 break;
             case 'delete':
                 await handleDelete(interaction, context);
                 break;
         }
+    },
+
+    async autocomplete(interaction: any, context: Context) {
+        const focusedValue = interaction.options.getFocused().toLowerCase();
+        const user = interaction.options.getUser('user');
+
+        const where: any = { guild_id: interaction.guildId };
+        if (user) {
+            where.message_author_id = user.id;
+        }
+        if (focusedValue) {
+            where.message_content = { [Op.like]: `%${focusedValue}%` };
+        }
+
+        const clips = await context.tables.Clip.findAll({
+            where,
+            order: [['created_at', 'DESC']],
+            limit: 25,
+        });
+
+        const choices = clips.map((clip: any) => {
+            const preview = clip.message_content.length > 80
+                ? clip.message_content.substring(0, 80) + '...'
+                : clip.message_content;
+            return {
+                name: `#${clip.id}: ${preview}`,
+                value: clip.message_content.substring(0, 100),
+            };
+        });
+
+        await interaction.respond(choices);
     },
 };
 
@@ -191,19 +223,19 @@ async function handleRandom(interaction: CommandInteraction, context: Context) {
     await interaction.reply({ embeds: [buildClipEmbed(clips[0])] });
 }
 
-async function handleSearch(interaction: CommandInteraction, context: Context) {
+async function handleShow(interaction: CommandInteraction, context: Context) {
     if (!interaction.isChatInputCommand() || !interaction.guildId) {
         await interaction.reply({ content: 'Clips only work in servers.', ephemeral: true });
         return;
     }
 
-    const query = interaction.options.getString('query', true);
+    const query = interaction.options.getString('query');
     const user = interaction.options.getUser('user');
 
-    const where: any = {
-        guild_id: interaction.guildId,
-        message_content: { [Op.like]: `%${query}%` },
-    };
+    const where: any = { guild_id: interaction.guildId };
+    if (query) {
+        where.message_content = { [Op.like]: `%${query}%` };
+    }
     if (user) {
         where.message_author_id = user.id;
     }
@@ -211,9 +243,16 @@ async function handleSearch(interaction: CommandInteraction, context: Context) {
     const count = await context.tables.Clip.count({ where });
 
     if (count === 0) {
-        const msg = user
-            ? `No clips matching "${query}" by ${user.displayName || user.username}.`
-            : `No clips matching "${query}".`;
+        let msg = 'No clips found.';
+        if (query && user) {
+            msg = `No clips matching "${query}" by ${user.displayName || user.username}.`;
+        } else if (query) {
+            msg = `No clips matching "${query}".`;
+        } else if (user) {
+            msg = `No clips by ${user.displayName || user.username}.`;
+        } else {
+            msg = 'No clips saved yet! Right-click a message → Apps → Save Clip.';
+        }
         await interaction.reply({ content: msg, ephemeral: true });
         return;
     }

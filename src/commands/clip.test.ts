@@ -67,7 +67,7 @@ describe('clip command', () => {
             const json = clipCommand.data.toJSON();
             expect(json.options).toHaveLength(4);
             const names = json.options!.map((o: any) => o.name);
-            expect(names).toEqual(['random', 'list', 'search', 'delete']);
+            expect(names).toEqual(['random', 'list', 'show', 'delete']);
         });
     });
 
@@ -236,10 +236,10 @@ describe('clip command', () => {
         });
     });
 
-    describe('/clip search', () => {
-        it('should return a matching clip', async () => {
+    describe('/clip show', () => {
+        it('should return a matching clip with query', async () => {
             const context = createMockContext();
-            const interaction = createMockSlashInteraction('search', { query: 'funny' });
+            const interaction = createMockSlashInteraction('show', { query: 'funny' });
 
             context.tables.Clip.count.mockResolvedValue(2);
             context.tables.Clip.findAll.mockResolvedValue([{
@@ -260,10 +260,39 @@ describe('clip command', () => {
             );
         });
 
-        it('should filter by user when provided', async () => {
+        it('should show random clip for user with no query', async () => {
             const context = createMockContext();
             const mockUser = { id: 'author1', displayName: 'Author', username: 'author' };
-            const interaction = createMockSlashInteraction('search', {
+            const interaction = createMockSlashInteraction('show', { user: mockUser });
+
+            context.tables.Clip.count.mockResolvedValue(3);
+            context.tables.Clip.findAll.mockResolvedValue([{
+                id: 2,
+                guild_id: 'guild1',
+                channel_id: 'ch1',
+                message_id: 'msg2',
+                message_content: 'A quote by author',
+                message_author_id: 'author1',
+                clipped_by_username: 'Clipper',
+                message_timestamp: new Date(),
+            }]);
+
+            await clipCommand.execute(interaction, context);
+
+            expect(context.tables.Clip.count).toHaveBeenCalledWith(
+                expect.objectContaining({
+                    where: expect.objectContaining({ message_author_id: 'author1' }),
+                }),
+            );
+            expect(interaction.reply).toHaveBeenCalledWith(
+                expect.objectContaining({ embeds: expect.any(Array) }),
+            );
+        });
+
+        it('should filter by user and query', async () => {
+            const context = createMockContext();
+            const mockUser = { id: 'author1', displayName: 'Author', username: 'author' };
+            const interaction = createMockSlashInteraction('show', {
                 query: 'funny', user: mockUser,
             });
 
@@ -280,9 +309,9 @@ describe('clip command', () => {
             );
         });
 
-        it('should handle no matches', async () => {
+        it('should handle no matches with query', async () => {
             const context = createMockContext();
-            const interaction = createMockSlashInteraction('search', { query: 'nonexistent' });
+            const interaction = createMockSlashInteraction('show', { query: 'nonexistent' });
 
             context.tables.Clip.count.mockResolvedValue(0);
 
@@ -291,6 +320,75 @@ describe('clip command', () => {
             expect(interaction.reply).toHaveBeenCalledWith(
                 expect.objectContaining({
                     content: expect.stringContaining('No clips matching'),
+                }),
+            );
+        });
+
+        it('should handle no clips for user', async () => {
+            const context = createMockContext();
+            const mockUser = { id: 'author1', displayName: 'Author', username: 'author' };
+            const interaction = createMockSlashInteraction('show', { user: mockUser });
+
+            context.tables.Clip.count.mockResolvedValue(0);
+
+            await clipCommand.execute(interaction, context);
+
+            expect(interaction.reply).toHaveBeenCalledWith(
+                expect.objectContaining({
+                    content: expect.stringContaining('No clips by Author'),
+                }),
+            );
+        });
+    });
+
+    describe('autocomplete', () => {
+        it('should return matching clips', async () => {
+            const context = createMockContext();
+            const respond = jest.fn();
+            const interaction = {
+                guildId: 'guild1',
+                options: {
+                    getFocused: () => 'funny',
+                    getUser: () => null,
+                },
+                respond,
+            };
+
+            context.tables.Clip.findAll.mockResolvedValue([
+                { id: 1, message_content: 'Something funny', created_at: new Date() },
+                { id: 2, message_content: 'Very funny stuff', created_at: new Date() },
+            ]);
+
+            await clipCommand.autocomplete(interaction, context);
+
+            expect(respond).toHaveBeenCalledWith(
+                expect.arrayContaining([
+                    expect.objectContaining({ name: expect.stringContaining('funny') }),
+                ]),
+            );
+        });
+
+        it('should filter by user when selected', async () => {
+            const context = createMockContext();
+            const respond = jest.fn();
+            const interaction = {
+                guildId: 'guild1',
+                options: {
+                    getFocused: () => '',
+                    getUser: () => ({ id: 'author1' }),
+                },
+                respond,
+            };
+
+            context.tables.Clip.findAll.mockResolvedValue([]);
+
+            await clipCommand.autocomplete(interaction, context);
+
+            expect(context.tables.Clip.findAll).toHaveBeenCalledWith(
+                expect.objectContaining({
+                    where: expect.objectContaining({
+                        message_author_id: 'author1',
+                    }),
                 }),
             );
         });
