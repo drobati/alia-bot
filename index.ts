@@ -151,6 +151,18 @@ function handleEventFile(event: BotEvent) {
 async function startBot() {
     log.info('Starting command loading...');
     await loadFiles<BotCommand>('src/commands', '.js', handleCommandFile, 'test.js');
+
+    // Load context menu commands
+    try {
+        const clipModule = await import('./src/commands/clip');
+        if (clipModule.contextMenu) {
+            client.commands.set(clipModule.contextMenu.data.name, clipModule.contextMenu);
+            log.info(`Successfully loaded context menu command: ${clipModule.contextMenu.data.name}`);
+        }
+    } catch (error) {
+        log.error({ error }, 'Failed to load clip context menu command');
+    }
+
     log.info(`Command loading complete. Total commands loaded: ${client.commands.size}`);
 
     log.info('Starting event loading...');
