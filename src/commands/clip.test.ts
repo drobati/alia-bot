@@ -45,6 +45,7 @@ function createMockSlashInteraction(subcommand: string, options: any = {}) {
         options: {
             getSubcommand: () => subcommand,
             getUser: (name: string) => options[name] || null,
+            // eslint-disable-next-line no-unused-vars, @typescript-eslint/no-unused-vars
             getInteger: (name: string, _required?: boolean) => options[name] ?? null,
         },
         reply: jest.fn(),

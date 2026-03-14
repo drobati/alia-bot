@@ -113,26 +113,31 @@ export default {
         const subcommand = interaction.options.getSubcommand();
 
         switch (subcommand) {
-        case 'random':
-            await handleRandom(interaction, context);
-            break;
-        case 'list':
-            await handleList(interaction, context);
-            break;
-        case 'delete':
-            await handleDelete(interaction, context);
-            break;
+            case 'random':
+                await handleRandom(interaction, context);
+                break;
+            case 'list':
+                await handleList(interaction, context);
+                break;
+            case 'delete':
+                await handleDelete(interaction, context);
+                break;
         }
     },
 };
 
 function buildClipEmbed(clip: any): EmbedBuilder {
-    const messageUrl = `https://discord.com/channels/${clip.guild_id}/${clip.channel_id}/${clip.message_id}`;
+    const messageUrl = `https://discord.com/channels/` +
+        `${clip.guild_id}/${clip.channel_id}/${clip.message_id}`;
+
+    const description = `"${clip.message_content}"\n\n` +
+        `— <@${clip.message_author_id}> in <#${clip.channel_id}>\n` +
+        `[Jump to message](${messageUrl})`;
 
     return new EmbedBuilder()
         .setColor(EMBED_COLOR)
         .setTitle(`📎 Clip #${clip.id}`)
-        .setDescription(`"${clip.message_content}"\n\n— <@${clip.message_author_id}> in <#${clip.channel_id}>\n[Jump to message](${messageUrl})`)
+        .setDescription(description)
         .setTimestamp(new Date(clip.message_timestamp))
         .setFooter({ text: `Clipped by ${clip.clipped_by_username}` });
 }
@@ -146,7 +151,10 @@ async function handleRandom(interaction: CommandInteraction, context: Context) {
     const count = await context.tables.Clip.count({ where: { guild_id: interaction.guildId } });
 
     if (count === 0) {
-        await interaction.reply({ content: 'No clips saved yet! Right-click a message → Apps → Save Clip to get started.', ephemeral: true });
+        await interaction.reply({
+            content: 'No clips saved yet! Right-click a message → Apps → Save Clip to get started.',
+            ephemeral: true,
+        });
         return;
     }
 
