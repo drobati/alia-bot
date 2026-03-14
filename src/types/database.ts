@@ -548,6 +548,35 @@ export interface VoiceModelStatic {
     count(options?: FindOptions<VoiceAttributes>): Promise<number>;
 }
 
+export interface ClipAttributes {
+    id?: number;
+    guild_id: string;
+    channel_id: string;
+    message_id: string;
+    message_content: string;
+    message_author_id: string;
+    message_author_username: string;
+    clipped_by_id: string;
+    clipped_by_username: string;
+    message_timestamp: Date;
+    created_at?: Date;
+    updated_at?: Date;
+}
+
+export interface ClipModel extends ClipAttributes {
+    update(_values: Partial<ClipAttributes>): Promise<ClipModel>;
+    destroy(): Promise<void>;
+}
+
+export interface ClipModelStatic {
+    findAll(options?: FindOptions<ClipAttributes>): Promise<ClipModel[]>;
+    findOne(options?: FindOptions<ClipAttributes>): Promise<ClipModel | null>;
+    create(values: ClipAttributes): Promise<ClipModel>;
+    findOrCreate(options: FindOrCreateOptions<ClipAttributes>): Promise<[ClipModel, boolean]>;
+    destroy(options: DestroyOptions<ClipAttributes>): Promise<number>;
+    count(options?: FindOptions<ClipAttributes>): Promise<number>;
+}
+
 // Combined database tables interface
 export interface DatabaseTables {
     Adlibs: AdlibsModelStatic;
@@ -568,5 +597,6 @@ export interface DatabaseTables {
     SpiceLedger: SpiceLedgerModelStatic;
     Voice: VoiceModelStatic;
     StockTracking: StockTrackingModelStatic;
+    Clip: ClipModelStatic;
     [key: string]: any; // Allow dynamic table access
 }
