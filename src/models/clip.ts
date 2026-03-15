@@ -43,6 +43,11 @@ export default (sequelize: any) => ({
             type: DataTypes.DATE,
             allowNull: false,
         },
+        attachment_url: {
+            type: DataTypes.STRING(2048),
+            allowNull: true,
+            defaultValue: null,
+        },
         created_at: {
             type: DataTypes.DATE,
             defaultValue: DataTypes.NOW,

@@ -559,6 +559,7 @@ export interface ClipAttributes {
     clipped_by_id: string;
     clipped_by_username: string;
     message_timestamp: Date;
+    attachment_url?: string | null;
     created_at?: Date;
     updated_at?: Date;
 }

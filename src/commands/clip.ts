@@ -21,8 +21,15 @@ export const contextMenu = {
     async execute(interaction: MessageContextMenuCommandInteraction, context: Context) {
         const message = interaction.targetMessage;
 
-        if (!message.content || message.content.trim().length === 0) {
-            await interaction.reply({ content: "Can't clip messages without text content.", ephemeral: true });
+        const hasContent = message.content && message.content.trim().length > 0;
+        const attachment = message.attachments?.first();
+        const hasAttachment = !!attachment;
+
+        if (!hasContent && !hasAttachment) {
+            await interaction.reply({
+                content: "Can't clip empty messages.",
+                ephemeral: true,
+            });
             return;
         }
 
@@ -32,18 +39,23 @@ export const contextMenu = {
         }
 
         try {
+            const contentText = hasContent
+                ? message.content
+                : '[Image]';
+
             const [clip, created] = await context.tables.Clip.findOrCreate({
                 where: { guild_id: interaction.guildId, message_id: message.id },
                 defaults: {
                     guild_id: interaction.guildId,
                     channel_id: message.channelId,
                     message_id: message.id,
-                    message_content: message.content,
+                    message_content: contentText,
                     message_author_id: message.author.id,
                     message_author_username: message.author.displayName || message.author.username,
                     clipped_by_id: interaction.user.id,
                     clipped_by_username: interaction.user.displayName || interaction.user.username,
                     message_timestamp: message.createdAt,
+                    attachment_url: attachment?.url || null,
                 },
             });
 
@@ -52,9 +64,9 @@ export const contextMenu = {
                 return;
             }
 
-            const preview = message.content.length > 100
-                ? message.content.substring(0, 100) + '...'
-                : message.content;
+            const preview = contentText.length > 100
+                ? contentText.substring(0, 100) + '...'
+                : contentText;
 
             await interaction.reply({
                 content: `Clipped! 📎\n> ${preview}`,
@@ -180,16 +192,24 @@ function buildClipEmbed(clip: any): EmbedBuilder {
     const messageUrl = `https://discord.com/channels/` +
         `${clip.guild_id}/${clip.channel_id}/${clip.message_id}`;
 
-    const description = `"${clip.message_content}"\n\n` +
+    const contentPart = clip.message_content === '[Image]'
+        ? '' : `"${clip.message_content}"\n\n`;
+    const description = contentPart +
         `— <@${clip.message_author_id}> in <#${clip.channel_id}>\n` +
         `[Jump to message](${messageUrl})`;
 
-    return new EmbedBuilder()
+    const embed = new EmbedBuilder()
         .setColor(EMBED_COLOR)
         .setTitle(`📎 Clip #${clip.id}`)
         .setDescription(description)
         .setTimestamp(new Date(clip.message_timestamp))
         .setFooter({ text: `Clipped by ${clip.clipped_by_username}` });
+
+    if (clip.attachment_url) {
+        embed.setImage(clip.attachment_url);
+    }
+
+    return embed;
 }
 
 async function handleRandom(interaction: CommandInteraction, context: Context) {
