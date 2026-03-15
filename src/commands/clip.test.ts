@@ -110,10 +110,71 @@ describe('clip command', () => {
             );
         });
 
-        it('should reject empty messages', async () => {
+        it('should clip image-only messages', async () => {
             const context = createMockContext();
             const interaction = createMockContextMenuInteraction({
-                targetMessage: { ...createMockContextMenuInteraction().targetMessage, content: '' },
+                targetMessage: {
+                    id: 'msg2',
+                    channelId: 'ch1',
+                    content: '',
+                    author: { id: 'author1', displayName: 'Author', username: 'author' },
+                    createdAt: new Date('2026-03-14T12:00:00Z'),
+                    attachments: { first: () => ({ url: 'https://cdn.discord.com/img.png' }) },
+                },
+            });
+            const mockClip = { id: 2 };
+            context.tables.Clip.findOrCreate.mockResolvedValue([mockClip, true]);
+
+            await contextMenu.execute(interaction, context);
+
+            expect(context.tables.Clip.findOrCreate).toHaveBeenCalledWith(
+                expect.objectContaining({
+                    defaults: expect.objectContaining({
+                        message_content: '[Image]',
+                        attachment_url: 'https://cdn.discord.com/img.png',
+                    }),
+                }),
+            );
+            expect(interaction.reply).toHaveBeenCalledWith(
+                expect.objectContaining({ content: expect.stringContaining('Clipped!') }),
+            );
+        });
+
+        it('should save attachment_url for messages with text and image', async () => {
+            const context = createMockContext();
+            const interaction = createMockContextMenuInteraction({
+                targetMessage: {
+                    id: 'msg3',
+                    channelId: 'ch1',
+                    content: 'Check this out',
+                    author: { id: 'author1', displayName: 'Author', username: 'author' },
+                    createdAt: new Date('2026-03-14T12:00:00Z'),
+                    attachments: { first: () => ({ url: 'https://cdn.discord.com/pic.png' }) },
+                },
+            });
+            const mockClip = { id: 3 };
+            context.tables.Clip.findOrCreate.mockResolvedValue([mockClip, true]);
+
+            await contextMenu.execute(interaction, context);
+
+            expect(context.tables.Clip.findOrCreate).toHaveBeenCalledWith(
+                expect.objectContaining({
+                    defaults: expect.objectContaining({
+                        message_content: 'Check this out',
+                        attachment_url: 'https://cdn.discord.com/pic.png',
+                    }),
+                }),
+            );
+        });
+
+        it('should reject empty messages with no attachments', async () => {
+            const context = createMockContext();
+            const interaction = createMockContextMenuInteraction({
+                targetMessage: {
+                    ...createMockContextMenuInteraction().targetMessage,
+                    content: '',
+                    attachments: { first: () => undefined },
+                },
             });
 
             await contextMenu.execute(interaction, context);
