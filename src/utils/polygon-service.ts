@@ -1,4 +1,4 @@
-import { polygonClient } from 'polygon.io';
+import YahooFinance from 'yahoo-finance2';
 import { BotLogger } from './logger';
 
 // Types for Polygon.io API responses
@@ -14,26 +14,6 @@ export interface StockQuote {
     previousClose: number;
     timestamp: number;
     isMarketOpen?: boolean;
-}
-
-export interface PolygonAggregateResponse {
-    ticker: string;
-    queryCount: number;
-    resultsCount: number;
-    adjusted: boolean;
-    results: Array<{
-        T?: string; // ticker
-        v: number; // volume
-        vw: number; // volume weighted average price
-        o: number; // open
-        c: number; // close
-        h: number; // high
-        l: number; // low
-        t: number; // timestamp
-        n: number; // number of transactions
-    }>;
-    status: string;
-    request_id: string;
 }
 
 // Rate limiting implementation
@@ -77,24 +57,18 @@ class RateLimiter {
 }
 
 export class PolygonService {
-    private client: any;
+    private yahooFinance: InstanceType<typeof YahooFinance>;
     private rateLimiter: RateLimiter;
     private logger: BotLogger;
     private cache: Map<string, { data: StockQuote; timestamp: number }> = new Map();
     private cacheTimeoutMs: number = 5 * 60 * 1000; // 5 minutes cache
 
     constructor(logger: BotLogger) {
-        const apiKey = process.env.POLYGON_API_KEY;
-
-        if (!apiKey) {
-            throw new Error('POLYGON_API_KEY environment variable is required');
-        }
-
-        this.client = polygonClient(apiKey);
+        this.yahooFinance = new YahooFinance({ suppressNotices: ['yahooSurvey'] });
         this.rateLimiter = new RateLimiter(5, 1, logger); // 5 requests per minute
         this.logger = logger;
 
-        logger.info('PolygonService initialized with rate limiting');
+        logger.info('PolygonService initialized with Yahoo Finance');
     }
 
     /**
@@ -110,9 +84,8 @@ export class PolygonService {
             return cached;
         }
 
-        // Return mock data for testing when using placeholder API key
-        const apiKey = process.env.POLYGON_API_KEY;
-        if (apiKey === 'placeholder-key-for-testing') {
+        // Return mock data for testing
+        if (process.env.STOCK_USE_MOCK === 'true') {
             return this.getMockStockData(normalizedSymbol);
         }
 
@@ -120,47 +93,29 @@ export class PolygonService {
             // Wait for rate limit slot
             await this.rateLimiter.waitForSlot();
 
-            this.logger.info(`Fetching stock quote for ${normalizedSymbol} from Polygon.io API`);
+            this.logger.info(`Fetching stock quote for ${normalizedSymbol} from Yahoo Finance`);
 
-            // Use aggregates with a 7-day range to get today's bar + previous trading day
-            const today = new Date();
-            const sevenDaysAgo = new Date(today);
-            sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
+            const quote = await this.yahooFinance.quote(normalizedSymbol);
 
-            const fromDate = this.formatDate(sevenDaysAgo);
-            const toDate = this.formatDate(today);
-
-            const response = await this.client.rest.stocks.aggregates(
-                normalizedSymbol, 1, 'day', fromDate, toDate,
-                { adjusted: true, sort: 'asc' },
-            ) as PolygonAggregateResponse;
-
-            if (!response.results || response.results.length === 0) {
+            if (!quote || !quote.regularMarketPrice) {
                 this.logger.warn(`No stock data found for symbol: ${normalizedSymbol}`);
                 return null;
             }
 
-            const bars = response.results;
-            const currentBar = bars[bars.length - 1];
-            const previousBar = bars.length > 1 ? bars[bars.length - 2] : null;
-
-            // Previous close is the prior trading day's close price
-            const prevClose = previousBar?.c ?? currentBar.o;
-            const change = currentBar.c - prevClose;
-            const changePercent = prevClose !== 0 ? (change / prevClose) * 100 : 0;
-
             const stockQuote: StockQuote = {
                 symbol: normalizedSymbol,
-                price: currentBar.c,
-                change,
-                changePercent,
-                volume: currentBar.v,
-                high: currentBar.h,
-                low: currentBar.l,
-                open: currentBar.o,
-                previousClose: prevClose,
-                timestamp: currentBar.t,
-                isMarketOpen: this.isMarketOpen(),
+                price: quote.regularMarketPrice,
+                change: quote.regularMarketChange ?? 0,
+                changePercent: quote.regularMarketChangePercent ?? 0,
+                volume: quote.regularMarketVolume ?? 0,
+                high: quote.regularMarketDayHigh ?? quote.regularMarketPrice,
+                low: quote.regularMarketDayLow ?? quote.regularMarketPrice,
+                open: quote.regularMarketOpen ?? quote.regularMarketPrice,
+                previousClose: quote.regularMarketPreviousClose ?? quote.regularMarketPrice,
+                timestamp: quote.regularMarketTime
+                    ? new Date(quote.regularMarketTime).getTime()
+                    : Date.now(),
+                isMarketOpen: quote.marketState === 'REGULAR',
             };
 
             // Cache the result
@@ -169,11 +124,11 @@ export class PolygonService {
                 timestamp: Date.now(),
             });
 
-            this.logger.info(`Successfully fetched stock quote for ${normalizedSymbol}: $${currentBar.c}`);
+            this.logger.info(`Successfully fetched stock quote for ${normalizedSymbol}: $${stockQuote.price}`);
             return stockQuote;
 
         } catch (error) {
-            this.logger.error('Error fetching stock quote from Polygon.io', {
+            this.logger.error('Error fetching stock quote from Yahoo Finance', {
                 symbol: normalizedSymbol,
                 error: error instanceof Error ? error.message : 'Unknown error',
                 remainingRequests: this.rateLimiter.getRemainingRequests(),
@@ -199,13 +154,6 @@ export class PolygonService {
         }
 
         return cached.data;
-    }
-
-    /**
-     * Format a Date as YYYY-MM-DD for Polygon API
-     */
-    private formatDate(date: Date): string {
-        return date.toISOString().split('T')[0];
     }
 
     /**
