@@ -1,8 +1,10 @@
 import OpenAI from 'openai';
 import { Context } from "./types";
 
-const openai = new OpenAI({
-    apiKey: process.env.OPENAI_API_KEY || 'test-key-for-ci',
+// OpenRouter provides an OpenAI-compatible API, so we reuse the openai SDK
+const openrouter = new OpenAI({
+    baseURL: 'https://openrouter.ai/api/v1',
+    apiKey: process.env.OPENROUTER_API_KEY || 'test-key-for-ci',
 });
 
 interface UserContext {
@@ -12,7 +14,7 @@ interface UserContext {
 }
 
 /**
- * Generates a response using OpenAI chat completions.
+ * Generates a response using OpenRouter chat completions (Grok model).
  *
  * @param {string} message - The user message to respond to.
  * @param {Context} context - The context object.
@@ -25,25 +27,25 @@ async function generateResponse(message: string, context: Context, userContext?:
 
     try {
         const requestData = {
-            model: 'gpt-4-turbo-preview' as const,
+            model: 'x-ai/grok-3-mini-beta',
             messages: [
                 {
                     role: 'system' as const,
-                    content: 'You are Alia, a helpful Discord bot. ' +
-                        'Provide concise, friendly responses to general knowledge questions. ' +
-                        'Keep responses under 2000 characters to fit Discord message limits.',
+                    content: 'You are Alia, a sassy Discord bot who doesn\'t sugarcoat anything. ' +
+                        'Respond in one short sentence. Be witty, blunt, and a little unhinged. ' +
+                        'This is a Discord chat, not an essay.',
                 },
                 {
                     role: 'user' as const,
                     content: message,
                 },
             ],
-            max_tokens: 300,
-            temperature: 0.7,
+            max_tokens: 150,
+            temperature: 0.9,
         };
 
-        // Log OpenAI API request initiation
-        context.log.info('OpenAI API request initiated', {
+        // Log OpenRouter API request initiation
+        context.log.info('OpenRouter API request initiated', {
             userId: userContext?.userId,
             model: requestData.model,
             messageLength: message.length,
@@ -54,7 +56,7 @@ async function generateResponse(message: string, context: Context, userContext?:
 
         // Debug mode: log request details
         if (isDebugMode) {
-            context.log.debug('OpenAI API request details', {
+            context.log.debug('OpenRouter API request details', {
                 messageSnippet: message.slice(0, 200) + (message.length > 200 ? '...' : ''),
                 systemPromptLength: requestData.messages[0].content.length,
                 requestConfig: {
@@ -65,13 +67,13 @@ async function generateResponse(message: string, context: Context, userContext?:
             });
         }
 
-        const completion = await openai.chat.completions.create(requestData);
+        const completion = await openrouter.chat.completions.create(requestData);
 
         const processingTime = Date.now() - startTime;
         const responseContent = completion.choices[0].message.content;
 
         // Log successful API response
-        context.log.info('OpenAI API response received', {
+        context.log.info('OpenRouter API response received', {
             userId: userContext?.userId,
             responseLength: responseContent?.length || 0,
             tokensUsed: completion.usage?.total_tokens,
@@ -85,7 +87,7 @@ async function generateResponse(message: string, context: Context, userContext?:
 
         // Debug mode: log response details
         if (isDebugMode && responseContent) {
-            context.log.debug('OpenAI API response details', {
+            context.log.debug('OpenRouter API response details', {
                 responseSnippet: responseContent.slice(0, 200) + (responseContent.length > 200 ? '...' : ''),
                 model: completion.model,
                 created: completion.created,
@@ -111,17 +113,17 @@ async function generateResponse(message: string, context: Context, userContext?:
             success: false,
         };
 
-        // Check for specific OpenAI error types
+        // Check for specific API error types
         if (error.code === 'rate_limit_exceeded') {
-            context.log.warn('OpenAI API rate limit exceeded', errorData);
+            context.log.warn('OpenRouter API rate limit exceeded', errorData);
         } else if (error.code === 'insufficient_quota') {
-            context.log.error('OpenAI API insufficient quota', errorData);
+            context.log.error('OpenRouter API insufficient quota', errorData);
         } else if (error.status === 401) {
-            context.log.error('OpenAI API authentication failed', errorData);
+            context.log.error('OpenRouter API authentication failed', errorData);
         } else if (error.status >= 500) {
-            context.log.error('OpenAI API server error', errorData);
+            context.log.error('OpenRouter API server error', errorData);
         } else {
-            context.log.error('OpenAI API unknown error', {
+            context.log.error('OpenRouter API unknown error', {
                 ...errorData,
                 fullError: isDebugMode ? error : undefined,
             });
