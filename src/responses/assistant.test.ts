@@ -313,7 +313,7 @@ describe('Assistant Response System', () => {
             'I\'m thinking that the reason why you might think your hand looks deformed...',
         ];
 
-        problemExamples.forEach((example) => {
+        problemExamples.forEach(example => {
             it(`should NOT process: "${example.substring(0, 40)}..."`, async () => {
                 mockMessage.content = example;
 
