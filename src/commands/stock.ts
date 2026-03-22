@@ -100,9 +100,20 @@ class MockPolygonService {
 }
 
 // Helper function to create stock embed
+function getQuoteLabel(symbol: string): string {
+    if (symbol.includes('=')) {
+        return 'Futures';
+    }
+    if (symbol.startsWith('^')) {
+        return 'Index';
+    }
+    return 'Stock Quote';
+}
+
 function createStockEmbed(stockData: any, service: any): EmbedBuilder {
+    const label = getQuoteLabel(stockData.symbol);
     const embed = new EmbedBuilder()
-        .setTitle(`📈 ${stockData.symbol} Stock Quote`)
+        .setTitle(`📈 ${stockData.symbol} ${label}`)
         .setColor(stockData.change >= 0 ? 0x00ff00 : 0xff0000) // Green for positive, red for negative
         .setTimestamp(new Date(stockData.timestamp));
 
@@ -147,7 +158,7 @@ function createStockEmbed(stockData: any, service: any): EmbedBuilder {
     // Market status
     const marketStatus = stockData.isMarketOpen ? '🟢 Market Open' : '🔴 Market Closed';
     embed.setFooter({
-        text: `${marketStatus} • Data from Polygon.io • ` +
+        text: `${marketStatus} • Data from Yahoo Finance • ` +
               `${new Date(stockData.timestamp).toLocaleString()}`,
     });
 
@@ -259,10 +270,11 @@ async function handleTrack(interaction: CommandInteraction, context: Context) {
         return;
     }
 
-    const tickerRegex = /^[A-Za-z]{1,10}$/;
+    const tickerRegex = /^[\^]?[A-Za-z]{1,10}(=[A-Za-z])?$/;
     if (!tickerRegex.test(ticker)) {
         await interaction.reply({
-            content: 'Invalid ticker format. Please use 1-10 letters only (e.g., AAPL, MSFT).',
+            content: 'Invalid ticker format. Use letters for stocks (AAPL), ' +
+                     'futures (ES=F, YM=F), or indices (^GSPC).',
             ephemeral: true,
         });
         return;
@@ -445,7 +457,7 @@ export default {
                 .addStringOption(option =>
                     option
                         .setName('ticker')
-                        .setDescription('Stock ticker symbol (e.g., AAPL, TSLA, MSFT)')
+                        .setDescription('Ticker symbol (e.g., AAPL, ES=F, YM=F)')
                         .setRequired(true)
                         .setMaxLength(10)
                         .setAutocomplete(true),
@@ -458,7 +470,7 @@ export default {
                 .addStringOption(option =>
                     option
                         .setName('ticker')
-                        .setDescription('Stock ticker symbol (e.g., AAPL, TSLA, MSFT)')
+                        .setDescription('Ticker symbol (e.g., AAPL, ES=F, YM=F)')
                         .setRequired(true)
                         .setMaxLength(10)
                         .setAutocomplete(true),
@@ -556,11 +568,12 @@ export default {
             return;
         }
 
-        // Validate ticker format (basic validation)
-        const tickerRegex = /^[A-Za-z]{1,10}$/;
+        // Validate ticker format (stocks, futures, indices)
+        const tickerRegex = /^[\^]?[A-Za-z]{1,10}(=[A-Za-z])?$/;
         if (!tickerRegex.test(ticker)) {
             await interaction.reply({
-                content: 'Invalid ticker format. Please use 1-10 letters only (e.g., AAPL, MSFT).',
+                content: 'Invalid ticker format. Use letters for stocks (AAPL), ' +
+                         'futures (ES=F, YM=F), or indices (^GSPC).',
                 ephemeral: true,
             });
             return;
@@ -650,6 +663,12 @@ export default {
 
         // Popular stock tickers for autocomplete
         const popularStocks = [
+            // Futures
+            { name: 'ES=F - S&P 500 Futures', value: 'ES=F' },
+            { name: 'YM=F - Dow Jones Futures', value: 'YM=F' },
+            { name: 'NQ=F - Nasdaq 100 Futures', value: 'NQ=F' },
+            { name: 'RTY=F - Russell 2000 Futures', value: 'RTY=F' },
+
             // Tech giants
             { name: 'AAPL - Apple Inc.', value: 'AAPL' },
             { name: 'MSFT - Microsoft Corporation', value: 'MSFT' },
@@ -660,7 +679,7 @@ export default {
             { name: 'NFLX - Netflix Inc.', value: 'NFLX' },
             { name: 'NVDA - NVIDIA Corporation', value: 'NVDA' },
 
-            // Other popular stocks
+            // ETFs & Index funds
             { name: 'SPY - SPDR S&P 500 ETF', value: 'SPY' },
             { name: 'QQQ - Invesco QQQ Trust', value: 'QQQ' },
             { name: 'DIA - SPDR Dow Jones Industrial Average ETF', value: 'DIA' },
