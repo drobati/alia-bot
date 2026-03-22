@@ -1,4 +1,5 @@
 import OpenAI from 'openai';
+import { Sentry } from '../lib/sentry';
 import { Context } from "./types";
 
 // OpenRouter provides an OpenAI-compatible API, so we reuse the openai SDK
@@ -31,9 +32,10 @@ async function generateResponse(message: string, context: Context, userContext?:
             messages: [
                 {
                     role: 'system' as const,
-                    content: 'You are Alia, a sassy Discord bot who doesn\'t sugarcoat anything. ' +
-                        'Respond in one short sentence. Be witty, blunt, and a little unhinged. ' +
-                        'This is a Discord chat, not an essay.',
+                    content: 'You are Alia, a roast-happy Discord bot in a friend group. ' +
+                        'When someone asks you to roast or insult someone, go all in. ' +
+                        'Be savage, funny, and merciless. Never defend anyone. ' +
+                        'Never be wholesome. One short sentence. This is Discord, not therapy.',
                 },
                 {
                     role: 'user' as const,
@@ -128,6 +130,11 @@ async function generateResponse(message: string, context: Context, userContext?:
                 fullError: isDebugMode ? error : undefined,
             });
         }
+
+        Sentry.captureException(error, {
+            tags: { feature: 'assistant', provider: 'openrouter', model: 'grok-3-mini-beta' },
+            extra: errorData,
+        });
 
         return null;
     }
