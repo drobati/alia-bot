@@ -4,10 +4,19 @@ import { Context } from '../utils/types';
 // Mock the dependencies BEFORE importing the module that uses them
 jest.mock('../utils/assistant');
 jest.mock('../utils/discordHelpers');
+jest.mock('../utils/alia-context', () => ({
+    gatherAliaContext: jest.fn().mockResolvedValue({
+        speakerDescriptions: [],
+        mentionedUsers: [],
+        relevantMemories: [],
+        history: [],
+    }),
+}));
 
 import assistantResponse from './assistant';
 import generateResponse from '../utils/assistant';
 import { safelySendToChannel } from '../utils/discordHelpers';
+import { _resetForTests as resetHistory } from '../utils/conversation-history';
 
 // Mock openai SDK (used by OpenRouter client) to prevent instantiation errors
 jest.mock('openai', () => ({
@@ -31,6 +40,7 @@ describe('Assistant Response System', () => {
 
     beforeEach(() => {
         jest.clearAllMocks();
+        resetHistory();
 
         mockChannel = {
             send: jest.fn().mockResolvedValue({ id: 'message-123' }),
@@ -175,8 +185,10 @@ describe('Assistant Response System', () => {
                 {
                     userId: 'test-user-id',
                     username: 'testuser',
+                    displayName: 'testuser',
                     channelId: 'test-channel-id',
                 },
+                expect.any(Object),
             );
             expect(mockSafelySendToChannel).toHaveBeenCalledWith(
                 mockChannel,
@@ -264,6 +276,7 @@ describe('Assistant Response System', () => {
                 'what is DNA?',
                 mockContext,
                 expect.any(Object),
+                expect.any(Object),
             );
         });
 
@@ -275,6 +288,7 @@ describe('Assistant Response System', () => {
             expect(mockGenerateResponse).toHaveBeenCalledWith(
                 'what is RNA?',
                 mockContext,
+                expect.any(Object),
                 expect.any(Object),
             );
         });
@@ -288,6 +302,7 @@ describe('Assistant Response System', () => {
                 'what is ATP?',
                 mockContext,
                 expect.any(Object),
+                expect.any(Object),
             );
         });
 
@@ -300,6 +315,7 @@ describe('Assistant Response System', () => {
             expect(mockGenerateResponse).toHaveBeenCalledWith(
                 '@Alia what is mitochondria?',
                 mockContext,
+                expect.any(Object),
                 expect.any(Object),
             );
         });
