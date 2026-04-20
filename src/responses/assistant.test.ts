@@ -10,7 +10,17 @@ jest.mock('../utils/alia-context', () => ({
         mentionedUsers: [],
         relevantMemories: [],
         history: [],
+        relationship: {
+            count: 0, tier: 'stranger', lastInteractionAt: null, hoursSinceLast: null,
+        },
+        knownUsers: [],
     }),
+}));
+jest.mock('../utils/alia-relationships', () => ({
+    bumpInteraction: jest.fn().mockResolvedValue(undefined),
+    classifyTier: jest.fn(),
+    describeRelationship: jest.fn().mockReturnValue(''),
+    getInteractionInfo: jest.fn(),
 }));
 
 import assistantResponse from './assistant';

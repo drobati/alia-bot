@@ -1,10 +1,17 @@
 import { Message } from 'discord.js';
 import { Context } from './types';
 import { getHistory, HistoryEntry } from './conversation-history';
+import { getInteractionInfo, InteractionInfo } from './alia-relationships';
 
 export interface MentionedUserContext {
+    userId: string;
     displayName: string;
     descriptions: string[];
+}
+
+export interface KnownUser {
+    userId: string;
+    displayName: string;
 }
 
 export interface AliaExtraContext {
@@ -12,6 +19,8 @@ export interface AliaExtraContext {
     mentionedUsers: MentionedUserContext[];
     relevantMemories: { key: string; value: string }[];
     history: HistoryEntry[];
+    relationship: InteractionInfo;
+    knownUsers: KnownUser[];
 }
 
 const MAX_DESCRIPTIONS_PER_USER = 5;
@@ -52,6 +61,7 @@ async function findRelevantMemories(
 export async function gatherAliaContext(
     message: Message,
     context: Context,
+    speakerDisplayName: string,
 ): Promise<AliaExtraContext> {
     const { tables, log } = context;
     const guildId = message.guildId;
@@ -61,11 +71,18 @@ export async function gatherAliaContext(
         mentionedUsers: [],
         relevantMemories: [],
         history: getHistory(message.channelId),
+        relationship: {
+            count: 0, tier: 'stranger', lastInteractionAt: null, hoursSinceLast: null,
+        },
+        knownUsers: [{ userId: message.author.id, displayName: speakerDisplayName }],
     };
 
     try {
         if (guildId) {
             result.speakerDescriptions = await fetchDescriptions(
+                tables, guildId, message.author.id,
+            );
+            result.relationship = await getInteractionInfo(
                 tables, guildId, message.author.id,
             );
 
@@ -77,11 +94,13 @@ export async function gatherAliaContext(
             });
 
             for (const userId of mentionedIds) {
-                const descriptions = await fetchDescriptions(tables, guildId, userId);
-                if (descriptions.length === 0) {continue;}
                 const member = message.mentions.users.get(userId);
                 const displayName = member?.username ?? userId;
-                result.mentionedUsers.push({ displayName, descriptions });
+                result.knownUsers.push({ userId, displayName });
+
+                const descriptions = await fetchDescriptions(tables, guildId, userId);
+                if (descriptions.length === 0) {continue;}
+                result.mentionedUsers.push({ userId, displayName, descriptions });
             }
         }
 
