@@ -9,6 +9,7 @@ import {
     getTimeOfDayBlock,
     Mood,
 } from './alia-mood';
+import { describeRelationship } from './alia-relationships';
 
 // OpenRouter provides an OpenAI-compatible API, so we reuse the openai SDK
 const openrouter = new OpenAI({
@@ -70,6 +71,30 @@ function buildMemoriesBlock(extras: AliaExtraContext | undefined): string | null
     return ['Relevant guild lore you remember:', ...lines].join('\n');
 }
 
+function buildRelationshipBlock(extras: AliaExtraContext | undefined, speakerName: string): string | null {
+    if (!extras) {return null;}
+    return describeRelationship(extras.relationship, speakerName);
+}
+
+function buildKnownUsersBlock(extras: AliaExtraContext | undefined): string | null {
+    if (!extras || extras.knownUsers.length === 0) {return null;}
+    const lines = extras.knownUsers.map(u => `- ${u.displayName} (id: ${u.userId})`);
+    return ['Users in this conversation (use these exact IDs with REMEMBER markers):', ...lines].join('\n');
+}
+
+const REMEMBER_INSTRUCTIONS = [
+    'Auto-learn capability:',
+    'If a user explicitly asks you to remember a fact about someone (themselves or',
+    'another person in the conversation), include a hidden marker in your reply:',
+    '  <REMEMBER user_id="<id>" description="<short phrase>"/>',
+    'Rules:',
+    '- Only use this when someone ASKS you to remember something. Do not invent facts.',
+    '- Use ONLY the exact Discord user IDs from the users-in-conversation list.',
+    '- The description should be a short phrase (e.g. "a badass guitarist"), not a sentence.',
+    '- The marker is stripped before Discord sees it. Still write your normal reply alongside.',
+    '- You can include multiple markers. One per fact.',
+].join('\n');
+
 function buildSystemPrompt(params: {
     mood: Mood;
     speakerName: string;
@@ -81,9 +106,12 @@ function buildSystemPrompt(params: {
         getMoodPromptBlock(mood),
         getTimeOfDayBlock(getTimeOfDay()),
         CORE_RULES_BLOCK,
+        buildRelationshipBlock(extras, speakerName),
         buildSpeakerBlock(extras, speakerName),
         buildMentionedBlock(extras),
         buildMemoriesBlock(extras),
+        buildKnownUsersBlock(extras),
+        REMEMBER_INSTRUCTIONS,
         COMMANDS_BLOCK,
     ];
     return blocks.filter((b): b is string => b !== null).join('\n\n');

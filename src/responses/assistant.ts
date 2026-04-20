@@ -4,14 +4,14 @@ import { Context } from '../utils/types';
 import { safelySendToChannel } from '../utils/discordHelpers';
 import { gatherAliaContext } from '../utils/alia-context';
 import { recordMessage } from '../utils/conversation-history';
+import { parseRememberMarkers, persistMarkers } from '../utils/alia-learn';
+import { bumpInteraction } from '../utils/alia-relationships';
 
 export default async (message: Message, context: Context): Promise<boolean> => {
     if (message.author.bot) {
         return false;
     }
 
-    // Only process messages that explicitly address the bot.
-    // ignoreEveryone prevents @here / @everyone from looking like a direct mention.
     const content = message.content.toLowerCase().trim();
     const botMentioned = message.client.user
         ? message.mentions.has(message.client.user, {
@@ -46,12 +46,9 @@ export default async (message: Message, context: Context): Promise<boolean> => {
     });
 
     try {
-        const extras = await gatherAliaContext(message, context);
+        const extras = await gatherAliaContext(message, context, speakerName);
 
-        // Record the incoming message in history BEFORE calling generateResponse
-        // so the model sees it as the latest user turn via the explicit user
-        // message, and sees prior context via history.
-        const response = await generateResponse(
+        const rawResponse = await generateResponse(
             processableContent,
             context,
             {
@@ -63,23 +60,49 @@ export default async (message: Message, context: Context): Promise<boolean> => {
             extras,
         );
 
-        if (response && message.channel && 'send' in message.channel) {
+        if (rawResponse && message.channel && 'send' in message.channel) {
+            // Extract any auto-learn markers and persist them.
+            const { markers, cleaned } = parseRememberMarkers(rawResponse);
+            const allowedUserIds = new Set(extras.knownUsers.map(u => u.userId));
+            const guildId = message.guildId;
+            if (markers.length > 0 && guildId) {
+                const saved = await persistMarkers(
+                    context, markers, guildId, message.author.id, allowedUserIds,
+                );
+                context.log.info('Auto-learn persisted markers', {
+                    userId: message.author.id,
+                    attempted: markers.length,
+                    saved,
+                });
+            }
+
+            // If the model only returned markers and no prose, send a fallback.
+            const toSend = cleaned.length > 0 ? cleaned : 'Noted.';
+
             const success = await safelySendToChannel(
                 message.channel as any,
-                response,
+                toSend,
                 context,
                 'assistant response',
             );
 
             const processingTime = Date.now() - startTime;
             if (success) {
-                // Only persist turns we actually delivered.
                 recordMessage(message.channelId, 'user', speakerName, processableContent);
-                recordMessage(message.channelId, 'assistant', 'Alia', response);
+                recordMessage(message.channelId, 'assistant', 'Alia', toSend);
+
+                if (guildId) {
+                    try {
+                        await bumpInteraction(context.tables, guildId, message.author.id);
+                    } catch (error) {
+                        context.log.warn('Failed to bump interaction count', { error });
+                    }
+                }
 
                 context.log.info('Assistant response sent', {
                     userId: message.author.id,
-                    responseLength: response.length,
+                    responseLength: toSend.length,
+                    markersSaved: markers.length,
                     processingTimeMs: processingTime,
                 });
                 return true;

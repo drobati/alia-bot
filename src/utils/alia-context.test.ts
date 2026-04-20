@@ -15,6 +15,9 @@ describe('gatherAliaContext', () => {
                 Memories: {
                     findAll: jest.fn().mockResolvedValue([]),
                 },
+                UserInteractions: {
+                    findOne: jest.fn().mockResolvedValue(null),
+                },
                 ...overrides.tables,
             },
             log: { warn: jest.fn(), info: jest.fn(), debug: jest.fn(), error: jest.fn() },
@@ -42,7 +45,7 @@ describe('gatherAliaContext', () => {
             { description: 'always late' },
         ]);
 
-        const result = await gatherAliaContext(buildMessage(), ctx);
+        const result = await gatherAliaContext(buildMessage(), ctx, 'Speaker');
 
         expect(result.speakerDescriptions).toEqual(['a badass guitarist', 'always late']);
         expect(ctx.tables.UserDescriptions.findAll).toHaveBeenCalledWith({
@@ -63,10 +66,10 @@ describe('gatherAliaContext', () => {
         mentionedUsers.set('u-other', { id: 'u-other', username: 'Derek' });
 
         const msg = buildMessage({ mentionedUsers });
-        const result = await gatherAliaContext(msg, ctx);
+        const result = await gatherAliaContext(msg, ctx, 'Speaker');
 
         expect(result.mentionedUsers).toEqual([
-            { displayName: 'Derek', descriptions: ['the one who pays'] },
+            { userId: 'u-other', displayName: 'Derek', descriptions: ['the one who pays'] },
         ]);
     });
 
@@ -79,7 +82,7 @@ describe('gatherAliaContext', () => {
         ]);
 
         const msg = buildMessage({ content: 'hello world, are you playing dota tonight?' });
-        const result = await gatherAliaContext(msg, ctx);
+        const result = await gatherAliaContext(msg, ctx, 'Speaker');
 
         const keys = result.relevantMemories.map(m => m.key);
         expect(keys).toContain('dota');
@@ -93,14 +96,14 @@ describe('gatherAliaContext', () => {
             { key: 'a', value: 'too short' },
             { key: 'ok', value: 'also too short' },
         ]);
-        const result = await gatherAliaContext(buildMessage({ content: 'a ok' }), ctx);
+        const result = await gatherAliaContext(buildMessage({ content: 'a ok' }), ctx, 'Speaker');
         expect(result.relevantMemories).toHaveLength(0);
     });
 
     it('includes channel history', async () => {
         recordMessage('c1', 'user', 'alice', 'earlier');
         const ctx = buildContext();
-        const result = await gatherAliaContext(buildMessage(), ctx);
+        const result = await gatherAliaContext(buildMessage(), ctx, 'Speaker');
         expect(result.history).toHaveLength(1);
         expect(result.history[0].content).toBe('earlier');
     });
@@ -108,7 +111,7 @@ describe('gatherAliaContext', () => {
     it('returns empty context when not in a guild', async () => {
         const ctx = buildContext();
         const msg = buildMessage({ guildId: null });
-        const result = await gatherAliaContext(msg, ctx);
+        const result = await gatherAliaContext(msg, ctx, 'Speaker');
         expect(result.speakerDescriptions).toEqual([]);
         expect(result.mentionedUsers).toEqual([]);
         expect(ctx.tables.UserDescriptions.findAll).not.toHaveBeenCalled();
@@ -117,7 +120,7 @@ describe('gatherAliaContext', () => {
     it('swallows errors and returns safe defaults', async () => {
         const ctx = buildContext();
         ctx.tables.UserDescriptions.findAll.mockRejectedValueOnce(new Error('db down'));
-        const result = await gatherAliaContext(buildMessage(), ctx);
+        const result = await gatherAliaContext(buildMessage(), ctx, 'Speaker');
         expect(result.speakerDescriptions).toEqual([]);
         expect(ctx.log.warn).toHaveBeenCalled();
     });
