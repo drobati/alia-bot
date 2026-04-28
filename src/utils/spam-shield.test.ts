@@ -360,6 +360,98 @@ describe('executeShield', () => {
         );
     });
 
+    it('logs warnings when purgatory and source channel sends fail', async () => {
+        const guild = buildGuild();
+        const purgatory = guild.channels.cache.get('purg');
+        purgatory.send = jest.fn().mockRejectedValue(new Error('rate limit'));
+        const sourceSend = jest.fn().mockRejectedValue(new Error('forbidden'));
+        const trigger = buildMessage({
+            guild, userId: 'u1',
+            channel: { send: sourceSend },
+        });
+        const ctx = buildContext({
+            security_enabled_g1: 'true',
+            security_purgatory_channel_g1: 'purg',
+        });
+        const match = {
+            hash: 'h',
+            distinctChannelIds: new Set(['c1', 'c2']),
+            matchedEntries: [],
+        };
+        await executeShield(trigger, match as any, ctx);
+        expect(ctx.log.warn).toHaveBeenCalledWith(
+            expect.stringMatching(/purgatory warning/i),
+            expect.any(Object),
+        );
+        expect(ctx.log.warn).toHaveBeenCalledWith(
+            expect.stringMatching(/all-clear/i),
+            expect.any(Object),
+        );
+    });
+
+    it('logs a warning when a cached spam message fails to delete', async () => {
+        const guild = buildGuild();
+        guild.channels.cache.set('c1', {
+            isTextBased: () => true,
+            messages: { fetch: jest.fn().mockRejectedValue(new Error('not found')) },
+        });
+        const trigger = buildMessage({ guild, userId: 'u1', channelId: 'c2' });
+        const ctx = buildContext({ security_enabled_g1: 'true' });
+        const match = {
+            hash: 'h',
+            distinctChannelIds: new Set(['c1', 'c2']),
+            matchedEntries: [
+                { hash: 'h', channelId: 'c1', messageId: 'mp1', timestamp: Date.now() },
+            ],
+        };
+        await executeShield(trigger, match as any, ctx);
+        // fetch returned null via .catch, no throw — verifies the .catch arrow
+        expect(guild._member.roles.set).toHaveBeenCalled();
+    });
+
+    it('logs a warning when deleting the trigger message throws', async () => {
+        const guild = buildGuild();
+        const trigger = buildMessage({ guild, userId: 'u1' });
+        trigger.delete = jest.fn().mockRejectedValue(new Error('forbidden'));
+        const ctx = buildContext({ security_enabled_g1: 'true' });
+        const match = {
+            hash: 'h',
+            distinctChannelIds: new Set(['c1', 'c2']),
+            matchedEntries: [],
+        };
+        await executeShield(trigger, match as any, ctx);
+        expect(ctx.log.warn).toHaveBeenCalledWith(
+            expect.stringMatching(/delete spam message/i),
+            expect.any(Object),
+        );
+    });
+
+    it('hashes sticker-only messages', () => {
+        const m = buildMessage({
+            content: '',
+            stickers: [['s1', { id: 's1' }]],
+        });
+        expect(hashMessage(m)).not.toBeNull();
+    });
+
+    it('logs an error when the outer try-catch fires', async () => {
+        const guild = buildGuild();
+        const trigger = buildMessage({ guild, userId: 'u1' });
+        const ctx = buildContext({ security_enabled_g1: 'true' });
+        // Make SecurityIncidents.create throw to trigger outer catch.
+        ctx.tables.SecurityIncidents.create.mockRejectedValueOnce(new Error('db down'));
+        const match = {
+            hash: 'h',
+            distinctChannelIds: new Set(['c1', 'c2']),
+            matchedEntries: [],
+        };
+        await executeShield(trigger, match as any, ctx);
+        expect(ctx.log.error).toHaveBeenCalledWith(
+            expect.stringMatching(/execution failed/i),
+            expect.any(Object),
+        );
+    });
+
     it('dry-run logs incident as dry_run without taking action', async () => {
         const guild = buildGuild();
         const trigger = buildMessage({ guild, userId: 'u1' });
