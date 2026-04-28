@@ -19,6 +19,7 @@ import Password from "./password";
 import ScheduledEvent from "./scheduledEvent";
 import UserDescriptions from "./userDescriptions";
 import UserInteractions from "./userInteractions";
+import SecurityIncidents from "./securityIncidents";
 import SparksUser from "./sparksUser";
 import SparksBalance from "./sparksBalance";
 import SparksLedger from "./sparksLedger";
@@ -52,6 +53,7 @@ export default {
     ScheduledEvent,
     UserDescriptions,
     UserInteractions,
+    SecurityIncidents,
     SparksUser,
     SparksBalance,
     SparksLedger,
