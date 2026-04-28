@@ -278,6 +278,88 @@ describe('executeShield', () => {
         expect(guild._member.roles.set).not.toHaveBeenCalled();
     });
 
+    it('deletes prior cached messages from other channels on action', async () => {
+        const guild = buildGuild();
+        const cachedDelete = jest.fn().mockResolvedValue(undefined);
+        const cachedFetch = jest.fn().mockResolvedValue({
+            deletable: true,
+            delete: cachedDelete,
+        });
+        guild.channels.cache.set('c1', {
+            isTextBased: () => true,
+            messages: { fetch: cachedFetch },
+        });
+        const trigger = buildMessage({
+            guild, userId: 'u1', channelId: 'c2', content: 'spam',
+        });
+        const ctx = buildContext({ security_enabled_g1: 'true' });
+        const match = {
+            hash: 'h',
+            distinctChannelIds: new Set(['c1', 'c2']),
+            matchedEntries: [
+                { hash: 'h', channelId: 'c1', messageId: 'mp1', timestamp: Date.now() },
+            ],
+        };
+        await executeShield(trigger, match as any, ctx);
+        expect(cachedFetch).toHaveBeenCalledWith('mp1');
+        expect(cachedDelete).toHaveBeenCalled();
+    });
+
+    it('logs an error but completes when role-strip fails', async () => {
+        const guild = buildGuild();
+        guild._member.roles.set.mockRejectedValueOnce(new Error('discord 403'));
+        const trigger = buildMessage({ guild, userId: 'u1' });
+        const ctx = buildContext({ security_enabled_g1: 'true' });
+        const match = {
+            hash: 'h',
+            distinctChannelIds: new Set(['c1', 'c2']),
+            matchedEntries: [],
+        };
+        await executeShield(trigger, match as any, ctx);
+        expect(ctx.log.error).toHaveBeenCalledWith(
+            expect.stringMatching(/strip roles/i),
+            expect.any(Object),
+        );
+        expect(guild._member.timeout).toHaveBeenCalled();
+    });
+
+    it('logs an error but completes when timeout fails', async () => {
+        const guild = buildGuild();
+        guild._member.timeout.mockRejectedValueOnce(new Error('discord 403'));
+        const trigger = buildMessage({ guild, userId: 'u1' });
+        const ctx = buildContext({ security_enabled_g1: 'true' });
+        const match = {
+            hash: 'h',
+            distinctChannelIds: new Set(['c1', 'c2']),
+            matchedEntries: [],
+        };
+        await executeShield(trigger, match as any, ctx);
+        expect(ctx.log.error).toHaveBeenCalledWith(
+            expect.stringMatching(/timeout/i),
+            expect.any(Object),
+        );
+    });
+
+    it('skips when an action lock is already held for the same user', async () => {
+        const guild = buildGuild();
+        const trigger = buildMessage({ guild, userId: 'u1' });
+        const ctx = buildContext({ security_enabled_g1: 'true' });
+        const match = {
+            hash: 'h',
+            distinctChannelIds: new Set(['c1', 'c2']),
+            matchedEntries: [],
+        };
+        // Concurrent calls — second hits the lock branch.
+        await Promise.all([
+            executeShield(trigger, match as any, ctx),
+            executeShield(trigger, match as any, ctx),
+        ]);
+        expect(ctx.log.info).toHaveBeenCalledWith(
+            expect.stringMatching(/lock held/i),
+            expect.any(Object),
+        );
+    });
+
     it('dry-run logs incident as dry_run without taking action', async () => {
         const guild = buildGuild();
         const trigger = buildMessage({ guild, userId: 'u1' });
