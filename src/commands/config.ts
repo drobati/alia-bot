@@ -31,6 +31,93 @@ function getDefaultCronSchedule(frequency: string): string {
     }
 }
 
+// Server (security/spam shield) handlers
+async function handleServerSecurityEnable(
+    interaction: ChatInputCommandInteraction, context: Context,
+) {
+    const guildId = interaction.guildId;
+    if (!guildId) {
+        return interaction.reply({
+            content: "This command can only be used in a server.", ephemeral: true,
+        });
+    }
+    const enabled = interaction.options.getBoolean('enabled', true);
+    await context.tables.Config.upsert({
+        key: `security_enabled_${guildId}`,
+        value: enabled ? 'true' : 'false',
+    });
+    await interaction.reply({
+        content: `Spam shield is now **${enabled ? 'enabled' : 'disabled'}**.`,
+        ephemeral: true,
+    });
+}
+
+async function handleServerSecurityDryRun(
+    interaction: ChatInputCommandInteraction, context: Context,
+) {
+    const guildId = interaction.guildId;
+    if (!guildId) {
+        return interaction.reply({
+            content: "This command can only be used in a server.", ephemeral: true,
+        });
+    }
+    const enabled = interaction.options.getBoolean('enabled', true);
+    await context.tables.Config.upsert({
+        key: `security_dryrun_${guildId}`,
+        value: enabled ? 'true' : 'false',
+    });
+    await interaction.reply({
+        content: `Spam shield dry-run mode is now **${enabled ? 'on' : 'off'}**. ` +
+            `When on, the shield logs incidents but does not strip roles or timeout.`,
+        ephemeral: true,
+    });
+}
+
+async function handleServerPurgatoryChannel(
+    interaction: ChatInputCommandInteraction, context: Context,
+) {
+    const guildId = interaction.guildId;
+    if (!guildId) {
+        return interaction.reply({
+            content: "This command can only be used in a server.", ephemeral: true,
+        });
+    }
+    const channel = interaction.options.getChannel('channel', true);
+    await context.tables.Config.upsert({
+        key: `security_purgatory_channel_${guildId}`,
+        value: channel.id,
+    });
+    await interaction.reply({
+        content: `Purgatory channel set to <#${channel.id}>. ` +
+            `Spam-shield warnings will be posted there.`,
+        ephemeral: true,
+    });
+}
+
+async function handleServerSecurityShow(
+    interaction: ChatInputCommandInteraction, context: Context,
+) {
+    const guildId = interaction.guildId;
+    if (!guildId) {
+        return interaction.reply({
+            content: "This command can only be used in a server.", ephemeral: true,
+        });
+    }
+    const { Config } = context.tables;
+    const [enabled, dryRun, purg] = await Promise.all([
+        Config.findOne({ where: { key: `security_enabled_${guildId}` } }),
+        Config.findOne({ where: { key: `security_dryrun_${guildId}` } }),
+        Config.findOne({ where: { key: `security_purgatory_channel_${guildId}` } }),
+    ]);
+    const lines = [
+        `**Spam shield**`,
+        `- Enabled: ${enabled?.value === 'true' ? 'yes' : 'no'}`,
+        `- Dry-run: ${dryRun?.value === 'true' ? 'yes' : 'no'}`,
+        `- Purgatory channel: ${purg?.value ? `<#${purg.value}>` : '_not set_'}`,
+    ];
+    await interaction.reply({ content: lines.join('\n'), ephemeral: true });
+}
+
 // Birthday handlers
 async function handleBirthdayChannel(interaction: ChatInputCommandInteraction, context: Context) {
     const channel = interaction.options.getChannel('channel', true);
@@ -774,7 +861,36 @@ export default {
                     .setRequired(true)))
             .addSubcommand((subcommand: any) => subcommand
                 .setName('clear-channel')
-                .setDescription('Clear the TTS channel and disable auto-speak mode.'))),
+                .setDescription('Clear the TTS channel and disable auto-speak mode.')))
+        // Server (security/spam shield) subcommand group
+        .addSubcommandGroup((group: any) => group
+            .setName('server')
+            .setDescription('Server-level security and spam-shield settings.')
+            .addSubcommand((subcommand: any) => subcommand
+                .setName('shield-enable')
+                .setDescription('Enable or disable the spam shield for this server.')
+                .addBooleanOption((option: any) => option
+                    .setName('enabled')
+                    .setDescription('Whether the spam shield is active.')
+                    .setRequired(true)))
+            .addSubcommand((subcommand: any) => subcommand
+                .setName('shield-dryrun')
+                .setDescription('Toggle dry-run mode (log only, no role/timeout actions).')
+                .addBooleanOption((option: any) => option
+                    .setName('enabled')
+                    .setDescription('Whether dry-run mode is on.')
+                    .setRequired(true)))
+            .addSubcommand((subcommand: any) => subcommand
+                .setName('purgatory-channel')
+                .setDescription('Set the channel where Alia posts spam-shield warnings.')
+                .addChannelOption((option: any) => option
+                    .setName('channel')
+                    .setDescription('The purgatory channel.')
+                    .addChannelTypes(ChannelType.GuildText)
+                    .setRequired(true)))
+            .addSubcommand((subcommand: any) => subcommand
+                .setName('shield-show')
+                .setDescription('Show current spam-shield configuration.'))),
 
     async autocomplete(interaction: AutocompleteInteraction, { tables }: Context) {
         // Only show autocomplete options to owner
@@ -887,6 +1003,18 @@ export default {
                         await handleBirthdayChannel(interaction, context);
                     } else if (subcommand === 'show') {
                         await handleBirthdayShow(interaction, context);
+                    }
+                    break;
+
+                case 'server':
+                    if (subcommand === 'shield-enable') {
+                        await handleServerSecurityEnable(interaction, context);
+                    } else if (subcommand === 'shield-dryrun') {
+                        await handleServerSecurityDryRun(interaction, context);
+                    } else if (subcommand === 'purgatory-channel') {
+                        await handleServerPurgatoryChannel(interaction, context);
+                    } else if (subcommand === 'shield-show') {
+                        await handleServerSecurityShow(interaction, context);
                     }
                     break;
 

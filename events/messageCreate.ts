@@ -3,6 +3,7 @@ import { Context, BotEvent } from '../src/utils/types';
 import response from '../src/responses'; // Adjust the import path as needed
 import reactions from '../src/responses/reactions';
 import ttsChannel from '../src/responses/ttsChannel';
+import { evaluateMessage as evaluateSpamShield } from '../src/utils/spam-shield';
 
 const messageCreateEvent: BotEvent = {
     name: Events.MessageCreate,
@@ -11,6 +12,17 @@ const messageCreateEvent: BotEvent = {
         try {
             if (message.author.bot) {
                 return;
+            }
+
+            // Spam shield runs FIRST. If it triggers, the message is deleted
+            // and the user is timed out — short-circuit all other handlers.
+            try {
+                const shielded = await evaluateSpamShield(message, context);
+                if (shielded) {
+                    return;
+                }
+            } catch (error) {
+                context.log.error('Spam shield evaluation failed', { error });
             }
 
             // Priority-based response system - only one response per message
