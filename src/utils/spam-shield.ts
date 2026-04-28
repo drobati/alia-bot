@@ -182,7 +182,9 @@ export async function executeShield(
 
     try {
         const config = await loadShieldConfig(context, guildId);
-        if (!config.enabled) {
+        // Dry-run is a useful standalone state: log + visibly preview without
+        // requiring the shield to be fully armed. Either flag activates evaluation.
+        if (!config.enabled && !config.dryRun) {
             context.log.debug('Spam shield disabled for guild', { guildId });
             return;
         }
@@ -222,6 +224,17 @@ export async function executeShield(
             context.log.warn('Spam shield: dry-run trigger', {
                 userId, guildId, channels: [...match.distinctChannelIds],
             });
+            // Post a visible preview so admins can confirm the detector fires.
+            if (sourceChannel && 'send' in sourceChannel) {
+                const channelList = [...match.distinctChannelIds]
+                    .map(id => `<#${id}>`).join(', ');
+                await (sourceChannel as TextChannel).send(
+                    `[spam-shield dry-run] would have actioned <@${userId}> ` +
+                    `for duplicate content across ${channelList}.`,
+                ).catch(error => {
+                    context.log.warn('Spam shield: failed to post dry-run preview', { error });
+                });
+            }
             return;
         }
 
