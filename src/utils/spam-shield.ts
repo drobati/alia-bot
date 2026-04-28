@@ -163,6 +163,51 @@ async function safelyDelete(message: Message, context: Context): Promise<void> {
     }
 }
 
+interface PrecheckResult {
+    ok: boolean;
+    reason?: string;
+}
+
+/**
+ * Verifies the bot has the permissions and role-hierarchy position needed to
+ * strip the target's roles and apply a timeout. Surfaces the specific reason
+ * if not, so admins can fix the misconfiguration instead of debugging silent
+ * failures.
+ */
+export function precheckBotCanAction(
+    guild: any,
+    target: any,
+): PrecheckResult {
+    const me = guild.members?.me;
+    if (!me) {return { ok: false, reason: "couldn't resolve my own guild member record" };}
+
+    const perms = me.permissions;
+    if (!perms?.has(PermissionFlagsBits.ManageRoles)) {
+        return { ok: false, reason: 'I am missing the **Manage Roles** permission' };
+    }
+    if (!perms.has(PermissionFlagsBits.ModerateMembers)) {
+        return { ok: false, reason: 'I am missing the **Timeout Members** permission' };
+    }
+
+    const myTop = me.roles?.highest?.position ?? 0;
+    const targetTop = target.roles?.highest?.position ?? 0;
+    if (targetTop >= myTop) {
+        return {
+            ok: false,
+            reason: 'my highest role is **not above** the target user\'s highest role ' +
+                '(Discord blocks role/timeout actions on equal-or-higher members)',
+        };
+    }
+
+    return { ok: true };
+}
+
+function errorMessage(error: unknown): string {
+    if (error instanceof Error) {return error.message;}
+    if (typeof error === 'string') {return error;}
+    return 'unknown error';
+}
+
 export async function executeShield(
     triggerMessage: Message,
     match: DuplicateMatch,
@@ -238,6 +283,39 @@ export async function executeShield(
             return;
         }
 
+        const purgatoryChannel = config.purgatoryChannelId
+            ? guild.channels.cache.get(config.purgatoryChannelId)
+            : null;
+        const adminChannel = (purgatoryChannel && (purgatoryChannel as any).isTextBased?.())
+            ? (purgatoryChannel as TextChannel)
+            : (sourceChannel && 'send' in sourceChannel ? sourceChannel as TextChannel : null);
+
+        // 0. Precheck: verify bot can actually act on this member. Surface the
+        //    real reason if not, so admins can fix the config.
+        const precheck = precheckBotCanAction(guild, member);
+        if (!precheck.ok) {
+            const note = `🚨 Spam shield detected duplicate from <@${userId}> ` +
+                `but **could not action them**: ${precheck.reason}.`;
+            if (adminChannel) {
+                await adminChannel.send({
+                    content: note,
+                    allowedMentions: { users: [] },
+                }).catch(error => {
+                    context.log.warn('Spam shield: failed to post precheck failure', { error });
+                });
+            }
+            await (incident as any).update({
+                action_taken: 'failed',
+                details: JSON.stringify({ stage: 'precheck', reason: precheck.reason }),
+            });
+            context.log.error('Spam shield: precheck failed', {
+                userId, guildId, reason: precheck.reason,
+            });
+            return;
+        }
+
+        const failures: string[] = [];
+
         // 1. Bulk-delete the spam messages (the new + the cached previous occurrences).
         await safelyDelete(triggerMessage, context);
         for (const entry of match.matchedEntries) {
@@ -255,39 +333,49 @@ export async function executeShield(
         }
 
         // 2. Strip all (manageable) roles.
+        let rolesStripped = false;
         try {
             await member!.roles.set([], 'Spam shield: cross-channel duplicate spam');
+            rolesStripped = true;
         } catch (error) {
+            const msg = `role strip failed: ${errorMessage(error)}`;
+            failures.push(msg);
             context.log.error('Spam shield: failed to strip roles', {
                 error, userId, guildId,
             });
         }
 
         // 3. Timeout 24h.
+        let timedOut = false;
         try {
             await member!.timeout(TIMEOUT_DURATION_MS, 'Spam shield: cross-channel duplicate spam');
+            timedOut = true;
         } catch (error) {
+            const msg = `timeout failed: ${errorMessage(error)}`;
+            failures.push(msg);
             context.log.error('Spam shield: failed to timeout member', {
                 error, userId, guildId,
             });
         }
 
-        // 4. Post Dune-flavored warning in purgatory channel.
-        if (config.purgatoryChannelId) {
-            const purgatory = guild.channels.cache.get(config.purgatoryChannelId);
-            if (purgatory && purgatory.isTextBased()) {
-                const warning = pickDuneWarning();
-                await (purgatory as TextChannel).send({
-                    content: `<@${userId}> — ${warning}`,
-                    allowedMentions: { users: [userId] },
-                }).catch(error => {
-                    context.log.warn('Spam shield: failed to post purgatory warning', { error });
-                });
-            }
+        const fullySucceeded = rolesStripped && timedOut;
+
+        // 4. Post warning in purgatory: Dune flavor on success, diagnostic on partial.
+        if (purgatoryChannel && (purgatoryChannel as any).isTextBased?.()) {
+            const warning = fullySucceeded
+                ? `<@${userId}> — ${pickDuneWarning()}`
+                : `🚨 Spam shield triggered for <@${userId}> but **partially failed**:\n` +
+                    failures.map(f => `- ${f}`).join('\n');
+            await (purgatoryChannel as TextChannel).send({
+                content: warning,
+                allowedMentions: { users: fullySucceeded ? [userId] : [] },
+            }).catch(error => {
+                context.log.warn('Spam shield: failed to post purgatory warning', { error });
+            });
         }
 
-        // 5. Post all-clear in the originating channel.
-        if (sourceChannel && 'send' in sourceChannel) {
+        // 5. Post all-clear ONLY if we actually protected the server.
+        if (fullySucceeded && sourceChannel && 'send' in sourceChannel) {
             await (sourceChannel as TextChannel).send(
                 "I've protected the server from spam, again.",
             ).catch(error => {
@@ -295,11 +383,14 @@ export async function executeShield(
             });
         }
 
-        await (incident as any).update({ action_taken: 'actioned' });
+        await (incident as any).update({
+            action_taken: fullySucceeded ? 'actioned' : 'failed',
+            details: failures.length > 0 ? JSON.stringify({ failures }) : null,
+        });
 
-        context.log.info('Spam shield: actioned compromised account', {
+        context.log.info('Spam shield: action sequence complete', {
             userId, guildId, channels: [...match.distinctChannelIds],
-            rolesStripped: rolesSnapshot.length,
+            rolesStripped, timedOut, failures,
         });
     } catch (error) {
         context.log.error('Spam shield: execution failed', { error, key });

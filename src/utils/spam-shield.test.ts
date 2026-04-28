@@ -5,6 +5,7 @@ import {
     loadShieldConfig,
     executeShield,
     evaluateMessage,
+    precheckBotCanAction,
     _resetCacheForTests,
 } from './spam-shield';
 
@@ -14,6 +15,10 @@ jest.mock('./permissions', () => ({
 }));
 
 const { isOwner } = jest.requireMock('./permissions') as { isOwner: jest.Mock };
+
+const PERMS_OK = {
+    has: jest.fn().mockReturnValue(true),
+};
 
 function buildMessage(overrides: any = {}) {
     const { attachments, stickers, userId, ...rest } = overrides;
@@ -179,9 +184,14 @@ describe('executeShield', () => {
             permissions: { has: jest.fn().mockReturnValue(false) },
             roles: {
                 cache: buildRoleCache([{ id: 'r1' }, { id: 'r2' }]),
+                highest: { position: 1 },
                 set: jest.fn().mockResolvedValue(undefined),
             },
             timeout: jest.fn().mockResolvedValue(undefined),
+        };
+        const me = opts.me ?? {
+            permissions: PERMS_OK,
+            roles: { highest: { position: 100 } },
         };
         const purgatorySend = jest.fn().mockResolvedValue({});
         const purgatory = {
@@ -192,9 +202,10 @@ describe('executeShield', () => {
         channels.set('purg', purgatory);
         return {
             id: 'g1',
-            members: { fetch: jest.fn().mockResolvedValue(member) },
+            members: { fetch: jest.fn().mockResolvedValue(member), me },
             channels: { cache: channels },
             _member: member,
+            _me: me,
             _purgatorySend: purgatorySend,
         };
     }
@@ -305,39 +316,151 @@ describe('executeShield', () => {
         expect(cachedDelete).toHaveBeenCalled();
     });
 
-    it('logs an error but completes when role-strip fails', async () => {
+    it('on role-strip failure: still attempts timeout, posts diagnostic, skips all-clear', async () => {
         const guild = buildGuild();
-        guild._member.roles.set.mockRejectedValueOnce(new Error('discord 403'));
-        const trigger = buildMessage({ guild, userId: 'u1' });
-        const ctx = buildContext({ security_enabled_g1: 'true' });
+        guild._member.roles.set.mockRejectedValueOnce(new Error('Missing Permissions'));
+        const sourceSend = jest.fn().mockResolvedValue({});
+        const trigger = buildMessage({
+            guild, userId: 'u1', channel: { send: sourceSend },
+        });
+        const ctx = buildContext({
+            security_enabled_g1: 'true',
+            security_purgatory_channel_g1: 'purg',
+        });
         const match = {
             hash: 'h',
             distinctChannelIds: new Set(['c1', 'c2']),
             matchedEntries: [],
         };
+        const incidentRow = { update: jest.fn() };
+        ctx.tables.SecurityIncidents.create.mockResolvedValueOnce(incidentRow);
+
         await executeShield(trigger, match as any, ctx);
-        expect(ctx.log.error).toHaveBeenCalledWith(
-            expect.stringMatching(/strip roles/i),
-            expect.any(Object),
-        );
+
         expect(guild._member.timeout).toHaveBeenCalled();
+        expect(guild._purgatorySend).toHaveBeenCalledWith(expect.objectContaining({
+            content: expect.stringMatching(/partially failed/i),
+        }));
+        // No all-clear because we did not fully protect
+        expect(sourceSend).not.toHaveBeenCalledWith(expect.stringMatching(/protected/i));
+        expect(incidentRow.update).toHaveBeenCalledWith(expect.objectContaining({
+            action_taken: 'failed',
+        }));
     });
 
-    it('logs an error but completes when timeout fails', async () => {
+    it('on timeout failure: posts diagnostic, skips all-clear, marks failed', async () => {
         const guild = buildGuild();
-        guild._member.timeout.mockRejectedValueOnce(new Error('discord 403'));
-        const trigger = buildMessage({ guild, userId: 'u1' });
-        const ctx = buildContext({ security_enabled_g1: 'true' });
+        guild._member.timeout.mockRejectedValueOnce(new Error('Missing Permissions'));
+        const sourceSend = jest.fn().mockResolvedValue({});
+        const trigger = buildMessage({
+            guild, userId: 'u1', channel: { send: sourceSend },
+        });
+        const ctx = buildContext({
+            security_enabled_g1: 'true',
+            security_purgatory_channel_g1: 'purg',
+        });
         const match = {
             hash: 'h',
             distinctChannelIds: new Set(['c1', 'c2']),
             matchedEntries: [],
         };
+        const incidentRow = { update: jest.fn() };
+        ctx.tables.SecurityIncidents.create.mockResolvedValueOnce(incidentRow);
+
         await executeShield(trigger, match as any, ctx);
-        expect(ctx.log.error).toHaveBeenCalledWith(
-            expect.stringMatching(/timeout/i),
-            expect.any(Object),
+
+        expect(guild._purgatorySend).toHaveBeenCalledWith(expect.objectContaining({
+            content: expect.stringMatching(/partially failed/i),
+        }));
+        expect(sourceSend).not.toHaveBeenCalledWith(expect.stringMatching(/protected/i));
+        expect(incidentRow.update).toHaveBeenCalledWith(expect.objectContaining({
+            action_taken: 'failed',
+        }));
+    });
+
+    it('precheck blocks action when bot role is below target role', async () => {
+        const guild = buildGuild({
+            me: {
+                permissions: PERMS_OK,
+                roles: { highest: { position: 1 } },
+            },
+            member: {
+                id: 'u1',
+                permissions: { has: jest.fn().mockReturnValue(false) },
+                roles: {
+                    cache: buildRoleCache([{ id: 'r1' }]),
+                    highest: { position: 50 },
+                    set: jest.fn(),
+                },
+                timeout: jest.fn(),
+            },
+        });
+        const trigger = buildMessage({ guild, userId: 'u1' });
+        const ctx = buildContext({
+            security_enabled_g1: 'true',
+            security_purgatory_channel_g1: 'purg',
+        });
+        const match = {
+            hash: 'h',
+            distinctChannelIds: new Set(['c1', 'c2']),
+            matchedEntries: [],
+        };
+        const incidentRow = { update: jest.fn() };
+        ctx.tables.SecurityIncidents.create.mockResolvedValueOnce(incidentRow);
+
+        await executeShield(trigger, match as any, ctx);
+
+        expect(guild._member.roles.set).not.toHaveBeenCalled();
+        expect(guild._member.timeout).not.toHaveBeenCalled();
+        expect(guild._purgatorySend).toHaveBeenCalledWith(expect.objectContaining({
+            content: expect.stringMatching(/highest role.*not above/i),
+        }));
+        expect(incidentRow.update).toHaveBeenCalledWith(expect.objectContaining({
+            action_taken: 'failed',
+        }));
+    });
+
+    it('precheck blocks action when bot lacks ManageRoles', async () => {
+        const guild = buildGuild({
+            me: {
+                permissions: { has: jest.fn().mockImplementation(() => false) },
+                roles: { highest: { position: 100 } },
+            },
+        });
+        const trigger = buildMessage({ guild, userId: 'u1' });
+        const ctx = buildContext({
+            security_enabled_g1: 'true',
+            security_purgatory_channel_g1: 'purg',
+        });
+        const match = {
+            hash: 'h',
+            distinctChannelIds: new Set(['c1', 'c2']),
+            matchedEntries: [],
+        };
+        const incidentRow = { update: jest.fn() };
+        ctx.tables.SecurityIncidents.create.mockResolvedValueOnce(incidentRow);
+
+        await executeShield(trigger, match as any, ctx);
+
+        expect(guild._member.roles.set).not.toHaveBeenCalled();
+        expect(guild._purgatorySend).toHaveBeenCalledWith(expect.objectContaining({
+            content: expect.stringMatching(/Manage Roles/i),
+        }));
+    });
+
+    it('precheckBotCanAction returns ok when permissions and hierarchy are correct', () => {
+        const result = precheckBotCanAction(
+            {
+                members: {
+                    me: {
+                        permissions: PERMS_OK,
+                        roles: { highest: { position: 100 } },
+                    },
+                },
+            },
+            { roles: { highest: { position: 5 } } },
         );
+        expect(result.ok).toBe(true);
     });
 
     it('skips when an action lock is already held for the same user', async () => {
@@ -518,6 +641,10 @@ describe('evaluateMessage (integration)', () => {
         const guild = {
             id: 'g1',
             members: {
+                me: {
+                    permissions: { has: jest.fn().mockReturnValue(true) },
+                    roles: { highest: { position: 100 } },
+                },
                 fetch: jest.fn().mockResolvedValue({
                     id: 'u1',
                     permissions: { has: jest.fn().mockReturnValue(false) },
@@ -525,6 +652,7 @@ describe('evaluateMessage (integration)', () => {
                         cache: {
                             filter: () => ({ map: () => [] }),
                         },
+                        highest: { position: 1 },
                         set: jest.fn().mockResolvedValue(undefined),
                     },
                     timeout: jest.fn().mockResolvedValue(undefined),
