@@ -452,9 +452,13 @@ describe('executeShield', () => {
         );
     });
 
-    it('dry-run logs incident as dry_run without taking action', async () => {
+    it('dry-run logs incident as dry_run, posts preview, and takes no real action', async () => {
         const guild = buildGuild();
-        const trigger = buildMessage({ guild, userId: 'u1' });
+        const sourceSend = jest.fn().mockResolvedValue({});
+        const trigger = buildMessage({
+            guild, userId: 'u1', channelId: 'c2',
+            channel: { send: sourceSend },
+        });
         const ctx = buildContext({
             security_enabled_g1: 'true',
             security_dryrun_g1: 'true',
@@ -470,6 +474,27 @@ describe('executeShield', () => {
         expect(ctx.tables.SecurityIncidents.create).toHaveBeenCalledWith(
             expect.objectContaining({ action_taken: 'dry_run' }),
         );
+        expect(sourceSend).toHaveBeenCalledWith(expect.stringMatching(/dry-run/i));
+    });
+
+    it('dry-run alone (without enabled) still activates the shield', async () => {
+        const guild = buildGuild();
+        const sourceSend = jest.fn().mockResolvedValue({});
+        const trigger = buildMessage({
+            guild, userId: 'u1', channelId: 'c2',
+            channel: { send: sourceSend },
+        });
+        const ctx = buildContext({ security_dryrun_g1: 'true' });
+        const match = {
+            hash: 'h',
+            distinctChannelIds: new Set(['c1', 'c2']),
+            matchedEntries: [],
+        };
+        await executeShield(trigger, match as any, ctx);
+        expect(ctx.tables.SecurityIncidents.create).toHaveBeenCalledWith(
+            expect.objectContaining({ action_taken: 'dry_run' }),
+        );
+        expect(sourceSend).toHaveBeenCalled();
     });
 });
 
