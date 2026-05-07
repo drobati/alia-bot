@@ -1,0 +1,39 @@
+{
+    // Static analysis can't see index.ts's `await import(fullPath)` loop over
+    // src/commands/ and events/, so we declare those dirs as entry roots.
+    // Without this, every dynamically-loaded file is reported as "100% dead".
+    "$schema": "https://docs.fallow.tools/schema/fallow.schema.json",
+    "entry": [
+        "index.ts",
+        "events/*.ts",
+        "src/commands/*.ts",
+        "src/models/*.ts",
+        "scripts/*.ts",
+        "scripts/*.mjs",
+        "scripts/*.js",
+        "db/migrations/*.{ts,js}",
+        "migrations/*.{ts,js}",
+        "jest.config.js"
+    ],
+    "ignorePatterns": [
+        "dist/**",
+        "coverage/**",
+        "**/__generated__/**"
+    ],
+    // Runtime/peer-only deps fallow can't see via static imports.
+    // mysql2: sequelize driver loaded by name from config.
+    // sqlite3: sequelize driver used by *.test.ts files via 'sqlite::memory:'.
+    // canvas: peer of chartjs-node-canvas.
+    // ffmpeg-static, @snazzah/davey: runtime peers of @discordjs/voice.
+    // encoding: node-fetch peer.
+    // js-yaml: used by `config` package for yaml configs.
+    "ignoreDependencies": [
+        "mysql2",
+        "sqlite3",
+        "canvas",
+        "ffmpeg-static",
+        "@snazzah/davey",
+        "encoding",
+        "js-yaml"
+    ]
+}

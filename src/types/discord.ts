@@ -9,7 +9,7 @@ import {
     Client,
     Collection,
 } from 'discord.js';
-import { Context } from './index';
+import { Context } from '../utils/types';
 
 // Command interface
 export interface BotCommand {

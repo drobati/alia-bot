@@ -1,5 +1,6 @@
 import { Client, Events, EmbedBuilder } from 'discord.js';
-import { Context, BotEvent } from '../src/utils/types';
+import { Context } from '../src/utils/types';
+import { BotEvent } from '../src/types/discord';
 import server from '../src/lib/server';
 import { stripIndent } from 'common-tags';
 import { safelyFindChannel, safelySendToChannel, isTextChannel } from '../src/utils/discordHelpers';

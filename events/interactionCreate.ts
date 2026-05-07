@@ -2,7 +2,8 @@ import {
     CommandInteraction, Events, Interaction,
     ActionRowBuilder, ButtonBuilder, ButtonStyle,
 } from "discord.js";
-import { Command, Context, BotEvent, ExtendedClient } from "../src/utils/types";
+import { Command, Context } from "../src/utils/types";
+import { BotEvent, ExtendedClient } from "../src/types/discord";
 import { Sentry } from "../src/lib/sentry";
 import { DndGameAttributes, SkillCheckVote } from "../src/types/database";
 import { createSkillCheckEmbed, OPTION_LABELS } from "../src/responses/dnd";

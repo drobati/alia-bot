@@ -1,5 +1,6 @@
 import { Events, Message } from 'discord.js';
-import { Context, BotEvent } from '../src/utils/types';
+import { Context } from '../src/utils/types';
+import { BotEvent } from '../src/types/discord';
 import response from '../src/responses'; // Adjust the import path as needed
 import reactions from '../src/responses/reactions';
 import ttsChannel from '../src/responses/ttsChannel';

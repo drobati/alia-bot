@@ -55,9 +55,6 @@ export interface StockSchedulerService {
     shutdown: () => void;
 }
 
-// Re-export types from dedicated type files
-export { BotCommand, ExtendedClient, BotEvent, MessageResponse } from '../types/discord';
-export { DatabaseTables } from '../types/database';
 
 // Core context interface
 export interface Context {

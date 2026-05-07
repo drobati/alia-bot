@@ -1,5 +1,6 @@
 import { Events, GuildMember, EmbedBuilder } from 'discord.js';
-import { Context, BotEvent } from '../src/utils/types';
+import { Context } from '../src/utils/types';
+import { BotEvent } from '../src/types/discord';
 import { Sentry } from '../src/lib/sentry';
 import { sendLogMessage } from '../src/utils/discordHelpers';
 
