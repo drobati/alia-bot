@@ -27,6 +27,8 @@ import assistantResponse from './assistant';
 import generateResponse from '../utils/assistant';
 import { safelySendToChannel } from '../utils/discordHelpers';
 import { _resetForTests as resetHistory } from '../utils/conversation-history';
+import { gatherAliaContext } from '../utils/alia-context';
+import { bumpInteraction } from '../utils/alia-relationships';
 
 // Mock openai SDK (used by OpenRouter client) to prevent instantiation errors
 jest.mock('openai', () => ({
@@ -347,6 +349,68 @@ describe('Assistant Response System', () => {
 
                 expect(result).toBe(false);
             });
+        });
+    });
+
+    describe('Auto-learn and Interaction Tracking', () => {
+        beforeEach(() => {
+            mockMessage.content = 'Alia, remember that Bob is a cool dude';
+            (mockMessage as any).guildId = 'test-guild-id';
+        });
+
+        it('persists REMEMBER markers and sends the cleaned reply', async () => {
+            (gatherAliaContext as jest.Mock).mockResolvedValueOnce({
+                speakerDescriptions: [],
+                mentionedUsers: [],
+                relevantMemories: [],
+                history: [],
+                relationship: {
+                    count: 0, tier: 'stranger', lastInteractionAt: null, hoursSinceLast: null,
+                },
+                knownUsers: [{ userId: '999', displayName: 'Bob' }],
+            });
+            const findOrCreate = jest.fn().mockResolvedValue([{}, true]);
+            (mockContext as any).tables = { UserDescriptions: { findOrCreate } };
+            mockGenerateResponse.mockResolvedValue(
+                'Noted! <REMEMBER user_id="999" description="a cool dude"/>',
+            );
+
+            const result = await assistantResponse(mockMessage as Message, mockContext);
+
+            expect(result).toBe(true);
+            expect(findOrCreate).toHaveBeenCalled();
+            expect(mockContext.log.info).toHaveBeenCalledWith(
+                'Auto-learn persisted markers',
+                expect.objectContaining({ attempted: 1, saved: 1 }),
+            );
+            // Marker is stripped before the reply reaches Discord.
+            expect(mockSafelySendToChannel).toHaveBeenCalledWith(
+                mockChannel,
+                'Noted!',
+                mockContext,
+                'assistant response',
+            );
+        });
+
+        it('bumps the interaction count after a successful reply', async () => {
+            const result = await assistantResponse(mockMessage as Message, mockContext);
+
+            expect(result).toBe(true);
+            expect(bumpInteraction).toHaveBeenCalledWith(
+                undefined, 'test-guild-id', 'test-user-id',
+            );
+        });
+
+        it('logs a warning when bumping the interaction count fails', async () => {
+            (bumpInteraction as jest.Mock).mockRejectedValueOnce(new Error('db down'));
+
+            const result = await assistantResponse(mockMessage as Message, mockContext);
+
+            expect(result).toBe(true);
+            expect(mockContext.log.warn).toHaveBeenCalledWith(
+                'Failed to bump interaction count',
+                expect.objectContaining({ error: expect.any(Error) }),
+            );
         });
     });
 });
