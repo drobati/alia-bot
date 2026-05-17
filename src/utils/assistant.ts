@@ -151,7 +151,7 @@ async function generateResponse(
         const historyMessages = buildHistoryMessages(extras);
 
         const requestData = {
-            model: 'x-ai/grok-3-mini-beta',
+            model: 'x-ai/grok-4.3',
             messages: [
                 { role: 'system' as const, content: systemPrompt },
                 ...historyMessages,
@@ -248,7 +248,7 @@ async function generateResponse(
         }
 
         Sentry.captureException(error, {
-            tags: { feature: 'assistant', provider: 'openrouter', model: 'grok-3-mini-beta' },
+            tags: { feature: 'assistant', provider: 'openrouter', model: 'grok-4.3' },
             extra: errorData,
         });
 
