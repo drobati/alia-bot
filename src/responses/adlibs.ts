@@ -3,7 +3,7 @@ import Sequelize from "sequelize";
 export default async (message: any, { tables, log }: any): Promise<boolean> => {
     const { Adlibs } = tables;
     let response = message.content;
-    const regex = /(-{3,})+/g;
+    const regex = /(\^{3,})+/g;
     if (regex.test(response)) {
         try {
             const matches = response.match(regex);
@@ -22,6 +22,8 @@ export default async (message: any, { tables, log }: any): Promise<boolean> => {
             );
 
             await message.channel.send(response);
+            // Delete the original message to hide who triggered the adlib.
+            await message.delete();
             return true; // Successfully processed Adlibs message
         } catch (error) {
             log.error('Adlibs response failed:', { error });
