@@ -7,8 +7,9 @@ describe('response/adlibs', () => {
     beforeEach(() => {
         context = createContext();
         message = {
-            content: 'The --- walks in.',
+            content: 'The ^^^ walks in.',
             channel: { send: jest.fn() },
+            delete: jest.fn(),
         };
         Adlibs = createTable();
         context.tables = { Adlibs };
@@ -18,11 +19,12 @@ describe('response/adlibs', () => {
         Adlibs.findOne.mockResolvedValue({ value: 'cat' });
         const result = await adlibs(message, context);
         expect(message.channel.send).toBeCalledWith('The **cat** walks in.');
+        expect(message.delete).toHaveBeenCalled();
         expect(result).toBe(true);
     });
 
     it('responds should match multiple words', async () => {
-        message.content = 'The ---, ---, and --- ran by.';
+        message.content = 'The ^^^, ^^^, and ^^^ ran by.';
         Adlibs.findOne = jest
             .fn()
             .mockResolvedValueOnce({ value: 'dog' })
@@ -39,6 +41,7 @@ describe('response/adlibs', () => {
         message.content = 'regular text';
         const result = await adlibs(message, context);
         expect(message.channel.send).not.toHaveBeenCalled();
+        expect(message.delete).not.toHaveBeenCalled();
         expect(result).toBe(false);
     });
 
@@ -47,5 +50,6 @@ describe('response/adlibs', () => {
         const result = await adlibs(message, context);
         expect(result).toBe(false);
         expect(message.channel.send).not.toHaveBeenCalled();
+        expect(message.delete).not.toHaveBeenCalled();
     });
 });

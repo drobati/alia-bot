@@ -1,7 +1,7 @@
 // Description:
-//   You are a ---.
-//   So --- maybe you should ---,
-//   but perhaps ---.
+//   You are a ^^^.
+//   So ^^^ maybe you should ^^^,
+//   but perhaps ^^^.
 //
 // Dependencies:
 //   None
