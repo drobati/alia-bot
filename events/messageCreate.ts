@@ -60,6 +60,22 @@ const messageCreateEvent: BotEvent = {
                 }
             }
 
+            // 1.5. High Priority: Descriptions ("@user is ..." natural-language capture)
+            if (!responseHandled) {
+                try {
+                    const descriptionsResult = await response.Descriptions(message, context);
+                    if (descriptionsResult === true) { // Description captured
+                        responseHandled = true;
+                        context.log.debug('Message handled by Descriptions', {
+                            messageId: message.id,
+                            userId: message.author.id,
+                        });
+                    }
+                } catch (error) {
+                    context.log.error('Descriptions response failed', { error });
+                }
+            }
+
             // 2. High Priority: Assistant (NLP Questions)
             if (!responseHandled) {
                 try {
