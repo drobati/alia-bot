@@ -6,6 +6,7 @@ import Dnd from "./dnd";
 import Tips from "./tips";
 import Password from "./password";
 import Greetings from "./greetings";
+import Descriptions from "./descriptions";
 
 export default {
     Adlibs,
@@ -16,4 +17,5 @@ export default {
     Tips,
     Password,
     Greetings,
+    Descriptions,
 };
