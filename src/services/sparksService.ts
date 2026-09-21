@@ -1,4 +1,5 @@
 import { Message } from 'discord.js';
+import { Transaction } from 'sequelize';
 import { Context } from '../utils/types';
 
 // Configuration constants
@@ -387,38 +388,54 @@ export class SparksService {
         description: string,
         refType = 'admin',
     ): Promise<boolean> {
-        const { tables, log } = this.context;
+        const { tables, log, sequelize } = this.context;
+
+        if (!Number.isInteger(amount) || amount <= 0) {
+            log.warn({ category: 'sparks', action: 'admin_add', guildId, discordId, amount },
+                'Refused a credit that was not a positive whole number of sparks');
+            return false;
+        }
 
         try {
             const user = await this.getOrCreateUser(guildId, discordId);
 
-            const balance = await tables.SparksBalance.findOne({
-                where: { user_id: user.id },
+            return await sequelize.transaction(async (transaction: Transaction) => {
+                // Same lock as a spend: two credits that read the same balance would otherwise
+                // each write their own total, and one of the two awards would vanish.
+                const balance = await tables.SparksBalance.findOne({
+                    where: { user_id: user.id },
+                    transaction,
+                    lock: Transaction.LOCK.UPDATE,
+                });
+
+                if (!balance) {
+                    return false;
+                }
+
+                await balance.update({
+                    current_balance: balance.current_balance + amount,
+                    lifetime_earned: balance.lifetime_earned + amount,
+                }, { transaction });
+
+                await tables.SparksLedger.create({
+                    user_id: user.id,
+                    type: 'earn',
+                    amount,
+                    ref_type: refType,
+                    description,
+                }, { transaction });
+
+                log.info({
+                    category: 'sparks',
+                    action: 'admin_add',
+                    guildId,
+                    discordId,
+                    amount,
+                    description,
+                }, 'Admin added sparks to user');
+
+                return true;
             });
-
-            await balance.update({
-                current_balance: balance.current_balance + amount,
-                lifetime_earned: balance.lifetime_earned + amount,
-            });
-
-            await tables.SparksLedger.create({
-                user_id: user.id,
-                type: 'earn',
-                amount,
-                ref_type: refType,
-                description,
-            });
-
-            log.info({
-                category: 'sparks',
-                action: 'admin_add',
-                guildId,
-                discordId,
-                amount,
-                description,
-            }, 'Admin added sparks to user');
-
-            return true;
         } catch (error) {
             log.error({ error }, 'Failed to add sparks');
             return false;
@@ -435,7 +452,14 @@ export class SparksService {
         description: string,
         refType = 'spend',
     ): Promise<boolean> {
-        const { tables, log } = this.context;
+        const { tables, log, sequelize } = this.context;
+
+        // A negative amount would pass the affordability check and then credit the user.
+        if (!Number.isInteger(amount) || amount <= 0) {
+            log.warn({ category: 'sparks', action: 'spend', guildId, discordId, amount },
+                'Refused a spend that was not a positive whole number of sparks');
+            return false;
+        }
 
         try {
             const user = await tables.SparksUser.findOne({
@@ -446,38 +470,51 @@ export class SparksService {
                 return false;
             }
 
-            const balance = await tables.SparksBalance.findOne({
-                where: { user_id: user.id },
+            return await sequelize.transaction(async (transaction: Transaction) => {
+                // Locked for the life of the transaction. Read and write are separated by awaits,
+                // so without this two spends racing each other both read the same balance, both
+                // find it sufficient, and both write: the user spends the same sparks twice.
+                const balance = await tables.SparksBalance.findOne({
+                    where: { user_id: user.id },
+                    transaction,
+                    lock: Transaction.LOCK.UPDATE,
+                });
+
+                if (!balance) {
+                    return false;
+                }
+
+                const available = balance.current_balance - balance.escrow_balance;
+                if (available < amount) {
+                    return false;
+                }
+
+                await balance.update({
+                    current_balance: balance.current_balance - amount,
+                    lifetime_spent: balance.lifetime_spent + amount,
+                }, { transaction });
+
+                // Written with the debit, not after it: a ledger insert that can fail on its own
+                // leaves the sparks gone with no record of where they went.
+                await tables.SparksLedger.create({
+                    user_id: user.id,
+                    type: 'spend',
+                    amount: -amount,
+                    ref_type: refType,
+                    description,
+                }, { transaction });
+
+                log.info({
+                    category: 'sparks',
+                    action: 'spend',
+                    guildId,
+                    discordId,
+                    amount,
+                    description,
+                }, 'User spent sparks');
+
+                return true;
             });
-
-            const available = balance.current_balance - balance.escrow_balance;
-            if (available < amount) {
-                return false;
-            }
-
-            await balance.update({
-                current_balance: balance.current_balance - amount,
-                lifetime_spent: balance.lifetime_spent + amount,
-            });
-
-            await tables.SparksLedger.create({
-                user_id: user.id,
-                type: 'spend',
-                amount: -amount,
-                ref_type: refType,
-                description,
-            });
-
-            log.info({
-                category: 'sparks',
-                action: 'spend',
-                guildId,
-                discordId,
-                amount,
-                description,
-            }, 'User spent sparks');
-
-            return true;
         } catch (error) {
             log.error({ error }, 'Failed to remove sparks');
             return false;
