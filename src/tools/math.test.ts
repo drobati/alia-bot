@@ -34,4 +34,14 @@ describe('mathTool', () => {
     it('returns null when there is no expression at all', async () => {
         expect(await mathTool.run('what is love?', ctx())).toBeNull();
     });
+
+    // Guards the \b word boundaries on the of->multiply rewrite in math.ts. An
+    // unbounded /of/gi would tear into words that merely contain "of" (like
+    // "profit" or "offset"), corrupting the expression instead of leaving an
+    // unrecognized symbol for mathjs to reject — so this must stay null, not
+    // silently return a wrong number.
+    it('does not corrupt words that contain "of" as a substring', async () => {
+        expect(await mathTool.run('what is the profit of 100?', ctx())).toBeNull();
+        expect(await mathTool.run('what is the offset of 20?', ctx())).toBeNull();
+    });
 });
