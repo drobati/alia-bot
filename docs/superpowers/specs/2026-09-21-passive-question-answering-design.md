@@ -39,7 +39,7 @@ result. The only difference between a mentioned message and a passive one
 is what happens when no tool applies.
 
 ```
-classify(content, { addressedToBot })  ->  { type, confidence }
+classify(content, { addressedToBot })  ->  { type, confidence, alternatives }
 
 const useTool = TOOL_FOR[type] && confidence >= CONFIDENCE_FLOOR
 
@@ -90,7 +90,8 @@ system prompt, so it answers "what can you do?" well without a tool.
 questions in a Discord channel are aimed at other people, and answering
 them is what makes a bot insufferable.
 
-`CONFIDENCE_FLOOR` is 0.90, one exported constant.
+`CONFIDENCE_FLOOR` is 0.85, one exported constant. The value is
+measured rather than chosen; see below.
 
 ### Evidence
 
@@ -132,6 +133,8 @@ Every route is the intended one. Each tool type clears the floor; every
 message that should not reach a tool falls below it or classifies as a
 non-tool type.
 
+These are single observations. The next section is why that matters.
+
 Note `are you a thick goth mommy?` at 0.52. A weak score on the mentioned
 path is harmless, because the LLM is the default and the floor only
 prevents diversion into a tool.
@@ -147,7 +150,9 @@ The reverse also happens. `what can you do?` scored 0.97 against a small
 taxonomy and 0.63 against the full one, because `bot_capability`,
 `about_alia` and `request_action` compete for it. Sharpening the criteria
 strings recovered it to 0.84 and lifted `request_action` from 0.79 to
-0.99, but `bot_capability` never cleared 0.90.
+0.99. Repeat runs put `bot_capability` at 0.84 and 0.75 — straddling the
+floor from below, inside the noise band measured in the next section. A
+type that lands on the threshold is a type that answers intermittently.
 
 Two consequences, both load-bearing:
 
@@ -162,16 +167,66 @@ Two consequences, both load-bearing:
    regenerating the fixtures. A type whose members cannot clear the floor
    is not a tool type.
 
+### Confidence is not deterministic
+
+The same message classified six times, with identical criteria, does not
+return the same confidence:
+
+| Message | Type across 6 runs | Confidence | Spread |
+| --- | --- | --- | --- |
+| What's the capital of France? | `general_knowledge`, always | 0.89 – 0.92 | 0.03 |
+| is it gonna rain tomorrow? | `weather`, always | 0.92 – 0.96 | 0.04 |
+| who is @derek? | `server_member`, always | 0.96 – 0.97 | 0.01 |
+
+The **type is stable** for a clear message. Only the confidence moves,
+by up to 0.04.
+
+This invalidates a floor of 0.90. `What's the capital of France?` — the
+example this feature was conceived around — returned 0.89, 0.90, 0.90,
+0.90, 0.90 and 0.92. At a 0.90 floor that message is answered on some
+runs and met with silence on others, for no reason a user could ever
+discern. A threshold must not sit inside the noise band of a central
+case.
+
+Ambiguous messages are unstable in type as well, which is the behaviour
+to want. `how do i get to the airport from here?` came back
+`general_knowledge` at 0.52 on one run and `directed_at_human` at 0.72
+and 0.79 on others. It has no good answer here, and it stays below the
+floor whichever way it lands.
+
+That produces a measured separation:
+
+- clear tool questions bottom out at **0.89**
+- ambiguous questions reaching a tool type top out at **0.79**
+
+`CONFIDENCE_FLOOR` is therefore **0.85**, in the gap, with roughly 0.04
+of margin on the true-positive side and 0.06 on the other. It is the
+widest gap the current evidence supports, and it is narrow. This is the
+single number most in need of real traffic, which is what
+`ClassificationLog` is for.
+
+Two rules follow:
+
+1. **Fixtures are recorded responses replayed offline, never live
+   calls.** A test that calls the model cannot be deterministic, so CI
+   replays stored payloads. Recording a fresh one is a deliberate act.
+2. **Assert the route, never the confidence.** `0.90` and `0.92` are the
+   same answer. A test pinned to an exact score fails on a run that
+   changed nothing.
+
+
 ## Modules
 
 ```
 src/utils/question-classifier.ts   Jev over OpenRouter; injectable fetch
+src/utils/classification-log.ts    records what the floor rejected
 src/utils/question-router.ts       decide(); pure, no I/O
 src/utils/answer-embed.ts          buildAnswerEmbed(); one place
 src/tools/types.ts                 Tool contract
 src/tools/{wikipedia,weather,math,timeDate,serverMember}.ts
 src/lib/weather-core.ts            extracted from commands/weather.ts
 src/lib/calc-core.ts               extracted from commands/calc.ts
+src/models/classificationLog.ts    new table
 src/responses/questions.ts         passive handler
 src/responses/assistant.ts         modified: classify before generating
 ```
@@ -267,13 +322,94 @@ before it. A classifier is not worth a second outage of the same kind.
 
 Credentials reuse `OPENROUTER_API_KEY`, already used by `utils/assistant.ts`.
 
+## Recording what the floor rejects
+
+The confidence floor is a filter, and a filter that throws away what it
+rejects cannot be tuned. Every classification below the floor is a
+question Alia declined to answer, and the set of them is the only honest
+measure of whether 0.85 is the right number.
+
+### Keep the whole distribution
+
+Jev returns a probability for every type in the taxonomy, not just the
+winner. This design keeps the top three rather than only the argmax:
+
+```ts
+{ type: "bot_capability", confidence: 0.84,
+  alternatives: [ { type: "about_alia", p: 0.09 },
+                  { type: "request_action", p: 0.04 } ] }
+```
+
+The runner-up is the diagnosis. `what can you do?` fell to 0.63 because
+`about_alia` and `request_action` were competing for it, and the argmax
+alone never shows that — the distribution does. Discarding it would mean
+knowing a message was rejected without knowing why.
+
+### `ClassificationLog`
+
+Following `src/models/` conventions, with a dated migration:
+
+| Column | Notes |
+| --- | --- |
+| `guild_id`, `channel_id`, `message_id` | where it came from |
+| `content` | `STRING(255)`, truncated |
+| `addressed` | mentioned, or passive |
+| `type`, `confidence` | the winner |
+| `alternatives` | JSON, runners-up with probabilities |
+| `route` | `tool:wikipedia`, `llm`, `silent` |
+| `created_at` | |
+
+A row is written when:
+
+1. confidence fell below the floor, whatever the type — the main case; or
+2. a tool type cleared the floor but the tool returned `null`, meaning
+   the routing was right and the tool could not answer. That is a
+   different problem from a bad classification and the log must not
+   conflate them.
+
+Confident routes are not logged. They are the common case, they are
+working, and logging them would bury the interesting rows.
+
+Writes never block a reply and never fail one: the insert is awaited
+inside its own try/catch, and a logging failure is recorded and
+otherwise ignored.
+
+### Retention
+
+Rows are pruned after 30 days by the existing `schedulerService` polling
+interval. This is a log table on a busy server and would otherwise grow
+without limit — the same fault already present in three cooldown maps in
+this repository, and not one to add deliberately.
+
+Content is stored only for opted-in channels and for messages that
+mention Alia. A mentioned message is already sent to an LLM today, so
+this adds no exposure there; an opted-in channel is a deliberate choice
+by an administrator. Truncation to 255 characters is enough for tuning
+and keeps the table small.
+
+### The loop this closes
+
+A script exports the table in the fixture format the regression corpus
+already uses. The 27 hand-picked messages become a seed, and the corpus
+then grows from real traffic in the server rather than from guesses.
+
+That is what makes the floor tunable with evidence. Raising or lowering
+0.85 against 27 invented messages proves nothing, especially when a
+single reading of one message can move 0.03 on its own; doing it against
+a month of rejected questions is a measurement. The same export is how a
+missing type gets discovered: a cluster of rejected messages sharing a
+runner-up is a type the taxonomy does not have yet, which is exactly how
+`time_date` was found by hand.
+
+
 ## Failure handling
 
 | Failure | Mentioned | Passive |
 | --- | --- | --- |
 | Jev unreachable or errors | log at `error`, fall through to LLM | log, stay silent |
-| Classification below floor | LLM | silent |
-| Tool returns `null` | LLM | silent |
+| Classification below floor | LLM, and write `ClassificationLog` | silent, and write `ClassificationLog` |
+| Tool returns `null` | LLM, and write `ClassificationLog` | silent, and write `ClassificationLog` |
+| `ClassificationLog` insert fails | log at `warn`, reply normally | log at `warn`, stay silent |
 | Tool throws | log at `error`, fall back to LLM | log, stay silent |
 | Discord send fails | existing `safelySendToChannel` handling | same |
 
@@ -307,7 +443,13 @@ the probes. Tool answers are faster overall than the LLM they replace.
 - Handlers: `createContext` and `createTable`, matching the existing
   suite.
 - Regression corpus: the 27 messages above, with their recorded verdicts
-  as fixtures, asserting the route rather than the wording. Runs offline.
+  as fixtures, asserting the route rather than the confidence, since the
+  model does not return a stable score. Runs offline against recorded
+  payloads.
+- A variance guard: one test asserts that a message recorded near the
+  floor still routes as recorded, so that a future taxonomy change which
+  pushes a core question across 0.85 fails loudly rather than quietly
+  changing behaviour in production.
 - Extraction of the weather and calc cores is covered by the existing
   command tests.
 
@@ -345,4 +487,13 @@ taxonomy grows.
   phase 1 tool. It deserves the most fixtures.
 - The corpus is 27 messages chosen by hand. It demonstrates the routing
   rule; it does not measure precision or recall on real server traffic.
-  The first weeks of logs should be sampled before the floor is tuned.
+  `ClassificationLog` exists to replace those guesses with measurements,
+  and the floor should not be re-tuned until a month of it exists.
+- The 0.85 floor rests on six repetitions of three messages. The gap it
+  sits in is about 0.10 wide, which is not much. Widening the margin is
+  a matter of narrowing the taxonomy, not of moving the number.
+- The log captures what the floor rejected. It cannot capture a confident
+  mistake: a message routed to a tool at 0.98 that should have gone to
+  the LLM leaves no trace. Catching those needs a reaction or a command
+  for people to flag a bad answer, which is deliberately out of scope
+  here.
