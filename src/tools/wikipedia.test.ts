@@ -42,6 +42,7 @@ describe('wikipediaTool', () => {
     it('returns null when nothing matches, so the caller can fall back', async () => {
         const fetchMock = fetchReturning({ status: 200, body: { query: { search: [] } } });
         expect(await wikipediaTool.run('asdfqwer', ctx(), { fetch: fetchMock as never })).toBeNull();
+        expect(fetchMock).toHaveBeenCalledTimes(1);
     });
 
     it('returns null when the article has no extract', async () => {
@@ -60,5 +61,34 @@ describe('wikipediaTool', () => {
     it('returns null on a non-200', async () => {
         const fetchMock = fetchReturning({ status: 500, body: {} });
         expect(await wikipediaTool.run('paris', ctx(), { fetch: fetchMock as never })).toBeNull();
+    });
+
+    it('returns null on a non-200 from the summary endpoint', async () => {
+        const fetchMock = fetchReturning(
+            { status: 200, body: { query: { search: [{ title: 'Paris' }] } } },
+            { status: 500, body: {} },
+        );
+        expect(await wikipediaTool.run('paris', ctx(), { fetch: fetchMock as never })).toBeNull();
+    });
+
+    it('truncates long extracts to MAX_BODY', async () => {
+        const longExtract = 'x'.repeat(3000);
+        const fetchMock = fetchReturning(
+            { status: 200, body: { query: { search: [{ title: 'LongArticle' }] } } },
+            {
+                status: 200,
+                body: {
+                    title: 'LongArticle',
+                    extract: longExtract,
+                    content_urls: { desktop: { page: 'https://en.wikipedia.org/wiki/LongArticle' } },
+                },
+            },
+        );
+
+        const answer = await wikipediaTool.run('long', ctx(), { fetch: fetchMock as never });
+
+        expect(answer).not.toBeNull();
+        expect(answer!.body).toHaveLength(1200);
+        expect(answer!.body).toBe(longExtract.slice(0, 1200));
     });
 });
