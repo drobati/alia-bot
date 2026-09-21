@@ -20,23 +20,20 @@ export function extractLocation(query: string): string | null {
 export const weatherTool: Tool = {
     name: 'weather',
 
-    async run(
-        query: string,
-        _ctx: ToolContext,
-        deps: { fetch?: typeof fetch } = {},
-    ): Promise<ToolAnswer | null> {
+    async run(query: string, _ctx: ToolContext): Promise<ToolAnswer | null> {
+        void _ctx;
         const place = extractLocation(query);
         if (!place) {
             return null;
         }
 
         try {
-            const location = await geocodeLocation(place, deps);
+            const location = await geocodeLocation(place);
             if (!location) {
                 return null;
             }
 
-            const weather = await getWeather(location.latitude, location.longitude, deps);
+            const weather = await getWeather(location.latitude, location.longitude);
             const current = weather?.current;
             if (!current) {
                 return null;

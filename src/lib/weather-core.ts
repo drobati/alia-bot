@@ -91,20 +91,15 @@ export function formatLocationName(result: GeocodingResult): string {
     return `${result.name}, ${result.country}`;
 }
 
-export async function geocodeLocation(
-    query: string,
-    deps: { fetch?: typeof fetch } = {},
-): Promise<GeocodingResult | null> {
-    const results = await geocodeLocationMultiple(query, 1, deps);
+export async function geocodeLocation(query: string): Promise<GeocodingResult | null> {
+    const results = await geocodeLocationMultiple(query, 1);
     return results.length > 0 ? results[0] : null;
 }
 
 export async function geocodeLocationMultiple(
     query: string,
     count: number = 10,
-    deps: { fetch?: typeof fetch } = {},
 ): Promise<GeocodingResult[]> {
-    void deps;
     const url = "https://geocoding-api.open-meteo.com/v1/search";
     const response = await axios.get(url, {
         params: {
@@ -127,12 +122,7 @@ export async function geocodeLocationMultiple(
     }));
 }
 
-export async function getWeather(
-    lat: number,
-    lon: number,
-    deps: { fetch?: typeof fetch } = {},
-): Promise<WeatherResponse> {
-    void deps;
+export async function getWeather(lat: number, lon: number): Promise<WeatherResponse> {
     const url = "https://api.open-meteo.com/v1/forecast";
     const response = await axios.get(url, {
         params: {
