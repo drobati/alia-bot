@@ -26,7 +26,7 @@ const messageCreateEvent: BotEvent = {
             }
 
             // Priority-based response system - only one response per message
-            // Priority order: Password > D&D > Assistant (NLP) > Triggers > Adlibs > Louds
+            // Priority order: Password > D&D > Descriptions > Assistant (NLP) > Questions > Triggers > Adlibs > Louds
 
             let responseHandled = false;
 
@@ -89,6 +89,22 @@ const messageCreateEvent: BotEvent = {
                     }
                 } catch (error) {
                     context.log.error('Assistant response failed', { error });
+                }
+            }
+
+            // 2.5. Passive questions (opted-in channels, no mention needed)
+            if (!responseHandled) {
+                try {
+                    const questionsResult = await response.Questions(message, context);
+                    if (questionsResult === true) {
+                        responseHandled = true;
+                        context.log.debug('Message handled by Questions', {
+                            messageId: message.id,
+                            userId: message.author.id,
+                        });
+                    }
+                } catch (error) {
+                    context.log.error('Questions response failed', { error });
                 }
             }
 
