@@ -30,7 +30,10 @@ export function resolveTimeZone(query: string): string | null {
     if (!match) {
         return 'UTC';
     }
-    const place = match[1].replace(/[?!.]+$/, '').trim();
+    const place = match[1]
+        .replace(/\b(today|tomorrow|tonight|now|right now|this week)\b/gi, '')
+        .replace(/[?!.]+$/, '')
+        .trim();
     return ZONES[place] ?? null;
 }
 

@@ -15,7 +15,7 @@ function ctx(mentionedId: string | null, descriptions: Array<{ description: stri
             },
         },
     };
-    return { toolCtx: { message: message as never, context: context as never }, table };
+    return { toolCtx: { message: message as never, context: context as never }, table, context };
 }
 
 describe('serverMemberTool', () => {
@@ -31,9 +31,10 @@ describe('serverMemberTool', () => {
     });
 
     it('returns null when nobody is mentioned, rather than guessing who is meant', async () => {
-        const { toolCtx, table } = ctx(null, []);
+        const { toolCtx, table, context } = ctx(null, []);
         expect(await serverMemberTool.run('who is that guy?', toolCtx)).toBeNull();
         expect(table.findAll).not.toHaveBeenCalled();
+        expect(context.log.warn).not.toHaveBeenCalled();
     });
 
     it('returns null when the user has no descriptions yet', async () => {
@@ -56,8 +57,9 @@ describe('serverMemberTool', () => {
     });
 
     it('returns null when the lookup throws', async () => {
-        const { toolCtx, table } = ctx('u1', []);
+        const { toolCtx, table, context } = ctx('u1', []);
         table.findAll.mockRejectedValue(new Error('db down'));
         expect(await serverMemberTool.run('who is @derek?', toolCtx)).toBeNull();
+        expect(context.log.warn).toHaveBeenCalled();
     });
 });

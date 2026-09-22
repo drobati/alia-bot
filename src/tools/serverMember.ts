@@ -33,7 +33,11 @@ export const serverMemberTool: Tool = {
                 body: rows.map((row: { description: string }) => `• ${row.description}`).join('\n'),
                 sourceLabel: 'what people told me',
             };
-        } catch {
+        } catch (error) {
+            // A tool that cannot answer (no guild, no mention, no descriptions)
+            // stays silent — those are normal outcomes. A tool that broke gets
+            // logged, so the two are distinguishable in the logs.
+            context.log.warn('Server member lookup failed', { error });
             return null;
         }
     },

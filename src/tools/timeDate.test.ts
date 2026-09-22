@@ -16,6 +16,11 @@ describe('resolveTimeZone', () => {
     it('returns null for a place it does not know', () => {
         expect(resolveTimeZone('what time is it in atlantis?')).toBeNull();
     });
+
+    it('strips trailing filler words around the place name', () => {
+        expect(resolveTimeZone('what time is it in tokyo right now?')).toBe('Asia/Tokyo');
+        expect(resolveTimeZone('what time is it in new york today?')).toBe('America/New_York');
+    });
 });
 
 describe('timeDateTool', () => {
