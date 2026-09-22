@@ -44,6 +44,8 @@ describe('questions (passive)', () => {
     it('ignores a message with no question mark', async () => {
         expect(await questions(messageOf('you smell') as never, createContext() as never)).toBe(false);
         expect(answerQuestion).not.toHaveBeenCalled();
+        // The free regex check must reject this before the config lookup ever runs.
+        expect(isPassiveChannel).not.toHaveBeenCalled();
     });
 
     it('ignores bots', async () => {
@@ -66,18 +68,24 @@ describe('questions (passive)', () => {
     it('ignores a message too short to be a real question', async () => {
         expect(await questions(messageOf('ok?') as never, createContext() as never)).toBe(false);
         expect(answerQuestion).not.toHaveBeenCalled();
+        // The free length check must reject this before the config lookup ever runs.
+        expect(isPassiveChannel).not.toHaveBeenCalled();
     });
 
     it('reports not-handled when the runner stays silent', async () => {
         (answerQuestion as jest.Mock).mockResolvedValue({ kind: 'silent' });
         expect(await questions(messageOf('you coming tonight?') as never, createContext() as never))
             .toBe(false);
+        // Proves the false came back from the runner, not from an earlier gate.
+        expect(answerQuestion).toHaveBeenCalled();
     });
 
     it('reports not-handled when the runner asks for the LLM, since passive never uses it', async () => {
         (answerQuestion as jest.Mock).mockResolvedValue({ kind: 'llm' });
         expect(await questions(messageOf('what is anything?') as never, createContext() as never))
             .toBe(false);
+        // Proves the false came back from the runner, not from an earlier gate.
+        expect(answerQuestion).toHaveBeenCalled();
     });
 
     it('applies a per-channel cooldown after answering', async () => {
