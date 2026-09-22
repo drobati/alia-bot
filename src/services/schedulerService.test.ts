@@ -1,5 +1,8 @@
 import { SchedulerService } from './schedulerService';
 
+jest.mock('../utils/classification-log', () => ({ pruneClassificationLog: jest.fn() }));
+import { pruneClassificationLog } from '../utils/classification-log';
+
 describe('SchedulerService', () => {
     let mockClient: any;
     let mockContext: any;
@@ -740,6 +743,31 @@ describe('SchedulerService', () => {
             await Promise.resolve();
 
             expect(mockScheduledEventModel.update).toHaveBeenCalled();
+        });
+    });
+
+    describe('classification log retention', () => {
+        it('prunes rows older than 30 days on each poll', async () => {
+            (pruneClassificationLog as jest.Mock).mockResolvedValue(3);
+
+            await service.pruneClassificationLogs();
+
+            expect(pruneClassificationLog).toHaveBeenCalledWith(expect.anything(), 30);
+        });
+
+        it('does not let a failed prune throw into the poll', async () => {
+            (pruneClassificationLog as jest.Mock).mockRejectedValue(new Error('db down'));
+
+            await expect(service.pruneClassificationLogs()).resolves.toBeUndefined();
+        });
+
+        it('throttles: a second call within the hour does not prune again', async () => {
+            (pruneClassificationLog as jest.Mock).mockResolvedValue(0);
+
+            await service.pruneClassificationLogs();
+            await service.pruneClassificationLogs();
+
+            expect(pruneClassificationLog).toHaveBeenCalledTimes(1);
         });
     });
 
