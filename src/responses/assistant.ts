@@ -44,7 +44,7 @@ export default async (message: Message, context: Context): Promise<boolean> => {
             content: processableContent,
             addressedToBot: true,
         });
-        if (outcome.kind === 'answered') {
+        if (outcome?.kind === 'answered') {
             return true;
         }
     } catch (error) {

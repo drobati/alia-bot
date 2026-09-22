@@ -461,5 +461,15 @@ describe('Assistant Response System', () => {
 
             expect(mockGenerateResponse).toHaveBeenCalled();
         });
+
+        it('falls through to the LLM when the runner returns nothing', async () => {
+            mockMessage.content = '@Alia hello there';
+            (answerQuestion as jest.Mock).mockResolvedValue(undefined);
+
+            await assistantResponse(mockMessage as Message, mockContext);
+
+            expect(mockGenerateResponse).toHaveBeenCalled();
+            expect(mockContext.log.error).not.toHaveBeenCalled();
+        });
     });
 });
