@@ -7,6 +7,7 @@ import Tips from "./tips";
 import Password from "./password";
 import Greetings from "./greetings";
 import Descriptions from "./descriptions";
+import Questions from "./questions";
 
 export default {
     Adlibs,
@@ -18,4 +19,5 @@ export default {
     Password,
     Greetings,
     Descriptions,
+    Questions,
 };
