@@ -4,6 +4,7 @@ import { buildAnswerEmbed } from './answer-embed';
 import { recordClassification } from './classification-log';
 import { classify } from './question-classifier';
 import { decide } from './question-router';
+import { CONFIDENCE_FLOOR } from './question-types';
 import { Context } from './types';
 
 export type AnswerOutcome =
@@ -44,7 +45,12 @@ export async function answerQuestion(
     };
 
     if (route.kind !== 'tool') {
-        await log('below_floor', route.kind);
+        // Only the actual rejection reason is logged. A confident non-tool type
+        // (directed_at_human, compliment, the tool-less phase-2 types) is the
+        // routine case and would bury the interesting rows if logged too.
+        if (classification && classification.confidence < CONFIDENCE_FLOOR) {
+            await log('below_floor', route.kind);
+        }
         return fallback;
     }
 
@@ -59,12 +65,10 @@ export async function answerQuestion(
 
         const payload = { embeds: [buildAnswerEmbed(answer)] };
         if (addressedToBot) {
-            // eslint-disable-next-line no-unused-vars
-            const channel = message.channel as { send?: (p: unknown) => Promise<unknown> };
-            if (typeof channel?.send !== 'function') {
+            if (!message.channel.isSendable()) {
                 return fallback;
             }
-            await channel.send(payload);
+            await message.channel.send(payload);
         } else {
             // A passive answer replies, so it is obvious which message it answers
             // in a channel where nobody addressed her.

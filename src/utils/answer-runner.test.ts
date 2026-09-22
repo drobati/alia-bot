@@ -2,8 +2,12 @@ import { answerQuestion } from './answer-runner';
 import { createContext, createTable } from './testHelpers';
 
 jest.mock('./question-classifier', () => ({ classify: jest.fn() }));
-jest.mock('../tools', () => ({ TOOLS: { wikipedia: { name: 'wikipedia', run: jest.fn() } } }));
-// `weather` is added inside the test that needs it, so the registry mock stays small.
+jest.mock('../tools', () => ({
+    TOOLS: {
+        wikipedia: { name: 'wikipedia', run: jest.fn() },
+        weather: { name: 'weather', run: jest.fn() },
+    },
+}));
 
 import { classify } from './question-classifier';
 import { TOOLS } from '../tools';
@@ -13,16 +17,17 @@ function setup() {
     context.tables.ClassificationLog = createTable();
     const send = jest.fn().mockResolvedValue(undefined);
     const reply = jest.fn().mockResolvedValue(undefined);
+    const isSendable = jest.fn().mockReturnValue(true);
     const message = {
         id: 'm1', guildId: 'g1', channelId: 'c1',
-        channel: { send },
+        channel: { send, isSendable },
         reply,
     };
     return { context, message, send, reply };
 }
 
 describe('answerQuestion', () => {
-    beforeEach(() => jest.clearAllMocks());
+    beforeEach(() => jest.resetAllMocks());
 
     it('sends an embed when a confident tool answers', async () => {
         (classify as jest.Mock).mockResolvedValue({
@@ -46,16 +51,19 @@ describe('answerQuestion', () => {
         (classify as jest.Mock).mockResolvedValue({
             type: 'weather', confidence: 0.95, alternatives: [],
         });
-        (TOOLS as unknown as Record<string, { run: jest.Mock }>).weather = {
-            run: jest.fn().mockResolvedValue({ title: 'Tokyo', body: '18°C', sourceLabel: 'open-meteo' }),
-        } as never;
+        (TOOLS.weather.run as jest.Mock).mockResolvedValue({
+            title: 'Tokyo', body: '18°C', sourceLabel: 'open-meteo',
+        });
         const { context, message, reply, send } = setup();
 
-        await answerQuestion(message as never, context as never,
+        const outcome = await answerQuestion(message as never, context as never,
             { content: 'what is the weather in tokyo?', addressedToBot: true });
 
+        expect(outcome).toEqual({ kind: 'answered' });
         expect(send).toHaveBeenCalled();
         expect(reply).not.toHaveBeenCalled();
+        expect(TOOLS.weather.run).toHaveBeenCalled();
+        expect(TOOLS.wikipedia.run).not.toHaveBeenCalled();
     });
 
     it('asks the caller for the LLM when addressed and no tool applies', async () => {
@@ -68,19 +76,24 @@ describe('answerQuestion', () => {
             { content: 'you smell', addressedToBot: true });
 
         expect(outcome).toEqual({ kind: 'llm' });
+        expect(TOOLS.wikipedia.run).not.toHaveBeenCalled();
     });
 
     it('stays silent when not addressed and no tool applies', async () => {
         (classify as jest.Mock).mockResolvedValue({
             type: 'directed_at_human', confidence: 0.98, alternatives: [],
         });
-        const { context, message, send } = setup();
+        const { context, message, send, reply } = setup();
 
         const outcome = await answerQuestion(message as never, context as never,
             { content: 'you coming tonight?', addressedToBot: false });
 
         expect(outcome).toEqual({ kind: 'silent' });
         expect(send).not.toHaveBeenCalled();
+        expect(reply).not.toHaveBeenCalled();
+        expect(TOOLS.wikipedia.run).not.toHaveBeenCalled();
+        // A confident non-tool type is the routine case and writes no row.
+        expect(context.tables.ClassificationLog.create).not.toHaveBeenCalled();
     });
 
     it('logs a below-floor classification', async () => {
@@ -96,6 +109,7 @@ describe('answerQuestion', () => {
         expect(context.tables.ClassificationLog.create).toHaveBeenCalledWith(
             expect.objectContaining({ reason: 'below_floor', route: 'silent' }),
         );
+        expect(TOOLS.wikipedia.run).not.toHaveBeenCalled();
     });
 
     it('logs separately when routing was right but the tool could not answer', async () => {
@@ -110,7 +124,7 @@ describe('answerQuestion', () => {
 
         expect(outcome).toEqual({ kind: 'llm' });
         expect(context.tables.ClassificationLog.create).toHaveBeenCalledWith(
-            expect.objectContaining({ reason: 'tool_no_answer' }),
+            expect.objectContaining({ reason: 'tool_no_answer', route: 'tool:wikipedia' }),
         );
     });
 
@@ -122,6 +136,9 @@ describe('answerQuestion', () => {
             { content: 'anything', addressedToBot: true });
 
         expect(outcome).toEqual({ kind: 'llm' });
+        expect(TOOLS.wikipedia.run).not.toHaveBeenCalled();
+        // A null classification writes no row: there is nothing to diagnose.
+        expect(context.tables.ClassificationLog.create).not.toHaveBeenCalled();
     });
 
     it('falls back to the LLM when sending the embed throws', async () => {
@@ -138,6 +155,7 @@ describe('answerQuestion', () => {
             { content: 'capital of France?', addressedToBot: true });
 
         expect(outcome).toEqual({ kind: 'llm' });
+        expect(send).toHaveBeenCalled();
     });
 
     it('falls back to the LLM when the tool itself throws', async () => {
@@ -151,5 +169,6 @@ describe('answerQuestion', () => {
             { content: 'capital of France?', addressedToBot: true });
 
         expect(outcome).toEqual({ kind: 'llm' });
+        expect(TOOLS.wikipedia.run).toHaveBeenCalled();
     });
 });
