@@ -1,3 +1,4 @@
+/* eslint-disable no-unused-vars */
 import { Message } from 'discord.js';
 import { Context } from '../utils/types';
 
