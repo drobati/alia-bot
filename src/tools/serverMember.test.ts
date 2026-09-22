@@ -37,16 +37,22 @@ describe('serverMemberTool', () => {
     });
 
     it('returns null when the user has no descriptions yet', async () => {
-        const { toolCtx } = ctx('u1', []);
+        const { toolCtx, table } = ctx('u1', []);
         expect(await serverMemberTool.run('who is @derek?', toolCtx)).toBeNull();
+        expect(table.findAll).toHaveBeenCalledWith({
+            where: { guild_id: 'g1', user_id: 'u1' },
+            limit: 5,
+        });
     });
 
     it('returns null outside a guild', async () => {
         const context = createContext();
-        context.tables.UserDescriptions = createTable();
+        const table = createTable();
+        context.tables.UserDescriptions = table;
         const message = { guildId: null, mentions: { users: { first: () => ({ id: 'u1', username: 'd' }) } } };
         expect(await serverMemberTool.run('who is @derek?',
             { message: message as never, context: context as never })).toBeNull();
+        expect(table.findAll).not.toHaveBeenCalled();
     });
 
     it('returns null when the lookup throws', async () => {

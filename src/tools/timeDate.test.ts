@@ -27,6 +27,13 @@ describe('timeDateTool', () => {
     });
 
     it('returns null for an unknown place rather than answering about UTC', async () => {
+        // A crash inside Intl.DateTimeFormat would also be caught and return
+        // null, which would make this test pass for the wrong reason. Assert
+        // the formatter was never reached, proving this is an early refusal
+        // and not an attempt that failed and got swallowed.
+        const spy = jest.spyOn(Intl, 'DateTimeFormat');
         expect(await timeDateTool.run('what time is it in atlantis?', ctx())).toBeNull();
+        expect(spy).not.toHaveBeenCalled();
+        spy.mockRestore();
     });
 });
