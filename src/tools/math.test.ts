@@ -1,4 +1,4 @@
-import { mathTool, extractExpression } from './math';
+import { mathTool, extractExpression, toEvaluable } from './math';
 import { createContext } from '../utils/testHelpers';
 
 const ctx = () => ({ message: {} as never, context: createContext() as never });
@@ -43,5 +43,18 @@ describe('mathTool', () => {
     it('does not corrupt words that contain "of" as a substring', async () => {
         expect(await mathTool.run('what is the profit of 100?', ctx())).toBeNull();
         expect(await mathTool.run('what is the offset of 20?', ctx())).toBeNull();
+    });
+});
+
+describe('toEvaluable', () => {
+    it('rewrites a standalone "of" so mathjs reads a percentage', () => {
+        expect(toEvaluable('15% of 240')).toBe('15% * 240');
+    });
+
+    it('leaves "of" inside a word alone', () => {
+        // Without word boundaries this becomes "the pr*it * 100" and a question
+        // that should go unanswered turns into a corrupted expression instead.
+        expect(toEvaluable('the profit of 100')).toBe('the profit * 100');
+        expect(toEvaluable('the offset of 20')).toBe('the offset * 20');
     });
 });

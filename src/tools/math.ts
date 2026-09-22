@@ -15,6 +15,17 @@ export function extractExpression(query: string): string | null {
     return expression.length > 0 ? expression : null;
 }
 
+/**
+ * mathjs cannot parse "15% of 240" — it throws on the bare word. Rewriting a
+ * standalone "of" to "*" gives "15% * 240", which mathjs reads as a percentage
+ * and evaluates to 36. The word boundaries matter: without them this would also
+ * rewrite the inside of words like "profit" and "offset", turning a question
+ * that should go unanswered into a corrupted expression.
+ */
+export function toEvaluable(expression: string): string {
+    return expression.replace(/\bof\b/gi, '*');
+}
+
 export const mathTool: Tool = {
     name: 'math',
 
@@ -25,9 +36,8 @@ export const mathTool: Tool = {
             return null;
         }
 
-        // mathjs doesn't understand the natural-language "of" (e.g. "15% of 240");
-        // it needs "15% * 240". Normalize only for evaluation, not for display.
-        const evaluable = expression.replace(/\bof\b/gi, '*');
+        // Normalize only for evaluation, not for display.
+        const evaluable = toEvaluable(expression);
         const result = evaluateExpression(evaluable);
         if (result === null) {
             return null;
