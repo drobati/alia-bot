@@ -2,6 +2,12 @@ module.exports = {
     preset: "ts-jest",
     testEnvironment: "node",
     testPathIgnorePatterns: ["<rootDir>/dist/"],
+    // @sentry/profiling-node has no prebuilt binary for this Node ABI, and the
+    // require() throws at import time, killing any suite that transitively
+    // reaches src/lib/sentry.ts. Profiling is irrelevant to tests, so stub it.
+    moduleNameMapper: {
+        "^@sentry/profiling-node$": "<rootDir>/test/stubs/sentry-profiling-node.js",
+    },
     collectCoverageFrom: [
         "src/**/*.{ts,js}",
         "!src/**/*.test.{ts,js}",
