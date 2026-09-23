@@ -37,7 +37,7 @@ export default (sequelize: any) => ({
             allowNull: false,
             comment: 'below_floor or tool_no_answer',
         },
-        created_at: { type: DataTypes.DATE, defaultValue: DataTypes.NOW },
+        created_at: { type: DataTypes.DATE, allowNull: false, defaultValue: DataTypes.NOW },
     }, {
         tableName: 'classification_logs',
         timestamps: false,

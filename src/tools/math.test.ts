@@ -35,6 +35,14 @@ describe('mathTool', () => {
         expect(await mathTool.run('what is love?', ctx())).toBeNull();
     });
 
+    // Discord messages reach 2000-4000 chars and limitedEvaluate is synchronous;
+    // without a cap a pathological expression would block the event loop for
+    // the whole bot. /calc enforces this itself, but mathTool has no other gate.
+    it('returns null for an over-long expression', async () => {
+        const longExpression = `what is ${'1+'.repeat(300)}1?`;
+        expect(await mathTool.run(longExpression, ctx())).toBeNull();
+    });
+
     // Guards the \b word boundaries on the of->multiply rewrite in math.ts. An
     // unbounded /of/gi would tear into words that merely contain "of" (like
     // "profit" or "offset"), corrupting the expression instead of leaving an

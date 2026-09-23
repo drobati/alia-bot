@@ -1,3 +1,4 @@
+import { Op } from 'sequelize';
 import { recordClassification, pruneClassificationLog } from './classification-log';
 import { createContext, createTable } from './testHelpers';
 
@@ -59,17 +60,27 @@ describe('recordClassification', () => {
 });
 
 describe('pruneClassificationLog', () => {
+    const THIRTY_DAYS_MS = 30 * 24 * 60 * 60 * 1000;
+
     it('destroys rows older than the cutoff and returns the count', async () => {
         const context = createContext();
         const table = createTable();
         table.destroy.mockResolvedValue(7);
         context.tables.ClassificationLog = table;
 
+        const before = Date.now();
         const removed = await pruneClassificationLog(context as never, 30);
+        const after = Date.now();
 
         expect(removed).toBe(7);
-        expect(table.destroy).toHaveBeenCalledWith(
-            expect.objectContaining({ where: expect.anything() }),
-        );
+        // Op.gt would delete every recent row on each hourly tick and leave the
+        // table permanently empty. This must fail if `lt` becomes `gt`.
+        expect(table.destroy).toHaveBeenCalledWith({
+            where: { created_at: { [Op.lt]: expect.any(Date) } },
+        });
+
+        const cutoff = (table.destroy.mock.calls[0][0].where.created_at[Op.lt] as Date).getTime();
+        expect(cutoff).toBeGreaterThanOrEqual(before - THIRTY_DAYS_MS - 1000);
+        expect(cutoff).toBeLessThanOrEqual(after - THIRTY_DAYS_MS + 1000);
     });
 });

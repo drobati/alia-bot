@@ -37,6 +37,18 @@ export async function classify(
     opts: { addressedToBot: boolean },
     deps: ClassifierDeps = {},
 ): Promise<Classification | null> {
+    // Kill switch: the passive path ships inert (no channel is opted in until
+    // someone inserts a Config row by hand), but the mentioned path classifies
+    // every mention the moment this deploys, with no way to stop it short of a
+    // revert and redeploy. Setting JEV_MODEL=off short-circuits before any
+    // network call. `null` is already the established "classification
+    // unavailable" signal handled everywhere classify() is called: the
+    // mentioned path degrades to today's LLM behaviour and the passive path to
+    // silence, both already tested.
+    if ((deps.model ?? process.env.JEV_MODEL) === 'off') {
+        return null;
+    }
+
     const doFetch = deps.fetch ?? fetch;
     const log = deps.log;
     const apiKey = deps.apiKey ?? process.env.OPENROUTER_API_KEY;

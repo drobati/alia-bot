@@ -38,6 +38,25 @@ export default async (message: Message, context: Context): Promise<boolean> => {
         return false;
     }
 
+    // Cheapest gate first: a mentioned message belongs to assistant.ts. Without
+    // this, a null LLM response there (a null result, a failed send, or a thrown
+    // error) falls through to messageCreate's next handler, which is this one —
+    // and with no mention guard it would classify and answer the SAME message a
+    // second time, writing a second, wrongly `addressed: false` ClassificationLog
+    // row. Mirrors the trigger conditions in assistant.ts exactly, so the two
+    // handlers can never both claim a message.
+    const mentioned = message.client.user
+        ? message.mentions.has(message.client.user, {
+            ignoreEveryone: true,
+            ignoreRoles: true,
+            ignoreRepliedUser: true,
+        })
+        : false;
+    const lowered = message.content.toLowerCase().trim();
+    if (mentioned || lowered.startsWith('alia,') || lowered.startsWith('alia ')) {
+        return false;
+    }
+
     const content = message.content.trim();
     if (!QUESTION_SUFFIX.test(content) || content.length < MIN_PASSIVE_LENGTH) {
         return false;

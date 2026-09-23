@@ -15,6 +15,8 @@ function messageOf(content: string, overrides: Record<string, unknown> = {}) {
         channelId: 'c1',
         author: { bot: false, id: 'u1' },
         channel: { send: jest.fn() },
+        client: { user: { id: 'bot1' } },
+        mentions: { has: jest.fn().mockReturnValue(false) },
         ...overrides,
     };
 }
@@ -58,6 +60,27 @@ describe('questions (passive)', () => {
         const message = messageOf('what is it?', { guildId: null });
         expect(await questions(message as never, createContext() as never)).toBe(false);
     });
+
+    it('declines a message that mentions the bot, leaving it to assistant.ts', async () => {
+        const message = messageOf('what is the capital of France?', {
+            mentions: { has: jest.fn().mockReturnValue(true) },
+        });
+        expect(await questions(message as never, createContext() as never)).toBe(false);
+        expect(answerQuestion).not.toHaveBeenCalled();
+        // Proves this exits at the cheapest gate (before the question-mark
+        // regex and the config lookup), not later in the pipeline.
+        expect(isPassiveChannel).not.toHaveBeenCalled();
+    });
+
+    it.each(['alia, what time is it?', 'alia what time is it?'])(
+        'declines a message that starts with the "alia" trigger word: %s',
+        async content => {
+            const message = messageOf(content);
+            expect(await questions(message as never, createContext() as never)).toBe(false);
+            expect(answerQuestion).not.toHaveBeenCalled();
+            expect(isPassiveChannel).not.toHaveBeenCalled();
+        },
+    );
 
     it('does not classify in a channel nobody opted in', async () => {
         (isPassiveChannel as jest.Mock).mockResolvedValue(false);

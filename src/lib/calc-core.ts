@@ -3,6 +3,13 @@ import { create, all } from 'mathjs';
 // Create a mathjs instance with all functions
 const math = create(all);
 
+// /calc enforces this same limit before ever calling evaluateExpression, for a
+// specific user-facing message. It lives here too so every other caller
+// (currently mathTool.run) inherits it: limitedEvaluate is synchronous, and a
+// pathological expression sized to fit a 2000-4000 char Discord message would
+// otherwise block the event loop for the whole bot.
+export const MAX_EXPRESSION_LENGTH = 500;
+
 // Limit scope for safety - disable dangerous functions
 export const limitedEvaluate = math.evaluate;
 math.import({
@@ -35,6 +42,9 @@ export function formatResult(result: any): string {
 
 /** Evaluates an expression, returning null when mathjs cannot. */
 export function evaluateExpression(expression: string): string | null {
+    if (expression.length > MAX_EXPRESSION_LENGTH) {
+        return null;
+    }
     try {
         const result = limitedEvaluate(expression);
         if (result === undefined || result === null) {

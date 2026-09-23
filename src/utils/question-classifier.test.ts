@@ -108,6 +108,32 @@ describe('classify', () => {
         expect(fetchMock).not.toHaveBeenCalled();
     });
 
+    it('returns null without calling fetch when JEV_MODEL is the disable switch "off"', async () => {
+        const fetchMock = fakeFetch({});
+        const result = await classify('hi', { addressedToBot: false },
+            { fetch: fetchMock as never, apiKey: 'k', model: 'off', log: LOG as never });
+        expect(result).toBeNull();
+        expect(fetchMock).not.toHaveBeenCalled();
+    });
+
+    it('respects JEV_MODEL=off from the environment, not just an explicit dep', async () => {
+        const originalModel = process.env.JEV_MODEL;
+        process.env.JEV_MODEL = 'off';
+        try {
+            const fetchMock = fakeFetch({});
+            const result = await classify('hi', { addressedToBot: false },
+                { fetch: fetchMock as never, apiKey: 'k', log: LOG as never });
+            expect(result).toBeNull();
+            expect(fetchMock).not.toHaveBeenCalled();
+        } finally {
+            if (originalModel === undefined) {
+                delete process.env.JEV_MODEL;
+            } else {
+                process.env.JEV_MODEL = originalModel;
+            }
+        }
+    });
+
     it('returns null when the transport throws', async () => {
         const fetchMock = jest.fn().mockRejectedValue(new Error('ECONNRESET'));
         const result = await classify('hi', { addressedToBot: false },
