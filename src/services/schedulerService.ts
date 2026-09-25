@@ -17,8 +17,15 @@ import {
     ListEventOptions,
 } from './eventHandlers/types';
 import { getNextCronExecution } from '../utils/timeParser';
+import { pruneClassificationLog } from '../utils/classification-log';
 
 const POLLING_INTERVAL_MS = 30000; // 30 seconds
+const CLASSIFICATION_LOG_RETENTION_DAYS = 30;
+// The poll runs every 30s; a DELETE that often to enforce a 30-day retention
+// is ~2,880 pointless queries a day. Throttle to at most once an hour - rows
+// may then outlive 30 days by up to an hour, which is irrelevant for a
+// tuning corpus.
+const CLASSIFICATION_LOG_PRUNE_INTERVAL_MS = 60 * 60 * 1000;
 
 export class SchedulerService {
     private client: Client;
@@ -27,6 +34,7 @@ export class SchedulerService {
     private cronTasks: Map<string, cron.ScheduledTask> = new Map();
     private pollingInterval: NodeJS.Timeout | null = null;
     private isShuttingDown = false;
+    private lastClassificationLogPruneAt: number | null = null;
 
     constructor(client: Client, context: Context) {
         this.client = client;
@@ -78,6 +86,7 @@ export class SchedulerService {
         this.pollingInterval = setInterval(async () => {
             if (this.isShuttingDown) {return;}
             await this.processOneTimeEvents();
+            await this.pruneClassificationLogs();
         }, POLLING_INTERVAL_MS);
 
         this.context.log.info({
@@ -118,6 +127,33 @@ export class SchedulerService {
             this.context.log.error({
                 error,
             }, 'Error processing one-time events');
+        }
+    }
+
+    /**
+     * A log table on a busy server grows without limit unless something removes
+     * the old rows. This is throttled to at most once per
+     * `CLASSIFICATION_LOG_PRUNE_INTERVAL_MS`, since it is invoked from a poll
+     * that runs far more often than pruning needs to. Failures are logged and
+     * swallowed: retention must never take the scheduler down.
+     */
+    async pruneClassificationLogs(): Promise<void> {
+        const now = Date.now();
+        if (
+            this.lastClassificationLogPruneAt !== null &&
+            now - this.lastClassificationLogPruneAt < CLASSIFICATION_LOG_PRUNE_INTERVAL_MS
+        ) {
+            return;
+        }
+        this.lastClassificationLogPruneAt = now;
+
+        try {
+            const removed = await pruneClassificationLog(this.context, CLASSIFICATION_LOG_RETENTION_DAYS);
+            if (removed > 0) {
+                this.context.log.info('Pruned classification logs', { removed });
+            }
+        } catch (error) {
+            this.context.log.warn('Classification log prune failed', { error });
         }
     }
 

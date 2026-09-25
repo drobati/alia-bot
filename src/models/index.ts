@@ -30,6 +30,7 @@ import SpiceBalance from "./spiceBalance";
 import SpiceLedger from "./spiceLedger";
 import StockTracking from "./stockTracking";
 import Clip from "./clip";
+import ClassificationLog from "./classificationLog";
 
 export default {
     Adlibs,
@@ -64,4 +65,5 @@ export default {
     SpiceLedger,
     StockTracking,
     Clip,
+    ClassificationLog,
 };

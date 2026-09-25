@@ -2,8 +2,10 @@ import { Message } from 'discord.js';
 import { Context } from '../utils/types';
 
 // Mock the dependencies BEFORE importing the module that uses them
+jest.mock('@sentry/profiling-node', () => ({ nodeProfilingIntegration: () => ({}) }));
 jest.mock('../utils/assistant');
 jest.mock('../utils/discordHelpers');
+jest.mock('../utils/answer-runner', () => ({ answerQuestion: jest.fn() }));
 jest.mock('../utils/alia-context', () => ({
     gatherAliaContext: jest.fn().mockResolvedValue({
         speakerDescriptions: [],
@@ -29,6 +31,7 @@ import { safelySendToChannel } from '../utils/discordHelpers';
 import { _resetForTests as resetHistory } from '../utils/conversation-history';
 import { gatherAliaContext } from '../utils/alia-context';
 import { bumpInteraction } from '../utils/alia-relationships';
+import { answerQuestion } from '../utils/answer-runner';
 
 // Mock openai SDK (used by OpenRouter client) to prevent instantiation errors
 jest.mock('openai', () => ({
@@ -411,6 +414,62 @@ describe('Assistant Response System', () => {
                 'Failed to bump interaction count',
                 expect.objectContaining({ error: expect.any(Error) }),
             );
+        });
+    });
+
+    describe('classification', () => {
+        beforeEach(() => {
+            (mockMessage.mentions!.has as jest.Mock).mockReturnValue(true);
+            (answerQuestion as jest.Mock).mockResolvedValue({ kind: 'llm' });
+        });
+
+        it('lets a tool answer and never reaches the LLM', async () => {
+            mockMessage.content = '@Alia what is the weather in tokyo?';
+            (answerQuestion as jest.Mock).mockResolvedValue({ kind: 'answered' });
+
+            const result = await assistantResponse(mockMessage as Message, mockContext);
+
+            expect(result).toBe(true);
+            expect(mockGenerateResponse).not.toHaveBeenCalled();
+        });
+
+        it('runs the LLM when the runner asks for it', async () => {
+            mockMessage.content = '@Alia you smell';
+
+            await assistantResponse(mockMessage as Message, mockContext);
+
+            expect(mockGenerateResponse).toHaveBeenCalled();
+        });
+
+        it('classifies with addressedToBot true', async () => {
+            mockMessage.content = '@Alia you smell';
+
+            await assistantResponse(mockMessage as Message, mockContext);
+
+            expect(answerQuestion).toHaveBeenCalledWith(
+                expect.anything(),
+                expect.anything(),
+                expect.objectContaining({ addressedToBot: true }),
+            );
+        });
+
+        it('still runs the LLM when the classifier throws', async () => {
+            mockMessage.content = '@Alia hello there';
+            (answerQuestion as jest.Mock).mockRejectedValue(new Error('classifier down'));
+
+            await assistantResponse(mockMessage as Message, mockContext);
+
+            expect(mockGenerateResponse).toHaveBeenCalled();
+        });
+
+        it('falls through to the LLM when the runner returns nothing', async () => {
+            mockMessage.content = '@Alia hello there';
+            (answerQuestion as jest.Mock).mockResolvedValue(undefined);
+
+            await assistantResponse(mockMessage as Message, mockContext);
+
+            expect(mockGenerateResponse).toHaveBeenCalled();
+            expect(mockContext.log.error).not.toHaveBeenCalled();
         });
     });
 });

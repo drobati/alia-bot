@@ -6,6 +6,7 @@ import { gatherAliaContext } from '../utils/alia-context';
 import { recordMessage } from '../utils/conversation-history';
 import { parseRememberMarkers, persistMarkers } from '../utils/alia-learn';
 import { bumpInteraction } from '../utils/alia-relationships';
+import { answerQuestion } from '../utils/answer-runner';
 
 export default async (message: Message, context: Context): Promise<boolean> => {
     if (message.author.bot) {
@@ -33,6 +34,21 @@ export default async (message: Message, context: Context): Promise<boolean> => {
 
     if (!processableContent || processableContent.length < 3) {
         return false;
+    }
+
+    // Classify before generating. A confident tool type is answered from a real
+    // source; everything else, including a classifier failure, carries on to the
+    // LLM below exactly as before.
+    try {
+        const outcome = await answerQuestion(message, context, {
+            content: processableContent,
+            addressedToBot: true,
+        });
+        if (outcome?.kind === 'answered') {
+            return true;
+        }
+    } catch (error) {
+        context.log.error('Classification failed on the mentioned path; using the LLM', { error });
     }
 
     const startTime = Date.now();
