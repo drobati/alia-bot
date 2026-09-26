@@ -11,6 +11,7 @@ import { Context } from "../types";
 import { checkOwnerPermission, isOwner } from "../utils/permissions";
 import { Sentry } from "../lib/sentry";
 import { TTS_CONFIG } from "../utils/constants";
+import { setPassiveChannel, getPassiveChannels } from "../utils/passive-channels";
 
 const MAX_WELCOME_MESSAGE_LENGTH = 2000;
 
@@ -644,6 +645,82 @@ async function handleTtsSetChannel(interaction: ChatInputCommandInteraction, con
     });
 }
 
+// Passive question answering handlers
+async function handleQuestionsEnable(interaction: ChatInputCommandInteraction, context: Context) {
+    const channel = interaction.options.getChannel('channel', true);
+    const guildId = interaction.guildId;
+
+    if (!guildId) {
+        return interaction.reply({ content: "This command can only be used in a server.", ephemeral: true });
+    }
+
+    await setPassiveChannel(context, guildId, channel.id, true);
+
+    let warning = '';
+    try {
+        const botMember = interaction.guild?.members.me;
+        const permissionsFor = (channel as any).permissionsFor;
+        const permissions = botMember && typeof permissionsFor === 'function'
+            ? permissionsFor.call(channel, botMember)
+            : null;
+
+        if (permissions && !permissions.has(PermissionFlagsBits.EmbedLinks)) {
+            warning = "\n\nWarning: Alia does not have the **Embed Links** permission in that channel. "
+                + "Passive answers are sent as embeds, so questions there will silently fail to send "
+                + "until this permission is granted.";
+        }
+    } catch (error) {
+        context.log.warn('Failed to check Embed Links permission for passive channel', {
+            channelId: channel.id, guildId, error,
+        });
+    }
+
+    await interaction.reply({
+        content: `Passive question answering enabled for <#${channel.id}>.${warning}`,
+        ephemeral: true,
+    });
+}
+
+async function handleQuestionsDisable(interaction: ChatInputCommandInteraction, context: Context) {
+    const channel = interaction.options.getChannel('channel', true);
+    const guildId = interaction.guildId;
+
+    if (!guildId) {
+        return interaction.reply({ content: "This command can only be used in a server.", ephemeral: true });
+    }
+
+    await setPassiveChannel(context, guildId, channel.id, false);
+
+    await interaction.reply({
+        content: `Passive question answering disabled for <#${channel.id}>.`,
+        ephemeral: true,
+    });
+}
+
+async function handleQuestionsList(interaction: ChatInputCommandInteraction, context: Context) {
+    const guildId = interaction.guildId;
+
+    if (!guildId) {
+        return interaction.reply({ content: "This command can only be used in a server.", ephemeral: true });
+    }
+
+    const channels = await getPassiveChannels(context, guildId);
+
+    if (channels.length === 0) {
+        return interaction.reply({
+            content: "Passive question answering is not enabled in any channel.",
+            ephemeral: true,
+        });
+    }
+
+    const lines = channels.map((channelId: string) => `<#${channelId}>`).join('\n');
+
+    await interaction.reply({
+        content: `**Passive question answering is enabled in:**\n${lines}`,
+        ephemeral: true,
+    });
+}
+
 async function handleTtsClearChannel(interaction: ChatInputCommandInteraction, context: Context) {
     const guildId = interaction.guildId;
 
@@ -890,7 +967,30 @@ export default {
                     .setRequired(true)))
             .addSubcommand((subcommand: any) => subcommand
                 .setName('shield-show')
-                .setDescription('Show current spam-shield configuration.'))),
+                .setDescription('Show current spam-shield configuration.')))
+        // Questions (passive question answering) subcommand group
+        .addSubcommandGroup((group: any) => group
+            .setName('questions')
+            .setDescription('Passive question answering settings.')
+            .addSubcommand((subcommand: any) => subcommand
+                .setName('enable')
+                .setDescription('Allow Alia to answer factual questions asked without a mention in a channel.')
+                .addChannelOption((option: any) => option
+                    .setName('channel')
+                    .setDescription('The channel to enable passive question answering in.')
+                    .addChannelTypes(ChannelType.GuildText)
+                    .setRequired(true)))
+            .addSubcommand((subcommand: any) => subcommand
+                .setName('disable')
+                .setDescription('Stop Alia from answering questions asked without a mention in a channel.')
+                .addChannelOption((option: any) => option
+                    .setName('channel')
+                    .setDescription('The channel to disable passive question answering in.')
+                    .addChannelTypes(ChannelType.GuildText)
+                    .setRequired(true)))
+            .addSubcommand((subcommand: any) => subcommand
+                .setName('list')
+                .setDescription('Show which channels have passive question answering enabled.'))),
 
     async autocomplete(interaction: AutocompleteInteraction, { tables }: Context) {
         // Only show autocomplete options to owner
@@ -1033,6 +1133,16 @@ export default {
                         await handleTtsSetChannel(interaction, context);
                     } else if (subcommand === 'clear-channel') {
                         await handleTtsClearChannel(interaction, context);
+                    }
+                    break;
+
+                case 'questions':
+                    if (subcommand === 'enable') {
+                        await handleQuestionsEnable(interaction, context);
+                    } else if (subcommand === 'disable') {
+                        await handleQuestionsDisable(interaction, context);
+                    } else if (subcommand === 'list') {
+                        await handleQuestionsList(interaction, context);
                     }
                     break;
 

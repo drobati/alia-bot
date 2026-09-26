@@ -1,5 +1,10 @@
 import { createContext, createInteraction, createTable } from "../utils/testHelpers";
 import config from "./config";
+import * as passiveChannels from "../utils/passive-channels";
+
+jest.mock("../utils/passive-channels");
+const mockSetPassiveChannel = passiveChannels.setPassiveChannel as jest.Mock;
+const mockGetPassiveChannels = passiveChannels.getPassiveChannels as jest.Mock;
 
 describe('commands/config', () => {
     let interaction: any, context: any, Config: any;
@@ -12,6 +17,9 @@ describe('commands/config', () => {
         context = createContext();
         Config = createTable();
         context.tables.Config = Config;
+
+        mockSetPassiveChannel.mockReset().mockResolvedValue(undefined);
+        mockGetPassiveChannels.mockReset().mockResolvedValue([]);
     });
 
     describe('general subcommand group', () => {
@@ -439,6 +447,119 @@ describe('commands/config', () => {
             expect(Config.upsert).toHaveBeenCalledWith({
                 key: 'dice_show_individual_guild123',
                 value: '20',
+            });
+        });
+    });
+
+    describe('questions subcommand group', () => {
+        it('should enable passive question answering for a channel', async () => {
+            interaction.options.getSubcommandGroup.mockReturnValue('questions');
+            interaction.options.getSubcommand.mockReturnValue('enable');
+            interaction.options.getChannel.mockReturnValue({ id: 'chan123' });
+            interaction.guildId = 'guild123';
+
+            await config.execute(interaction, context);
+
+            expect(mockSetPassiveChannel).toHaveBeenCalledWith(context, 'guild123', 'chan123', true);
+            expect(interaction.reply).toHaveBeenCalledWith({
+                content: 'Passive question answering enabled for <#chan123>.',
+                ephemeral: true,
+            });
+        });
+
+        it('should warn on enable when the bot lacks Embed Links permission', async () => {
+            interaction.options.getSubcommandGroup.mockReturnValue('questions');
+            interaction.options.getSubcommand.mockReturnValue('enable');
+            const permissionsFor = jest.fn().mockReturnValue({ has: jest.fn().mockReturnValue(false) });
+            interaction.options.getChannel.mockReturnValue({ id: 'chan123', permissionsFor });
+            interaction.guildId = 'guild123';
+            interaction.guild = { members: { me: { id: 'bot-member' } } };
+
+            await config.execute(interaction, context);
+
+            expect(mockSetPassiveChannel).toHaveBeenCalledWith(context, 'guild123', 'chan123', true);
+            expect(permissionsFor).toHaveBeenCalledWith({ id: 'bot-member' });
+            expect(interaction.reply).toHaveBeenCalledWith({
+                content: expect.stringContaining('Passive question answering enabled for <#chan123>.'),
+                ephemeral: true,
+            });
+            const replyContent = interaction.reply.mock.calls[0][0].content;
+            expect(replyContent).toContain('Embed Links');
+        });
+
+        it('should not warn on enable when the bot has Embed Links permission', async () => {
+            interaction.options.getSubcommandGroup.mockReturnValue('questions');
+            interaction.options.getSubcommand.mockReturnValue('enable');
+            const permissionsFor = jest.fn().mockReturnValue({ has: jest.fn().mockReturnValue(true) });
+            interaction.options.getChannel.mockReturnValue({ id: 'chan123', permissionsFor });
+            interaction.guildId = 'guild123';
+            interaction.guild = { members: { me: { id: 'bot-member' } } };
+
+            await config.execute(interaction, context);
+
+            expect(interaction.reply).toHaveBeenCalledWith({
+                content: 'Passive question answering enabled for <#chan123>.',
+                ephemeral: true,
+            });
+        });
+
+        it('should disable passive question answering for a channel', async () => {
+            interaction.options.getSubcommandGroup.mockReturnValue('questions');
+            interaction.options.getSubcommand.mockReturnValue('disable');
+            interaction.options.getChannel.mockReturnValue({ id: 'chan123' });
+            interaction.guildId = 'guild123';
+
+            await config.execute(interaction, context);
+
+            expect(mockSetPassiveChannel).toHaveBeenCalledWith(context, 'guild123', 'chan123', false);
+            expect(interaction.reply).toHaveBeenCalledWith({
+                content: 'Passive question answering disabled for <#chan123>.',
+                ephemeral: true,
+            });
+        });
+
+        it('should list enabled channels', async () => {
+            interaction.options.getSubcommandGroup.mockReturnValue('questions');
+            interaction.options.getSubcommand.mockReturnValue('list');
+            interaction.guildId = 'guild123';
+            mockGetPassiveChannels.mockResolvedValue(['chan123', 'chan456']);
+
+            await config.execute(interaction, context);
+
+            expect(mockGetPassiveChannels).toHaveBeenCalledWith(context, 'guild123');
+            expect(interaction.reply).toHaveBeenCalledWith({
+                content: '**Passive question answering is enabled in:**\n<#chan123>\n<#chan456>',
+                ephemeral: true,
+            });
+        });
+
+        it('should report no channels enabled when the list is empty', async () => {
+            interaction.options.getSubcommandGroup.mockReturnValue('questions');
+            interaction.options.getSubcommand.mockReturnValue('list');
+            interaction.guildId = 'guild123';
+            mockGetPassiveChannels.mockResolvedValue([]);
+
+            await config.execute(interaction, context);
+
+            expect(interaction.reply).toHaveBeenCalledWith({
+                content: 'Passive question answering is not enabled in any channel.',
+                ephemeral: true,
+            });
+        });
+
+        it('should guard enable/disable/list against use outside a server', async () => {
+            interaction.options.getSubcommandGroup.mockReturnValue('questions');
+            interaction.options.getSubcommand.mockReturnValue('enable');
+            interaction.options.getChannel.mockReturnValue({ id: 'chan123' });
+            interaction.guildId = null;
+
+            await config.execute(interaction, context);
+
+            expect(mockSetPassiveChannel).not.toHaveBeenCalled();
+            expect(mockGetPassiveChannels).not.toHaveBeenCalled();
+            expect(interaction.reply).toHaveBeenCalledWith({
+                content: 'This command can only be used in a server.',
+                ephemeral: true,
             });
         });
     });
