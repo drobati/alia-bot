@@ -65,6 +65,17 @@ export async function isPassiveChannel(
     return (await load(context, guildId)).includes(channelId);
 }
 
+/**
+ * Returns the channels currently opted in to passive question answering for a guild.
+ *
+ * Reads through the exact same cache/parse/fail-closed path as `isPassiveChannel` and
+ * `setPassiveChannel`, so a diagnostic listing can never disagree with what the passive
+ * answering handler actually does. Returns a copy so callers cannot mutate the cache.
+ */
+export async function getPassiveChannels(context: Context, guildId: string): Promise<string[]> {
+    return [...(await load(context, guildId))];
+}
+
 export async function setPassiveChannel(
     context: Context,
     guildId: string,
