@@ -6,9 +6,25 @@ import { Context } from '../utils/types';
 /** Trailing punctuation containing a question mark: `?`, `?!`, `!?`, `???`. */
 export const QUESTION_SUFFIX = /[?!]*\?[?!]*\s*$/;
 export const MIN_PASSIVE_LENGTH = 8;
-export const PASSIVE_COOLDOWN_MS = 5 * 60 * 1000;
+/**
+ * Per ASKER, not per channel, and short.
+ *
+ * This was 5 minutes per channel, copied from tips.ts and reactions.ts. Those
+ * are unsolicited interjections, where a long channel-wide quiet period is the
+ * point. This is the opposite: an opted-in channel where answering questions is
+ * the entire purpose. A channel-wide cooldown meant one person's question muted
+ * everyone else's for five minutes, and two questions in a row from the same
+ * person got one answer.
+ *
+ * A short per-user window still stops one person flooding, while leaving the
+ * channel responsive to everybody else.
+ */
+export const PASSIVE_COOLDOWN_MS = 30 * 1000;
 
 const cooldowns = new Map<string, number>();
+
+/** Scoped to the asker within a channel, so one person cannot mute another. */
+const cooldownKey = (message: Message) => `${message.channelId}:${message.author.id}`;
 
 export function resetQuestionCooldowns(): void {
     cooldowns.clear();
@@ -67,7 +83,7 @@ export default async (message: Message, context: Context): Promise<boolean> => {
     }
 
     const now = Date.now();
-    if (onCooldown(message.channelId, now)) {
+    if (onCooldown(cooldownKey(message), now)) {
         return false;
     }
 
@@ -75,7 +91,7 @@ export default async (message: Message, context: Context): Promise<boolean> => {
         const outcome = await answerQuestion(message, context, { content, addressedToBot: false });
         if (outcome.kind === 'answered') {
             // Only a real answer starts the cooldown; silence should not mute the channel.
-            cooldowns.set(message.channelId, now);
+            cooldowns.set(cooldownKey(message), now);
             return true;
         }
         return false;
