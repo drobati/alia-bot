@@ -118,6 +118,18 @@ describe('questions (passive)', () => {
         expect(answerQuestion).toHaveBeenCalledTimes(1);
     });
 
+    it('cools down the asker, not the whole channel', async () => {
+        // Regression: this was a 5-minute CHANNEL cooldown, so one person's question
+        // silenced everybody else in an opted-in channel until it expired.
+        const context = createContext();
+        await questions(messageOf('what is the first thing?') as never, context as never);
+        await questions(
+            messageOf('what is the second thing?', { author: { bot: false, id: 'u2' } }) as never,
+            context as never,
+        );
+        expect(answerQuestion).toHaveBeenCalledTimes(2);
+    });
+
     it('does not start the cooldown when it did not answer', async () => {
         (answerQuestion as jest.Mock).mockResolvedValue({ kind: 'silent' });
         const context = createContext();
