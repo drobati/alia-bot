@@ -75,7 +75,12 @@ describe('answerQuestion', () => {
         const outcome = await answerQuestion(message as never, context as never,
             { content: 'you smell', addressedToBot: true });
 
-        expect(outcome).toEqual({ kind: 'llm' });
+        // The classification rides along, so the caller can decide whether the answer
+        // the LLM is about to write is worth fact-checking.
+        expect(outcome).toEqual({
+            kind: 'llm',
+            classification: expect.objectContaining({ type: 'banter_insult' }),
+        });
         expect(TOOLS.wikipedia.run).not.toHaveBeenCalled();
     });
 
@@ -122,7 +127,7 @@ describe('answerQuestion', () => {
         const outcome = await answerQuestion(message as never, context as never,
             { content: 'asdfqwer?', addressedToBot: true });
 
-        expect(outcome).toEqual({ kind: 'llm' });
+        expect(outcome).toMatchObject({ kind: 'llm' });
         expect(context.tables.ClassificationLog.create).toHaveBeenCalledWith(
             expect.objectContaining({ reason: 'tool_no_answer', route: 'tool:wikipedia' }),
         );
@@ -135,7 +140,7 @@ describe('answerQuestion', () => {
         const outcome = await answerQuestion(message as never, context as never,
             { content: 'anything', addressedToBot: true });
 
-        expect(outcome).toEqual({ kind: 'llm' });
+        expect(outcome).toMatchObject({ kind: 'llm' });
         expect(TOOLS.wikipedia.run).not.toHaveBeenCalled();
         // A null classification writes no row: there is nothing to diagnose.
         expect(context.tables.ClassificationLog.create).not.toHaveBeenCalled();
@@ -154,7 +159,7 @@ describe('answerQuestion', () => {
         const outcome = await answerQuestion(message as never, context as never,
             { content: 'capital of France?', addressedToBot: true });
 
-        expect(outcome).toEqual({ kind: 'llm' });
+        expect(outcome).toMatchObject({ kind: 'llm' });
         expect(send).toHaveBeenCalled();
     });
 
@@ -168,7 +173,7 @@ describe('answerQuestion', () => {
         const outcome = await answerQuestion(message as never, context as never,
             { content: 'capital of France?', addressedToBot: true });
 
-        expect(outcome).toEqual({ kind: 'llm' });
+        expect(outcome).toMatchObject({ kind: 'llm' });
         expect(TOOLS.wikipedia.run).toHaveBeenCalled();
     });
 });

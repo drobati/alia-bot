@@ -4,12 +4,13 @@ import { buildAnswerEmbed } from './answer-embed';
 import { recordClassification } from './classification-log';
 import { classify } from './question-classifier';
 import { decide } from './question-router';
-import { CONFIDENCE_FLOOR } from './question-types';
+import { CONFIDENCE_FLOOR, Classification } from './question-types';
 import { Context } from './types';
 
 export type AnswerOutcome =
     | { kind: 'answered' }
-    | { kind: 'llm' }
+    /** Carries the classification so the caller can decide whether to fact-check what the LLM writes. */
+    | { kind: 'llm'; classification: Classification | null }
     | { kind: 'silent' };
 
 /**
@@ -23,7 +24,8 @@ export async function answerQuestion(
     opts: { content: string; addressedToBot: boolean },
 ): Promise<AnswerOutcome> {
     const { addressedToBot, content } = opts;
-    const fallback: AnswerOutcome = addressedToBot ? { kind: 'llm' } : { kind: 'silent' };
+    const fallback = (c: Classification | null): AnswerOutcome =>
+        (addressedToBot ? { kind: 'llm', classification: c } : { kind: 'silent' });
 
     const classification = await classify(content, { addressedToBot }, { log: context.log });
     const route = decide(classification, addressedToBot);
@@ -51,7 +53,7 @@ export async function answerQuestion(
         if (classification && classification.confidence < CONFIDENCE_FLOOR) {
             await log('below_floor', route.kind);
         }
-        return fallback;
+        return fallback(classification);
     }
 
     try {
@@ -60,13 +62,13 @@ export async function answerQuestion(
             // Routing was right and the tool had nothing. A different problem
             // from a bad classification, and recorded as one.
             await log('tool_no_answer', `tool:${route.tool}`);
-            return fallback;
+            return fallback(classification);
         }
 
         const payload = { embeds: [buildAnswerEmbed(answer)] };
         if (addressedToBot) {
             if (!message.channel.isSendable()) {
-                return fallback;
+                return fallback(classification);
             }
             await message.channel.send(payload);
         } else {
@@ -83,6 +85,6 @@ export async function answerQuestion(
         return { kind: 'answered' };
     } catch (error) {
         context.log.error('Tool answer failed', { tool: route.tool, error });
-        return fallback;
+        return fallback(classification);
     }
 }

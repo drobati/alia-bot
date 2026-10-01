@@ -73,3 +73,17 @@ export interface Classification {
     /** Runners-up, highest first. The diagnosis for a rejected message. */
     alternatives: TypeProbability[];
 }
+
+/**
+ * Question kinds whose LLM answer is worth fact-checking before sending.
+ *
+ * Deliberately narrow. Jev can judge a claim about the world, so general
+ * knowledge and arithmetic are checkable. Weather, prices and current events are
+ * not: Jev cannot know today's forecast, so asking it would hedge correct answers
+ * as often as wrong ones. server_member answers come from this server's own
+ * stored descriptions, which Jev has never seen.
+ */
+export const FACTUAL_TYPES: ReadonlySet<QuestionType> = new Set<QuestionType>([
+    'general_knowledge',
+    'math',
+]);

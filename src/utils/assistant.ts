@@ -95,12 +95,22 @@ const REMEMBER_INSTRUCTIONS = [
     '- You can include multiple markers. One per fact.',
 ].join('\n');
 
+const UNCERTAIN_BLOCK = [
+    'Accuracy check:',
+    'A fact checker looked at your previous answer to this and was not confident it',
+    'was right. Answer again, still as yourself and in the same mood, but make it',
+    'clear you are not certain. Say what you believe and admit the doubt in the same',
+    'breath. Do not apologise, do not mention the fact checker, and do not refuse to',
+    'answer — an honest guess labelled as a guess is what is wanted.',
+].join('\n');
+
 function buildSystemPrompt(params: {
     mood: Mood;
     speakerName: string;
     extras?: AliaExtraContext;
+    uncertain?: boolean;
 }): string {
-    const { mood, speakerName, extras } = params;
+    const { mood, speakerName, extras, uncertain } = params;
     const blocks: (string | null)[] = [
         IDENTITY_BLOCK,
         getMoodPromptBlock(mood),
@@ -113,6 +123,7 @@ function buildSystemPrompt(params: {
         buildKnownUsersBlock(extras),
         REMEMBER_INSTRUCTIONS,
         COMMANDS_BLOCK,
+        uncertain ? UNCERTAIN_BLOCK : null,
     ];
     return blocks.filter((b): b is string => b !== null).join('\n\n');
 }
@@ -140,6 +151,7 @@ async function generateResponse(
     context: Context,
     userContext?: UserContext,
     extras?: AliaExtraContext,
+    options?: { uncertain?: boolean },
 ): Promise<string | null> {
     const startTime = Date.now();
     const isDebugMode = process.env.ASSISTANT_DEBUG === 'true';
@@ -147,7 +159,7 @@ async function generateResponse(
     const speakerName = userContext?.displayName ?? userContext?.username ?? 'the user';
 
     try {
-        const systemPrompt = buildSystemPrompt({ mood, speakerName, extras });
+        const systemPrompt = buildSystemPrompt({ mood, speakerName, extras, uncertain: options?.uncertain });
         const historyMessages = buildHistoryMessages(extras);
 
         const requestData = {
