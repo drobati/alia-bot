@@ -6,6 +6,10 @@ jest.mock('@sentry/profiling-node', () => ({ nodeProfilingIntegration: () => ({}
 jest.mock('../utils/assistant');
 jest.mock('../utils/discordHelpers');
 jest.mock('../utils/answer-runner', () => ({ answerQuestion: jest.fn() }));
+jest.mock('../utils/fact-check', () => ({
+    checkAnswer: jest.fn(),
+    FACT_CHECK_FLOOR: 0.75,
+}));
 jest.mock('../utils/alia-context', () => ({
     gatherAliaContext: jest.fn().mockResolvedValue({
         speakerDescriptions: [],
@@ -46,6 +50,8 @@ jest.mock('openai', () => ({
 }));
 
 const mockGenerateResponse = generateResponse as jest.MockedFunction<typeof generateResponse>;
+// eslint-disable-next-line @typescript-eslint/no-var-requires
+const { checkAnswer } = require('../utils/fact-check');
 const mockSafelySendToChannel = safelySendToChannel as jest.MockedFunction<typeof safelySendToChannel>;
 
 describe('Assistant Response System', () => {
@@ -413,6 +419,93 @@ describe('Assistant Response System', () => {
             expect(mockContext.log.warn).toHaveBeenCalledWith(
                 'Failed to bump interaction count',
                 expect.objectContaining({ error: expect.any(Error) }),
+            );
+        });
+    });
+
+    describe('fact checking what she wrote', () => {
+        const factual = {
+            kind: 'llm',
+            classification: { type: 'general_knowledge', confidence: 0.95, alternatives: [] },
+        };
+
+        beforeEach(() => {
+            (mockMessage.mentions!.has as jest.Mock).mockReturnValue(true);
+            mockMessage.content = '@Alia what is the largest mammal?';
+            (answerQuestion as jest.Mock).mockResolvedValue(factual);
+            mockGenerateResponse.mockResolvedValue('The blue whale.');
+            (checkAnswer as jest.Mock).mockResolvedValue(0.97);
+        });
+
+        it('sends a confident answer untouched, without a second generation', async () => {
+            await assistantResponse(mockMessage as Message, mockContext);
+
+            expect(checkAnswer).toHaveBeenCalledWith(
+                '@Alia what is the largest mammal?', 'The blue whale.', expect.anything(),
+            );
+            expect(mockGenerateResponse).toHaveBeenCalledTimes(1);
+            expect(mockSafelySendToChannel).toHaveBeenCalledWith(
+                expect.anything(), 'The blue whale.', expect.anything(), expect.anything(),
+            );
+        });
+
+        it('asks again, stating the doubt, when the answer looks wrong', async () => {
+            (checkAnswer as jest.Mock).mockResolvedValue(0.2);
+            mockGenerateResponse
+                .mockResolvedValueOnce('The African elephant.')
+                .mockResolvedValueOnce('Pretty sure it is the blue whale, but do not quote me.');
+
+            await assistantResponse(mockMessage as Message, mockContext);
+
+            expect(mockGenerateResponse).toHaveBeenCalledTimes(2);
+            // The regeneration must carry the uncertainty instruction, otherwise it
+            // is just the same answer again.
+            expect(mockGenerateResponse).toHaveBeenLastCalledWith(
+                expect.anything(), expect.anything(), expect.anything(), expect.anything(),
+                { uncertain: true },
+            );
+            expect(mockSafelySendToChannel).toHaveBeenCalledWith(
+                expect.anything(),
+                'Pretty sure it is the blue whale, but do not quote me.',
+                expect.anything(), expect.anything(),
+            );
+        });
+
+        it('does not fact check a kind Jev cannot judge', async () => {
+            (answerQuestion as jest.Mock).mockResolvedValue({
+                kind: 'llm',
+                classification: { type: 'banter_insult', confidence: 0.99, alternatives: [] },
+            });
+
+            await assistantResponse(mockMessage as Message, mockContext);
+
+            expect(checkAnswer).not.toHaveBeenCalled();
+            expect(mockGenerateResponse).toHaveBeenCalledTimes(1);
+        });
+
+        it('sends the original answer when the check could not be made', async () => {
+            // null means unjudged, never wrong: a broken checker must not start
+            // hedging answers that are perfectly good.
+            (checkAnswer as jest.Mock).mockResolvedValue(null);
+
+            await assistantResponse(mockMessage as Message, mockContext);
+
+            expect(mockGenerateResponse).toHaveBeenCalledTimes(1);
+            expect(mockSafelySendToChannel).toHaveBeenCalledWith(
+                expect.anything(), 'The blue whale.', expect.anything(), expect.anything(),
+            );
+        });
+
+        it('keeps the original answer if the hedged rewrite comes back empty', async () => {
+            (checkAnswer as jest.Mock).mockResolvedValue(0.2);
+            mockGenerateResponse
+                .mockResolvedValueOnce('The African elephant.')
+                .mockResolvedValueOnce(null);
+
+            await assistantResponse(mockMessage as Message, mockContext);
+
+            expect(mockSafelySendToChannel).toHaveBeenCalledWith(
+                expect.anything(), 'The African elephant.', expect.anything(), expect.anything(),
             );
         });
     });

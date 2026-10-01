@@ -7,6 +7,8 @@ import { recordMessage } from '../utils/conversation-history';
 import { parseRememberMarkers, persistMarkers } from '../utils/alia-learn';
 import { bumpInteraction } from '../utils/alia-relationships';
 import { answerQuestion } from '../utils/answer-runner';
+import { checkAnswer, FACT_CHECK_FLOOR } from '../utils/fact-check';
+import { FACTUAL_TYPES, Classification } from '../utils/question-types';
 
 export default async (message: Message, context: Context): Promise<boolean> => {
     if (message.author.bot) {
@@ -39,6 +41,7 @@ export default async (message: Message, context: Context): Promise<boolean> => {
     // Classify before generating. A confident tool type is answered from a real
     // source; everything else, including a classifier failure, carries on to the
     // LLM below exactly as before.
+    let classification: Classification | null = null;
     try {
         const outcome = await answerQuestion(message, context, {
             content: processableContent,
@@ -46,6 +49,9 @@ export default async (message: Message, context: Context): Promise<boolean> => {
         });
         if (outcome?.kind === 'answered') {
             return true;
+        }
+        if (outcome?.kind === 'llm') {
+            classification = outcome.classification;
         }
     } catch (error) {
         context.log.error('Classification failed on the mentioned path; using the LLM', { error });
@@ -93,7 +99,39 @@ export default async (message: Message, context: Context): Promise<boolean> => {
             }
 
             // If the model only returned markers and no prose, send a fallback.
-            const toSend = cleaned.length > 0 ? cleaned : 'Noted.';
+            const drafted = cleaned.length > 0 ? cleaned : 'Noted.';
+
+            // Fact-check what she just wrote, but only for the kinds of question
+            // Jev can actually judge. An unjudged answer (null) is sent untouched:
+            // a broken fact checker must never start hedging good answers.
+            let toSend = drafted;
+            if (classification && FACTUAL_TYPES.has(classification.type)) {
+                const accuracy = await checkAnswer(processableContent, drafted, { log: context.log });
+                if (accuracy !== null && accuracy < FACT_CHECK_FLOOR) {
+                    context.log.info('Answer failed the accuracy check; asking again with the doubt stated', {
+                        userId: message.author.id,
+                        type: classification.type,
+                        accuracy,
+                    });
+                    const hedged = await generateResponse(
+                        processableContent,
+                        context,
+                        {
+                            userId: message.author.id,
+                            username: message.author.username,
+                            displayName: speakerName,
+                            channelId: message.channelId,
+                        },
+                        extras,
+                        { uncertain: true },
+                    );
+                    // Markers from the first pass are already persisted; ignore any here.
+                    const rewritten = hedged ? parseRememberMarkers(hedged).cleaned : '';
+                    if (rewritten.length > 0) {
+                        toSend = rewritten;
+                    }
+                }
+            }
 
             const success = await safelySendToChannel(
                 message.channel as any,
