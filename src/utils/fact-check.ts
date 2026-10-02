@@ -14,7 +14,22 @@ const TIMEOUT_MS = 8000;
  */
 export const FACT_CHECK_FLOOR = 0.75;
 
-const INSTRUCTIONS = 'Is the answer factually accurate as a response to the question?';
+/**
+ * Below this, a tool's answer is treated as no answer at all.
+ *
+ * NOT YET MEASURED against the live model; it borrows FACT_CHECK_FLOOR's value
+ * because the question has the same shape (a noul over question + text). It
+ * exists because accuracy and relevance come apart: asked "What's the largest
+ * mammal?", Wikipedia search returned the article "Mammal", whose summary is
+ * entirely accurate and answers nothing. Calibrate it the way the fact-check
+ * floor was — off-topic summaries against on-topic ones — and move it into the gap.
+ */
+export const RELEVANCE_FLOOR = 0.75;
+
+const ACCURATE_INSTRUCTIONS = 'Is the answer factually accurate as a response to the question?';
+const RELEVANT_INSTRUCTIONS =
+    'Does the answer directly state the specific thing the question asks for? '
+    + 'Text that is merely about the same topic, without containing the answer, does not count.';
 
 export interface FactCheckDeps {
     fetch?: typeof fetch;
@@ -24,17 +39,16 @@ export interface FactCheckDeps {
 }
 
 /**
- * Asks Jev how likely it is that an answer Alia just wrote is true.
- *
- * Returns the probability, or null whenever no judgement could be made — no key,
- * the kill switch, a transport failure, a malformed reply. Null means "unjudged",
- * never "wrong": the caller sends the original answer untouched, because a broken
- * fact-checker must not start hedging answers that are perfectly good.
+ * One noul judgement from Jev over a question and an answer. Returns null
+ * whenever no judgement could be made — no key, the kill switch, a transport
+ * failure, a malformed reply. Null means "unjudged", never "no".
  */
-export async function checkAnswer(
+async function judge(
+    key: string,
+    instructions: string,
     question: string,
     answer: string,
-    deps: FactCheckDeps = {},
+    deps: FactCheckDeps,
 ): Promise<number | null> {
     const log = deps.log;
     const apiKey = deps.apiKey ?? process.env.OPENROUTER_API_KEY;
@@ -45,7 +59,7 @@ export async function checkAnswer(
         return null;
     }
     if (!apiKey) {
-        log?.error('Fact check has no OPENROUTER_API_KEY; not checking');
+        log?.error('Fact check has no OPENROUTER_API_KEY; not checking', { check: key });
         return null;
     }
     // Nothing to judge, and the markers-only path can legitimately produce this.
@@ -57,7 +71,7 @@ export async function checkAnswer(
     const body = JSON.stringify({
         model,
         state: { question, answer },
-        questions: { accurate: { type: 'noul', instructions: INSTRUCTIONS } },
+        questions: { [key]: { type: 'noul', instructions } },
     });
 
     try {
@@ -69,19 +83,51 @@ export async function checkAnswer(
         });
 
         if (!response.ok) {
-            log?.error('Fact check request failed', { status: response.status, model });
+            log?.error('Fact check request failed', { status: response.status, model, check: key });
             return null;
         }
 
-        const json = await response.json() as { answers?: { accurate?: { noul?: unknown } } };
-        const p = json?.answers?.accurate?.noul;
+        const json = await response.json() as { answers?: Record<string, { noul?: unknown } | undefined> };
+        const p = json?.answers?.[key]?.noul;
         if (typeof p !== 'number' || !Number.isFinite(p) || p < 0 || p > 1) {
-            log?.error('Fact check returned an unusable probability', { model });
+            log?.error('Fact check returned an unusable probability', { model, check: key });
             return null;
         }
         return p;
     } catch (error) {
-        log?.error('Fact check threw', { error, model });
+        log?.error('Fact check threw', { error, model, check: key });
         return null;
     }
+}
+
+/**
+ * Asks Jev how likely it is that an answer Alia just wrote is true.
+ *
+ * Null means "unjudged", never "wrong": the caller sends the original answer
+ * untouched, because a broken fact-checker must not start hedging answers that
+ * are perfectly good.
+ */
+export async function checkAnswer(
+    question: string,
+    answer: string,
+    deps: FactCheckDeps = {},
+): Promise<number | null> {
+    return judge('accurate', ACCURATE_INSTRUCTIONS, question, answer, deps);
+}
+
+/**
+ * Asks Jev how likely it is that a tool's answer actually answers the question,
+ * as opposed to merely being about the same subject.
+ *
+ * Accuracy cannot catch this: the summary of the article "Mammal" is true, so it
+ * passes checkAnswer, and still says nothing about which mammal is largest.
+ * Null means "unjudged": the caller keeps the tool answer, as checkAnswer's
+ * callers keep an unjudged LLM answer.
+ */
+export async function checkRelevance(
+    question: string,
+    answer: string,
+    deps: FactCheckDeps = {},
+): Promise<number | null> {
+    return judge('answers_question', RELEVANT_INSTRUCTIONS, question, answer, deps);
 }

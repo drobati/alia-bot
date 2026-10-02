@@ -4,7 +4,8 @@ import { Context } from './types';
 
 const MAX_CONTENT = 255;
 
-export type LogReason = 'below_floor' | 'tool_no_answer';
+/** `tool_off_topic`: the tool returned something, but Jev judged it did not answer the question. */
+export type LogReason = 'below_floor' | 'tool_no_answer' | 'tool_off_topic';
 
 export interface RecordParams {
     guildId: string;

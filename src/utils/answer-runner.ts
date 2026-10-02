@@ -1,11 +1,20 @@
 import { Message } from 'discord.js';
 import { TOOLS } from '../tools';
 import { buildAnswerEmbed } from './answer-embed';
-import { recordClassification } from './classification-log';
+import { LogReason, recordClassification } from './classification-log';
+import { checkRelevance, RELEVANCE_FLOOR } from './fact-check';
 import { classify } from './question-classifier';
 import { decide } from './question-router';
-import { CONFIDENCE_FLOOR, Classification } from './question-types';
+import { CONFIDENCE_FLOOR, Classification, ToolName } from './question-types';
 import { Context } from './types';
+
+/**
+ * Tools that return the nearest search hit rather than a computed answer, so
+ * their output can be on the subject without answering the question. Weather,
+ * math, time and member lookups either answer exactly what was asked or return
+ * null; they are not checked.
+ */
+const SEARCH_TOOLS: ReadonlySet<ToolName> = new Set<ToolName>(['wikipedia']);
 
 export type AnswerOutcome =
     | { kind: 'answered' }
@@ -30,7 +39,7 @@ export async function answerQuestion(
     const classification = await classify(content, { addressedToBot }, { log: context.log });
     const route = decide(classification, addressedToBot);
 
-    const log = async (reason: 'below_floor' | 'tool_no_answer', routeLabel: string) => {
+    const log = async (reason: LogReason, routeLabel: string) => {
         if (!classification || !message.guildId) {
             return;
         }
@@ -63,6 +72,26 @@ export async function answerQuestion(
             // from a bad classification, and recorded as one.
             await log('tool_no_answer', `tool:${route.tool}`);
             return fallback(classification);
+        }
+
+        if (SEARCH_TOOLS.has(route.tool)) {
+            // "What's the largest mammal?" found the article "Mammal": accurate,
+            // on the subject, and no answer at all. An off-topic hit is treated as
+            // no hit, so an addressed question goes to the LLM (which is itself
+            // fact-checked) and a passive one stays silent.
+            const relevance = await checkRelevance(content, `${answer.title}: ${answer.body}`, {
+                log: context.log,
+            });
+            if (relevance !== null && relevance < RELEVANCE_FLOOR) {
+                context.log.info('Tool answer did not answer the question; falling back', {
+                    tool: route.tool,
+                    title: answer.title,
+                    relevance,
+                    addressed: addressedToBot,
+                });
+                await log('tool_off_topic', `tool:${route.tool}`);
+                return fallback(classification);
+            }
         }
 
         const payload = { embeds: [buildAnswerEmbed(answer)] };

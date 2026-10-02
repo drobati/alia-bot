@@ -2,6 +2,7 @@ import { answerQuestion } from './answer-runner';
 import { createContext, createTable } from './testHelpers';
 
 jest.mock('./question-classifier', () => ({ classify: jest.fn() }));
+jest.mock('./fact-check', () => ({ checkRelevance: jest.fn(), RELEVANCE_FLOOR: 0.75 }));
 jest.mock('../tools', () => ({
     TOOLS: {
         wikipedia: { name: 'wikipedia', run: jest.fn() },
@@ -10,6 +11,7 @@ jest.mock('../tools', () => ({
 }));
 
 import { classify } from './question-classifier';
+import { checkRelevance } from './fact-check';
 import { TOOLS } from '../tools';
 
 function setup() {
@@ -161,6 +163,93 @@ describe('answerQuestion', () => {
 
         expect(outcome).toMatchObject({ kind: 'llm' });
         expect(send).toHaveBeenCalled();
+    });
+
+    describe('relevance of a search hit', () => {
+        const mammal = {
+            title: 'Mammal',
+            body: 'A mammal is a vertebrate animal of the class Mammalia.',
+            sourceLabel: 'Wikipedia',
+        };
+
+        beforeEach(() => {
+            (classify as jest.Mock).mockResolvedValue({
+                type: 'general_knowledge', confidence: 0.95, alternatives: [],
+            });
+            (TOOLS.wikipedia.run as jest.Mock).mockResolvedValue(mammal);
+        });
+
+        it('hands an off-topic article to the LLM instead of posting it', async () => {
+            // The reported bug: "What's the largest mammal?" posted the "Mammal" article.
+            (checkRelevance as jest.Mock).mockResolvedValue(0.08);
+            const { context, message, send } = setup();
+
+            const outcome = await answerQuestion(message as never, context as never,
+                { content: "What's the largest mammal?", addressedToBot: true });
+
+            expect(outcome).toEqual({
+                kind: 'llm',
+                classification: expect.objectContaining({ type: 'general_knowledge' }),
+            });
+            expect(send).not.toHaveBeenCalled();
+            expect(checkRelevance).toHaveBeenCalledWith(
+                "What's the largest mammal?",
+                expect.stringContaining('Mammal'),
+                expect.anything(),
+            );
+            expect(context.tables.ClassificationLog.create).toHaveBeenCalledWith(
+                expect.objectContaining({ reason: 'tool_off_topic', route: 'tool:wikipedia' }),
+            );
+        });
+
+        it('stays silent on an off-topic article when nobody addressed her', async () => {
+            (checkRelevance as jest.Mock).mockResolvedValue(0.08);
+            const { context, message, reply } = setup();
+
+            const outcome = await answerQuestion(message as never, context as never,
+                { content: "What's the largest mammal?", addressedToBot: false });
+
+            expect(outcome).toEqual({ kind: 'silent' });
+            expect(reply).not.toHaveBeenCalled();
+        });
+
+        it('posts an article that does answer the question', async () => {
+            (checkRelevance as jest.Mock).mockResolvedValue(0.96);
+            const { context, message, send } = setup();
+
+            const outcome = await answerQuestion(message as never, context as never,
+                { content: 'what is a mammal?', addressedToBot: true });
+
+            expect(outcome).toEqual({ kind: 'answered' });
+            expect(send).toHaveBeenCalled();
+        });
+
+        it('posts the article when relevance could not be judged', async () => {
+            // An unavailable checker must not silence a tool that was working.
+            (checkRelevance as jest.Mock).mockResolvedValue(null);
+            const { context, message, send } = setup();
+
+            const outcome = await answerQuestion(message as never, context as never,
+                { content: 'what is a mammal?', addressedToBot: true });
+
+            expect(outcome).toEqual({ kind: 'answered' });
+            expect(send).toHaveBeenCalled();
+        });
+
+        it('does not check tools that compute their answer', async () => {
+            (classify as jest.Mock).mockResolvedValue({
+                type: 'weather', confidence: 0.95, alternatives: [],
+            });
+            (TOOLS.weather.run as jest.Mock).mockResolvedValue({
+                title: 'Tokyo', body: '18°C', sourceLabel: 'open-meteo',
+            });
+            const { context, message } = setup();
+
+            await answerQuestion(message as never, context as never,
+                { content: 'weather in tokyo?', addressedToBot: true });
+
+            expect(checkRelevance).not.toHaveBeenCalled();
+        });
     });
 
     it('falls back to the LLM when the tool itself throws', async () => {
