@@ -1,4 +1,4 @@
-import { checkAnswer, FACT_CHECK_FLOOR } from './fact-check';
+import { checkAnswer, checkRelevance, FACT_CHECK_FLOOR, RELEVANCE_FLOOR } from './fact-check';
 
 function fakeFetch(body: unknown, status = 200) {
     return jest.fn().mockResolvedValue({
@@ -113,5 +113,58 @@ describe('checkAnswer', () => {
             fetch: fetchMock as never, apiKey: 'k', log: LOG as never,
         })).toBeNull();
         expect(fetchMock).not.toHaveBeenCalled();
+    });
+});
+
+describe('checkRelevance', () => {
+    beforeEach(() => jest.clearAllMocks());
+
+    const answersQuestion = (p: number) => ({
+        answers: { answers_question: { type: 'noul', noul: p } },
+    });
+
+    it('returns the probability that the text answers the question', async () => {
+        const fetchMock = fakeFetch(answersQuestion(0.06));
+
+        const p = await checkRelevance("What's the largest mammal?", 'Mammal: A mammal is a vertebrate...', {
+            fetch: fetchMock as never, apiKey: 'k', log: LOG as never,
+        });
+
+        expect(p).toBe(0.06);
+    });
+
+    it('asks whether the answer is stated, not whether it is true', async () => {
+        // An accurate but off-topic summary passes an accuracy check, which was the bug.
+        const fetchMock = fakeFetch(answersQuestion(0.9));
+
+        await checkRelevance('q', 'a', { fetch: fetchMock as never, apiKey: 'k', log: LOG as never });
+
+        const body = JSON.parse(fetchMock.mock.calls[0][1].body);
+        expect(Object.keys(body.questions)).toEqual(['answers_question']);
+        expect(body.questions.answers_question.type).toBe('noul');
+        expect(body.questions.answers_question.instructions).toMatch(/directly state/);
+        expect(body.state).toEqual({ question: 'q', answer: 'a' });
+    });
+
+    it('does not read the accuracy key as a relevance score', async () => {
+        const fetchMock = fakeFetch(accurate(0.97));
+
+        expect(await checkRelevance('q', 'a', {
+            fetch: fetchMock as never, apiKey: 'k', log: LOG as never,
+        })).toBeNull();
+    });
+
+    it('honours the kill switch', async () => {
+        const fetchMock = fakeFetch(answersQuestion(0.9));
+
+        expect(await checkRelevance('q', 'a', {
+            fetch: fetchMock as never, apiKey: 'k', model: 'off', log: LOG as never,
+        })).toBeNull();
+        expect(fetchMock).not.toHaveBeenCalled();
+    });
+
+    it('has a floor between zero and one', () => {
+        expect(RELEVANCE_FLOOR).toBeGreaterThan(0);
+        expect(RELEVANCE_FLOOR).toBeLessThan(1);
     });
 });

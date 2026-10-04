@@ -35,7 +35,7 @@ export default (sequelize: any) => ({
         reason: {
             type: DataTypes.STRING,
             allowNull: false,
-            comment: 'below_floor or tool_no_answer',
+            comment: 'below_floor, tool_no_answer or tool_off_topic',
         },
         created_at: { type: DataTypes.DATE, allowNull: false, defaultValue: DataTypes.NOW },
     }, {
