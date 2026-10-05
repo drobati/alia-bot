@@ -48,6 +48,36 @@ export function toSearchTerms(query: string): string {
     return STOPWORDS_ONLY.has(stripped.toLowerCase()) ? query.trim() : stripped;
 }
 
+/**
+ * Fetches one article by exact title.
+ *
+ * Exported because a question whose subject is not its answer cannot be found by
+ * searching the subject — "the largest mammal" never ranks "Blue whale" — so the
+ * answer entity is named elsewhere and looked up directly here.
+ */
+export async function fetchArticle(title: string, deps: WikipediaDeps = {}): Promise<ToolAnswer | null> {
+    const doFetch = deps.fetch ?? fetch;
+    try {
+        const summary = await getJson(`${SUMMARY_URL}/${encodeURIComponent(title)}`, doFetch);
+        const extract: string | undefined = summary?.extract;
+        if (!extract) {
+            return null;
+        }
+        // A disambiguation page lists things rather than describing one; it cannot answer.
+        if (summary?.type === 'disambiguation') {
+            return null;
+        }
+        return {
+            title: summary.title ?? title,
+            body: extract.slice(0, MAX_BODY),
+            url: summary?.content_urls?.desktop?.page,
+            sourceLabel: 'Wikipedia',
+        };
+    } catch {
+        return null;
+    }
+}
+
 export const wikipediaTool: Tool = {
     name: 'wikipedia',
 
@@ -63,18 +93,7 @@ export const wikipediaTool: Tool = {
                 return null;
             }
 
-            const summary = await getJson(`${SUMMARY_URL}/${encodeURIComponent(title)}`, doFetch);
-            const extract: string | undefined = summary?.extract;
-            if (!extract) {
-                return null;
-            }
-
-            return {
-                title: summary.title ?? title,
-                body: extract.slice(0, MAX_BODY),
-                url: summary?.content_urls?.desktop?.page,
-                sourceLabel: 'Wikipedia',
-            };
+            return await fetchArticle(title, deps);
         } catch {
             // A lookup that cannot complete is a tool that cannot answer.
             return null;

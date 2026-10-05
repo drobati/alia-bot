@@ -2,7 +2,12 @@ import { Message } from 'discord.js';
 import { TOOLS } from '../tools';
 import { buildAnswerEmbed } from './answer-embed';
 import { LogReason, recordClassification } from './classification-log';
-import { checkRelevance, RELEVANCE_FLOOR } from './fact-check';
+import {
+    checkContradiction, checkRelevance, CONTRADICTION_CEILING, RELEVANCE_FLOOR,
+} from './fact-check';
+import { resolveAnswerEntity, writeSourcedAnswer } from './sourced-answer';
+import { fetchArticle } from '../tools/wikipedia';
+import { ToolAnswer } from '../tools/types';
 import { classify } from './question-classifier';
 import { decide } from './question-router';
 import { CONFIDENCE_FLOOR, Classification, ToolName } from './question-types';
@@ -27,6 +32,71 @@ export type AnswerOutcome =
  * embed when a tool answers. `llm` means the caller should run the existing
  * assistant path; `silent` means say nothing.
  */
+/**
+ * Names the thing that answers the question and fetches its article.
+ *
+ * Returns null unless the new article actually answers — the entity guess is
+ * checked by the same relevance gate that rejected the first hit, so a bad guess
+ * cannot sneak past on the second attempt.
+ */
+async function articleForAnswerEntity(
+    question: string,
+    rejectedTitle: string,
+    context: Context,
+): Promise<ToolAnswer | null> {
+    const entity = await resolveAnswerEntity(question, { log: context.log });
+    // Naming the article we just rejected means there is nothing new to try.
+    if (!entity || entity.toLowerCase() === rejectedTitle.toLowerCase()) {
+        return null;
+    }
+
+    const article = await fetchArticle(entity);
+    if (!article) {
+        return null;
+    }
+
+    const relevance = await checkRelevance(question, `${article.title}: ${article.body}`, {
+        log: context.log,
+    });
+    return relevance !== null && relevance < RELEVANCE_FLOOR ? null : article;
+}
+
+/**
+ * Replaces the article's lead paragraph with a sentence that answers the question.
+ *
+ * The extract contains the answer but rarely leads with it, so the reader has to
+ * hunt for the number. The link stays attached either way.
+ *
+ * Degrades rather than fails: if the rewrite cannot be written, or the source
+ * contradicts it, the verified extract is sent instead. A suspect sentence is
+ * worse than a paragraph that was already judged to answer the question.
+ */
+async function statedAnswer(
+    question: string,
+    article: ToolAnswer,
+    context: Context,
+): Promise<ToolAnswer> {
+    const written = await writeSourcedAnswer(question, article.title, article.body, {
+        log: context.log,
+    });
+    if (!written) {
+        return article;
+    }
+
+    const contradiction = await checkContradiction(question, written, article.body, {
+        log: context.log,
+    });
+    if (contradiction !== null && contradiction >= CONTRADICTION_CEILING) {
+        context.log.warn('Written answer contradicted its own source; sending the extract', {
+            title: article.title,
+            contradiction,
+        });
+        return article;
+    }
+
+    return { ...article, body: written };
+}
+
 export async function answerQuestion(
     message: Message,
     context: Context,
@@ -74,27 +144,38 @@ export async function answerQuestion(
             return fallback(classification);
         }
 
+        let article = answer;
+
         if (SEARCH_TOOLS.has(route.tool)) {
             // "What's the largest mammal?" found the article "Mammal": accurate,
-            // on the subject, and no answer at all. An off-topic hit is treated as
-            // no hit, so an addressed question goes to the LLM (which is itself
-            // fact-checked) and a passive one stays silent.
-            const relevance = await checkRelevance(content, `${answer.title}: ${answer.body}`, {
+            // on the subject, and no answer at all.
+            const relevance = await checkRelevance(content, `${article.title}: ${article.body}`, {
                 log: context.log,
             });
+
             if (relevance !== null && relevance < RELEVANCE_FLOOR) {
-                context.log.info('Tool answer did not answer the question; falling back', {
-                    tool: route.tool,
-                    title: answer.title,
-                    relevance,
-                    addressed: addressedToBot,
+                // Searching the subject cannot find an answer that is a different
+                // thing from the subject: "mammal" never ranks "Blue whale", and
+                // "France" ranks "Capital punishment in France" above Paris. So ask
+                // what the answer is, then look that up directly.
+                const viaEntity = await articleForAnswerEntity(content, article.title, context);
+                if (!viaEntity) {
+                    context.log.info('Tool answer did not answer the question; falling back', {
+                        tool: route.tool, title: article.title, relevance, addressed: addressedToBot,
+                    });
+                    await log('tool_off_topic', `tool:${route.tool}`);
+                    return fallback(classification);
+                }
+                context.log.info('Resolved the answer entity after an off-topic hit', {
+                    rejected: article.title, resolved: viaEntity.title,
                 });
-                await log('tool_off_topic', `tool:${route.tool}`);
-                return fallback(classification);
+                article = viaEntity;
             }
+
+            article = await statedAnswer(content, article, context);
         }
 
-        const payload = { embeds: [buildAnswerEmbed(answer)] };
+        const payload = { embeds: [buildAnswerEmbed(article)] };
         if (addressedToBot) {
             if (!message.channel.isSendable()) {
                 return fallback(classification);

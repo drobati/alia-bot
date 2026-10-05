@@ -26,10 +26,26 @@ export const FACT_CHECK_FLOOR = 0.75;
  */
 export const RELEVANCE_FLOOR = 0.75;
 
+/**
+ * Above this, the source contradicts the answer and it is not sent.
+ *
+ * Framed as contradiction rather than support on purpose. Asking "is this
+ * supported by the source" penalises anything derived — a metric-to-imperial
+ * conversion scored 0.83 and a correct blue whale answer 0.73, which would have
+ * hedged perfectly good answers. Asking "does the source contradict this"
+ * isolates actual error: measured 0.02-0.03 for correct answers and 0.86-0.99
+ * for wrong ones.
+ */
+export const CONTRADICTION_CEILING = 0.5;
+
 const ACCURATE_INSTRUCTIONS = 'Is the answer factually accurate as a response to the question?';
 const RELEVANT_INSTRUCTIONS =
     'Does the answer directly state the specific thing the question asks for? '
     + 'Text that is merely about the same topic, without containing the answer, does not count.';
+
+const CONTRADICTS_INSTRUCTIONS =
+    'Does the source contradict the answer? Say yes only if the source states something '
+    + 'incompatible with it. Unit conversions, rounding and rephrasing are not contradictions.';
 
 export interface FactCheckDeps {
     fetch?: typeof fetch;
@@ -49,6 +65,7 @@ async function judge(
     question: string,
     answer: string,
     deps: FactCheckDeps,
+    extraState: Record<string, string> = {},
 ): Promise<number | null> {
     const log = deps.log;
     const apiKey = deps.apiKey ?? process.env.OPENROUTER_API_KEY;
@@ -70,7 +87,7 @@ async function judge(
     const doFetch = deps.fetch ?? fetch;
     const body = JSON.stringify({
         model,
-        state: { question, answer },
+        state: { question, answer, ...extraState },
         questions: { [key]: { type: 'noul', instructions } },
     });
 
@@ -130,4 +147,22 @@ export async function checkRelevance(
     deps: FactCheckDeps = {},
 ): Promise<number | null> {
     return judge('answers_question', RELEVANT_INSTRUCTIONS, question, answer, deps);
+}
+
+/**
+ * Checks an answer against the source it was written from.
+ *
+ * Stronger than checkAnswer, which asks the model to judge a claim from its own
+ * knowledge. Here the source is in hand, so this asks whether the two disagree.
+ */
+export async function checkContradiction(
+    question: string,
+    answer: string,
+    source: string,
+    deps: FactCheckDeps = {},
+): Promise<number | null> {
+    if (source.trim().length === 0) {
+        return null;
+    }
+    return judge('contradicted', CONTRADICTS_INSTRUCTIONS, question, answer, deps, { source });
 }
