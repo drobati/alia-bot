@@ -1,4 +1,11 @@
-import { checkAnswer, checkRelevance, FACT_CHECK_FLOOR, RELEVANCE_FLOOR } from './fact-check';
+import {
+    checkAnswer,
+    checkRelevance,
+    FACT_CHECK_FLOOR,
+    RELEVANCE_FLOOR,
+    checkContradiction,
+    CONTRADICTION_CEILING,
+} from './fact-check';
 
 function fakeFetch(body: unknown, status = 200) {
     return jest.fn().mockResolvedValue({
@@ -166,5 +173,64 @@ describe('checkRelevance', () => {
     it('has a floor between zero and one', () => {
         expect(RELEVANCE_FLOOR).toBeGreaterThan(0);
         expect(RELEVANCE_FLOOR).toBeLessThan(1);
+    });
+});
+
+describe('checkContradiction', () => {
+    beforeEach(() => jest.clearAllMocks());
+
+    it('is low when the source agrees, even if the answer converts units', async () => {
+        // "Is this supported?" scored a metric-to-imperial conversion at 0.83 and
+        // would have hedged it. Contradiction framing leaves it alone.
+        const fetchMock = fakeFetch({ answers: { contradicted: { type: 'noul', noul: 0.02 } } });
+
+        const p = await checkContradiction(
+            'how tall is everest?',
+            'Mount Everest is 8,848.86 m (29,032 ft) tall.',
+            'Its height was most recently measured at 8,848.86 m.',
+            { fetch: fetchMock as never, apiKey: 'k', log: LOG as never },
+        );
+
+        expect(p).toBe(0.02);
+        expect(p).toBeLessThan(CONTRADICTION_CEILING);
+    });
+
+    it('is high when the source disagrees with the answer', async () => {
+        const fetchMock = fakeFetch({ answers: { contradicted: { type: 'noul', noul: 0.97 } } });
+
+        const p = await checkContradiction(
+            'how tall is everest?',
+            'Mount Everest is 12,000 m tall.',
+            'Its height was most recently measured at 8,848.86 m.',
+            { fetch: fetchMock as never, apiKey: 'k', log: LOG as never },
+        );
+
+        expect(p).toBeGreaterThan(CONTRADICTION_CEILING);
+    });
+
+    it('sends the source alongside the question and answer', async () => {
+        const fetchMock = fakeFetch({ answers: { contradicted: { type: 'noul', noul: 0.1 } } });
+
+        await checkContradiction('q', 'a', 'the source text', {
+            fetch: fetchMock as never, apiKey: 'k', log: LOG as never,
+        });
+
+        const body = JSON.parse(fetchMock.mock.calls[0][1].body);
+        expect(body.state).toEqual({ question: 'q', answer: 'a', source: 'the source text' });
+    });
+
+    it('does not spend a call when there is no source to check against', async () => {
+        const fetchMock = fakeFetch({ answers: { contradicted: { type: 'noul', noul: 0.1 } } });
+
+        expect(await checkContradiction('q', 'a', '  ', {
+            fetch: fetchMock as never, apiKey: 'k', log: LOG as never,
+        })).toBeNull();
+        expect(fetchMock).not.toHaveBeenCalled();
+    });
+
+    it('sits in the gap measured between correct and wrong answers', () => {
+        // Correct answers measured 0.02-0.03, wrong ones 0.86-0.99.
+        expect(CONTRADICTION_CEILING).toBeGreaterThan(0.03);
+        expect(CONTRADICTION_CEILING).toBeLessThan(0.86);
     });
 });

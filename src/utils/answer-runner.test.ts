@@ -2,7 +2,17 @@ import { answerQuestion } from './answer-runner';
 import { createContext, createTable } from './testHelpers';
 
 jest.mock('./question-classifier', () => ({ classify: jest.fn() }));
-jest.mock('./fact-check', () => ({ checkRelevance: jest.fn(), RELEVANCE_FLOOR: 0.75 }));
+jest.mock('./fact-check', () => ({
+    checkRelevance: jest.fn(),
+    checkContradiction: jest.fn(),
+    RELEVANCE_FLOOR: 0.75,
+    CONTRADICTION_CEILING: 0.5,
+}));
+jest.mock('./sourced-answer', () => ({
+    resolveAnswerEntity: jest.fn(),
+    writeSourcedAnswer: jest.fn(),
+}));
+jest.mock('../tools/wikipedia', () => ({ fetchArticle: jest.fn() }));
 jest.mock('../tools', () => ({
     TOOLS: {
         wikipedia: { name: 'wikipedia', run: jest.fn() },
@@ -11,7 +21,9 @@ jest.mock('../tools', () => ({
 }));
 
 import { classify } from './question-classifier';
-import { checkRelevance } from './fact-check';
+import { checkRelevance, checkContradiction } from './fact-check';
+import { resolveAnswerEntity, writeSourcedAnswer } from './sourced-answer';
+import { fetchArticle } from '../tools/wikipedia';
 import { TOOLS } from '../tools';
 
 function setup() {
@@ -264,5 +276,137 @@ describe('answerQuestion', () => {
 
         expect(outcome).toMatchObject({ kind: 'llm' });
         expect(TOOLS.wikipedia.run).toHaveBeenCalled();
+    });
+});
+
+describe('stating the answer from the article', () => {
+    const relevantHit = {
+        title: 'Mount Everest',
+        body: 'It is the highest mountain. 8,848.86 m.',
+        sourceLabel: 'Wikipedia',
+    };
+
+    beforeEach(() => {
+        jest.resetAllMocks();
+        (classify as jest.Mock).mockResolvedValue({
+            type: 'general_knowledge', confidence: 0.95, alternatives: [],
+        });
+        (TOOLS.wikipedia.run as jest.Mock).mockResolvedValue(relevantHit);
+        (checkRelevance as jest.Mock).mockResolvedValue(0.99);
+        (writeSourcedAnswer as jest.Mock).mockResolvedValue('Mount Everest is 8,848.86 m (29,032 ft) tall.');
+        (checkContradiction as jest.Mock).mockResolvedValue(0.02);
+    });
+
+    it('sends the stated answer, keeping the article as the citation', async () => {
+        const { context, message, send } = setup();
+
+        const outcome = await answerQuestion(message as never, context as never,
+            { content: 'how tall is mount everest?', addressedToBot: true });
+
+        expect(outcome).toEqual({ kind: 'answered' });
+        const embed = (send.mock.calls[0][0] as { embeds: { toJSON: () => Record<string, unknown> }[] })
+            .embeds[0].toJSON();
+        expect(embed.description).toBe('Mount Everest is 8,848.86 m (29,032 ft) tall.');
+        expect(embed.title).toBe('Mount Everest');
+    });
+
+    it('sends the extract when the written answer contradicts its own source', async () => {
+        (checkContradiction as jest.Mock).mockResolvedValue(0.97);
+        const { context, message, send } = setup();
+
+        await answerQuestion(message as never, context as never,
+            { content: 'how tall is mount everest?', addressedToBot: true });
+
+        const embed = (send.mock.calls[0][0] as { embeds: { toJSON: () => Record<string, unknown> }[] })
+            .embeds[0].toJSON();
+        expect(embed.description).toBe(relevantHit.body);
+    });
+
+    it('sends the extract when no answer could be written', async () => {
+        (writeSourcedAnswer as jest.Mock).mockResolvedValue(null);
+        const { context, message, send } = setup();
+
+        await answerQuestion(message as never, context as never,
+            { content: 'how tall is mount everest?', addressedToBot: true });
+
+        const embed = (send.mock.calls[0][0] as { embeds: { toJSON: () => Record<string, unknown> }[] })
+            .embeds[0].toJSON();
+        expect(embed.description).toBe(relevantHit.body);
+        expect(checkContradiction).not.toHaveBeenCalled();
+    });
+});
+
+describe('resolving the answer entity after an off-topic hit', () => {
+    const offTopic = {
+        title: 'List of largest mammals',
+        body: 'A list of largest mammals by family.',
+        sourceLabel: 'Wikipedia',
+    };
+    const blueWhale = {
+        title: 'Blue whale',
+        body: 'The blue whale is the largest animal known to have existed.',
+        sourceLabel: 'Wikipedia',
+    };
+
+    beforeEach(() => {
+        jest.resetAllMocks();
+        (classify as jest.Mock).mockResolvedValue({
+            type: 'general_knowledge', confidence: 0.95, alternatives: [],
+        });
+        (TOOLS.wikipedia.run as jest.Mock).mockResolvedValue(offTopic);
+        (checkRelevance as jest.Mock).mockResolvedValueOnce(0.09).mockResolvedValueOnce(0.97);
+        (resolveAnswerEntity as jest.Mock).mockResolvedValue('Blue whale');
+        (fetchArticle as jest.Mock).mockResolvedValue(blueWhale);
+        (writeSourcedAnswer as jest.Mock).mockResolvedValue('The blue whale is the largest mammal.');
+        (checkContradiction as jest.Mock).mockResolvedValue(0.03);
+    });
+
+    it('looks up the named answer and posts that article instead', async () => {
+        const { context, message, send } = setup();
+
+        const outcome = await answerQuestion(message as never, context as never,
+            { content: "what's the largest mammal?", addressedToBot: true });
+
+        expect(outcome).toEqual({ kind: 'answered' });
+        expect(fetchArticle).toHaveBeenCalledWith('Blue whale');
+        const embed = (send.mock.calls[0][0] as { embeds: { toJSON: () => Record<string, unknown> }[] })
+            .embeds[0].toJSON();
+        expect(embed.title).toBe('Blue whale');
+        expect(embed.description).toBe('The blue whale is the largest mammal.');
+    });
+
+    it('falls back when the named entity still does not answer', async () => {
+        // The second guess goes through the same relevance gate as the first, so a
+        // bad guess cannot slip past just because it is the second attempt.
+        (checkRelevance as jest.Mock).mockReset();
+        (checkRelevance as jest.Mock).mockResolvedValueOnce(0.09).mockResolvedValueOnce(0.10);
+        const { context, message, send } = setup();
+
+        const outcome = await answerQuestion(message as never, context as never,
+            { content: "what's the largest mammal?", addressedToBot: true });
+
+        expect(outcome).toMatchObject({ kind: 'llm' });
+        expect(send).not.toHaveBeenCalled();
+    });
+
+    it('does not re-fetch the article it just rejected', async () => {
+        (resolveAnswerEntity as jest.Mock).mockResolvedValue('list of largest mammals');
+        const { context, message } = setup();
+
+        await answerQuestion(message as never, context as never,
+            { content: "what's the largest mammal?", addressedToBot: true });
+
+        expect(fetchArticle).not.toHaveBeenCalled();
+    });
+
+    it('stays silent on the passive path when nothing answers', async () => {
+        (resolveAnswerEntity as jest.Mock).mockResolvedValue(null);
+        const { context, message, reply } = setup();
+
+        const outcome = await answerQuestion(message as never, context as never,
+            { content: "what's the largest mammal?", addressedToBot: false });
+
+        expect(outcome).toEqual({ kind: 'silent' });
+        expect(reply).not.toHaveBeenCalled();
     });
 });
