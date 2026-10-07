@@ -1,3 +1,4 @@
+import { Transaction } from 'sequelize';
 import { SparksService } from './sparksService';
 import { createContext, createTable, createRecord } from '../utils/testHelpers';
 
@@ -351,17 +352,30 @@ describe('SparksService', () => {
             const result = await service.addSparks('guild-1', 'user-1', 50, 'Test bonus');
 
             expect(result).toBe(true);
-            expect(balance.update).toHaveBeenCalledWith({
-                current_balance: 150,
-                lifetime_earned: 150,
-            });
+            expect(balance.update).toHaveBeenCalledWith(
+                { current_balance: 150, lifetime_earned: 150 },
+                expect.objectContaining({ transaction: expect.anything() }),
+            );
             expect(mockSparksLedger.create).toHaveBeenCalledWith(
                 expect.objectContaining({
                     type: 'earn',
                     amount: 50,
                     description: 'Test bonus',
                 }),
+                expect.objectContaining({ transaction: expect.anything() }),
             );
+        });
+
+        it('should refuse a negative amount instead of debiting the user', async () => {
+            const balance = createRecord({ current_balance: 100, lifetime_earned: 100, update: jest.fn() });
+            mockSparksUser.findOne.mockResolvedValue(createRecord({ id: 1 }));
+            mockSparksBalance.findOne.mockResolvedValue(balance);
+
+            const result = await service.addSparks('guild-1', 'user-1', -50, 'Nope');
+
+            expect(result).toBe(false);
+            expect(balance.update).not.toHaveBeenCalled();
+            expect(context.sequelize.transaction).not.toHaveBeenCalled();
         });
     });
 
@@ -381,10 +395,69 @@ describe('SparksService', () => {
             const result = await service.removeSparks('guild-1', 'user-1', 30, 'Test spend');
 
             expect(result).toBe(true);
-            expect(balance.update).toHaveBeenCalledWith({
-                current_balance: 70,
-                lifetime_spent: 30,
+            expect(balance.update).toHaveBeenCalledWith(
+                { current_balance: 70, lifetime_spent: 30 },
+                expect.objectContaining({ transaction: expect.anything() }),
+            );
+        });
+
+        it('should read the balance under a row lock, so two spends cannot both pass the check', async () => {
+            const balance = createRecord({
+                current_balance: 100, escrow_balance: 0, lifetime_spent: 0, update: jest.fn(),
             });
+            mockSparksUser.findOne.mockResolvedValue(createRecord({ id: 1 }));
+            mockSparksBalance.findOne.mockResolvedValue(balance);
+
+            await service.removeSparks('guild-1', 'user-1', 30, 'Test spend');
+
+            expect(context.sequelize.transaction).toHaveBeenCalled();
+            expect(mockSparksBalance.findOne).toHaveBeenCalledWith(
+                expect.objectContaining({
+                    lock: Transaction.LOCK.UPDATE,
+                    transaction: expect.anything(),
+                }),
+            );
+        });
+
+        it('should write the ledger entry in the same transaction as the debit', async () => {
+            const balance = createRecord({
+                current_balance: 100, escrow_balance: 0, lifetime_spent: 0, update: jest.fn(),
+            });
+            mockSparksUser.findOne.mockResolvedValue(createRecord({ id: 1 }));
+            mockSparksBalance.findOne.mockResolvedValue(balance);
+
+            await service.removeSparks('guild-1', 'user-1', 30, 'Test spend');
+
+            const debitTransaction = balance.update.mock.calls[0][1].transaction;
+            const ledgerTransaction = mockSparksLedger.create.mock.calls[0][1].transaction;
+            expect(ledgerTransaction).toBe(debitTransaction);
+        });
+
+        it('should refuse a negative amount instead of crediting the user', async () => {
+            const balance = createRecord({
+                current_balance: 100, escrow_balance: 0, lifetime_spent: 0, update: jest.fn(),
+            });
+            mockSparksUser.findOne.mockResolvedValue(createRecord({ id: 1 }));
+            mockSparksBalance.findOne.mockResolvedValue(balance);
+
+            // available (100) < -50 is false, so the old check let this through and
+            // `current_balance - (-50)` handed the user 50 sparks for free.
+            const result = await service.removeSparks('guild-1', 'user-1', -50, 'Exploit');
+
+            expect(result).toBe(false);
+            expect(balance.update).not.toHaveBeenCalled();
+            expect(mockSparksLedger.create).not.toHaveBeenCalled();
+        });
+
+        it('should refuse a fractional amount', async () => {
+            const balance = createRecord({
+                current_balance: 100, escrow_balance: 0, lifetime_spent: 0, update: jest.fn(),
+            });
+            mockSparksUser.findOne.mockResolvedValue(createRecord({ id: 1 }));
+            mockSparksBalance.findOne.mockResolvedValue(balance);
+
+            expect(await service.removeSparks('guild-1', 'user-1', 0.5, 'Fraction')).toBe(false);
+            expect(balance.update).not.toHaveBeenCalled();
         });
 
         it('should reject if insufficient balance', async () => {
