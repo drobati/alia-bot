@@ -141,6 +141,40 @@ describe('commands/config', () => {
             });
         });
 
+        it('should set voice log channel', async () => {
+            interaction.options.getSubcommandGroup.mockReturnValue('logs');
+            interaction.options.getSubcommand.mockReturnValue('voice');
+            interaction.options.getChannel.mockReturnValue({ id: '555' });
+            interaction.guildId = 'guild123';
+            Config.upsert.mockResolvedValue([{}, true]);
+
+            await config.execute(interaction, context);
+
+            expect(Config.upsert).toHaveBeenCalledWith({
+                key: 'log_channel_voice_guild123',
+                value: '555',
+            });
+            expect(interaction.reply).toHaveBeenCalledWith({
+                content: expect.stringContaining('Voice log channel set to <#555>'),
+                ephemeral: true,
+            });
+        });
+
+        it('should clear voice log channel', async () => {
+            interaction.options.getSubcommandGroup.mockReturnValue('logs');
+            interaction.options.getSubcommand.mockReturnValue('voice-clear');
+            interaction.guildId = 'guild123';
+            Config.destroy = jest.fn().mockResolvedValue(1);
+
+            await config.execute(interaction, context);
+
+            expect(Config.destroy).toHaveBeenCalledWith({ where: { key: 'log_channel_voice_guild123' } });
+            expect(interaction.reply).toHaveBeenCalledWith({
+                content: expect.stringContaining('Voice log channel cleared'),
+                ephemeral: true,
+            });
+        });
+
         it('should show current log channel when configured', async () => {
             interaction.options.getSubcommandGroup.mockReturnValue('logs');
             interaction.options.getSubcommand.mockReturnValue('show');

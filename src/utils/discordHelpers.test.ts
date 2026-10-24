@@ -1,4 +1,4 @@
-import { safelySendToChannel, safelyFindChannel, sendWithRetry } from './discordHelpers';
+import { safelySendToChannel, safelyFindChannel, sendWithRetry, getLogChannelId } from './discordHelpers';
 import { Context } from './types';
 
 // Mock channel
@@ -184,6 +184,35 @@ describe('Discord Helpers', () => {
 
             expect(result).toBe(false);
             expect(mockChannel.send).toHaveBeenCalledTimes(1);
+        });
+    });
+
+    describe('getLogChannelId', () => {
+        const makeTables = (values: Record<string, string>) => ({
+            Config: {
+                findOne: jest.fn(({ where }: any) => Promise.resolve(
+                    values[where.key] ? { value: values[where.key] } : null,
+                )),
+            },
+        }) as any;
+
+        it('returns the main log channel when no category is given', async () => {
+            const tables = makeTables({ log_channel_g1: 'main', log_channel_voice_g1: 'voice' });
+            expect(await getLogChannelId(tables, 'g1')).toBe('main');
+        });
+
+        it('returns the category channel when one is set', async () => {
+            const tables = makeTables({ log_channel_g1: 'main', log_channel_voice_g1: 'voice' });
+            expect(await getLogChannelId(tables, 'g1', 'voice')).toBe('voice');
+        });
+
+        it('falls back to the main log channel when the category is unset', async () => {
+            const tables = makeTables({ log_channel_g1: 'main' });
+            expect(await getLogChannelId(tables, 'g1', 'voice')).toBe('main');
+        });
+
+        it('returns null when nothing is configured', async () => {
+            expect(await getLogChannelId(makeTables({}), 'g1', 'voice')).toBeNull();
         });
     });
 });
