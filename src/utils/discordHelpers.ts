@@ -292,13 +292,29 @@ export async function sendWithRetry(
 }
 
 /**
+ * Log categories that can be routed to their own channel.
+ * Anything without a category goes to the main log channel.
+ */
+export type LogCategory = 'voice';
+
+/**
  * Gets the configured log channel ID for a guild.
- * This is the generic bot log channel used by all features.
+ * With a category, uses that category's channel if set, else the main log channel.
  */
 export async function getLogChannelId(
     tables: Context['tables'],
     guildId: string,
+    category?: LogCategory,
 ): Promise<string | null> {
+    if (category) {
+        const categoryConfig = await tables.Config.findOne({
+            where: { key: `log_channel_${category}_${guildId}` },
+        });
+        if (categoryConfig?.value) {
+            return categoryConfig.value;
+        }
+    }
+
     const config = await tables.Config.findOne({
         where: { key: `log_channel_${guildId}` },
     });
@@ -314,8 +330,9 @@ export async function getLogChannel(
     guild: Guild,
     tables: Context['tables'],
     log: Context['log'],
+    category?: LogCategory,
 ): Promise<TextChannel | null> {
-    const logChannelId = await getLogChannelId(tables, guild.id);
+    const logChannelId = await getLogChannelId(tables, guild.id, category);
 
     if (!logChannelId) {
         log.debug({ guildId: guild.id }, 'No log channel configured');
@@ -364,10 +381,11 @@ export async function sendLogMessage(
     options: {
         embeds?: EmbedBuilder[];
         content?: string;
+        category?: LogCategory;
     },
 ): Promise<boolean> {
     try {
-        const logChannel = await getLogChannel(guild, tables, log);
+        const logChannel = await getLogChannel(guild, tables, log, options.category);
 
         if (!logChannel) {
             return false;

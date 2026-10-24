@@ -124,7 +124,7 @@ const voiceStateUpdateEvent: BotEvent = {
 
         try {
             const embed = buildVoiceStateEmbed(oldState, newState, action);
-            await sendLogMessage(guild, tables, log, { embeds: [embed] });
+            await sendLogMessage(guild, tables, log, { embeds: [embed], category: 'voice' });
         } catch (error) {
             log.error({
                 error,

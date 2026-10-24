@@ -277,6 +277,40 @@ async function handleLogChannel(interaction: ChatInputCommandInteraction, contex
     });
 }
 
+async function handleLogVoice(interaction: ChatInputCommandInteraction, context: Context) {
+    const channel = interaction.options.getChannel('channel', true);
+    const guildId = interaction.guildId;
+
+    if (!guildId) {
+        return interaction.reply({ content: "This command can only be used in a server.", ephemeral: true });
+    }
+
+    const key = `log_channel_voice_${guildId}`;
+    await context.tables.Config.upsert({ key, value: channel.id });
+
+    await interaction.reply({
+        content: `Voice log channel set to <#${channel.id}>. `
+            + `Voice joins, leaves, and moves will be logged there instead of the main log channel.`,
+        ephemeral: true,
+    });
+}
+
+async function handleLogVoiceClear(interaction: ChatInputCommandInteraction, context: Context) {
+    const guildId = interaction.guildId;
+
+    if (!guildId) {
+        return interaction.reply({ content: "This command can only be used in a server.", ephemeral: true });
+    }
+
+    const key = `log_channel_voice_${guildId}`;
+    await context.tables.Config.destroy({ where: { key } });
+
+    await interaction.reply({
+        content: 'Voice log channel cleared. Voice activity will go to the main log channel.',
+        ephemeral: true,
+    });
+}
+
 async function handleLogShow(interaction: ChatInputCommandInteraction, context: Context) {
     const guildId = interaction.guildId;
 
@@ -321,10 +355,16 @@ async function handleLogShow(interaction: ChatInputCommandInteraction, context: 
         });
     }
 
+    const voiceConfig = await context.tables.Config.findOne({ where: { key: `log_channel_voice_${guildId}` } });
+    const voiceLine = voiceConfig?.value
+        ? `Voice Log Channel: <#${voiceConfig.value}> (\`${voiceConfig.value}\`)`
+        : 'Voice Log Channel: not set (uses main log channel)';
+
     await interaction.reply({
         content: `**Current Log Settings**\n`
             + `Log Channel: <#${config.value}> (\`${config.value}\`)\n`
-            + `Channel exists and is accessible`,
+            + `Channel exists and is accessible\n`
+            + voiceLine,
         ephemeral: true,
     });
 }
@@ -820,6 +860,17 @@ export default {
                     .addChannelTypes(ChannelType.GuildText)
                     .setRequired(true)))
             .addSubcommand((subcommand: any) => subcommand
+                .setName('voice')
+                .setDescription('Send voice join/leave/move logs to their own channel.')
+                .addChannelOption((option: any) => option
+                    .setName('channel')
+                    .setDescription('The channel to log voice activity.')
+                    .addChannelTypes(ChannelType.GuildText)
+                    .setRequired(true)))
+            .addSubcommand((subcommand: any) => subcommand
+                .setName('voice-clear')
+                .setDescription('Send voice logs back to the main log channel.'))
+            .addSubcommand((subcommand: any) => subcommand
                 .setName('show')
                 .setDescription('Show current log channel configuration.')))
         // Motivational subcommand group
@@ -1081,6 +1132,10 @@ export default {
                 case 'logs':
                     if (subcommand === 'channel') {
                         await handleLogChannel(interaction, context);
+                    } else if (subcommand === 'voice') {
+                        await handleLogVoice(interaction, context);
+                    } else if (subcommand === 'voice-clear') {
+                        await handleLogVoiceClear(interaction, context);
                     } else if (subcommand === 'show') {
                         await handleLogShow(interaction, context);
                     }
